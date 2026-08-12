@@ -1,0 +1,64 @@
+<!--
+Rendered by /start into a real CLAUDE.md, once, during first-run (§2.1 step 11).
+Every {{...}} placeholder below is replaced with this project's locked-in Q1–Q12
+answers — an agent reading the rendered file should never see a placeholder or a
+pattern this project didn't choose. Re-running /start on an already-initialized
+project leaves this file alone unless the developer explicitly confirms a
+conflicting change (§2.4).
+-->
+# {{APP_NAME}}
+
+{{APP_NAME}} is a {{UI_FRAMEWORK}} iOS app targeting iOS {{MIN_IOS_VERSION}}+,
+built with **{{ARCHITECTURE_PATTERN}}**, **{{NAVIGATION_APPROACH}}** navigation,
+and **{{TOPOLOGY_TIER}}** modularization.
+
+## Stack
+
+| | |
+|---|---|
+| Language | {{LANGUAGE}} |
+| UI framework | {{UI_FRAMEWORK}} |
+| Persistence | {{PERSISTENCE}} |
+| Architecture | {{ARCHITECTURE_PATTERN}} |
+| Navigation | {{NAVIGATION_APPROACH}} |
+| Networking | {{NETWORKING_STACK}} |
+| Dependency injection | {{DI_STYLE}} |
+| Testing | {{TESTING_FRAMEWORK}} |
+| Project generation | {{TOOLING}} |
+| Min iOS version | {{MIN_IOS_VERSION}} |
+
+## Topology: {{TOPOLOGY_TIER}}
+
+{{MODULE_GRAPH_SUMMARY}}
+<!-- e.g. "One app target, no package boundary." at T1, or a module table at T2/T3. -->
+
+Full module graph and ownership rules: `docs/ai/modularization.md`.
+Full architecture layer shapes: `docs/ai/architecture.md`.
+
+## Rules that apply everywhere
+
+- **Never hardcode a color.** Every color/font is a Swift token in a `Theme/`
+  directory — see `docs/ai/theming_rules.md`. `Scripts/check_hardcoded_colors.sh`
+  blocks a commit that violates this.
+- **Never hardcode a user-facing string.** Route through the owning module's
+  `L10n.<key>` — see `docs/ai/ui_rules.md`.
+- **A protocol is owned by its consumer, not its implementer** — see
+  `docs/CODING_STANDARDS.md`'s protocol-boundary section (§8.2).
+- **Use the Skills for routine work** — `/new-feature`, `/add-module`,
+  `/add-permission`, etc. (`.claude/skills/`) — rather than hand-rolling folder
+  structure or navigation wiring; they encode this project's locked-in decisions
+  so you don't have to re-derive them.
+
+## Where deeper rules live
+
+| Topic | File |
+|---|---|
+| Architecture layer shapes | `docs/ai/architecture.md` |
+| Module graph & ownership | `docs/ai/modularization.md` |
+| Theming | `docs/ai/theming_rules.md` |
+| UI conventions | `docs/ai/ui_rules.md` |
+| Permissions | `docs/ai/permissions_rules.md` |
+| Coding standards | `docs/CODING_STANDARDS.md` |
+| Git conventions | `docs/GIT_CONVENTIONS.md` |
+| Project map (files/modules not covered by convention) | `docs/PROJECT_MAP.md` |
+| Manual follow-ups | `TODO.md` |

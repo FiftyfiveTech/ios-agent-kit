@@ -1,0 +1,92 @@
+# Architecture
+
+> Rendered by `/start`. This file ships as a generic, multi-pattern reference —
+> `/start` deletes every pattern except the one actually chosen (§2.2 Q5) and fills
+> in the `{{...}}` placeholders below. If you're reading this in the template repo
+> itself rather than a generated project, every pattern is still here for
+> reference; a real project's `docs/ai/architecture.md` shows exactly one.
+
+This project uses **{{ARCHITECTURE_PATTERN}}**, with **{{UI_FRAMEWORK}}** and
+**{{NAVIGATION_APPROACH}}** navigation. Every feature `/new-feature` generates
+follows this pattern — no mixing patterns feature-to-feature (§5).
+
+## Layer shape for {{ARCHITECTURE_PATTERN}}
+
+<!-- /start keeps only the block matching Q5's answer. -->
+
+### MVC
+`Features/<Name>/<Name>ViewController.swift` (+ `.xib`/storyboard if used). Models
+live in `Models/`, never in the feature folder. Simplest, most
+Massive-View-Controller risk — reasonable only for very small or
+legacy-Objective-C-interop apps.
+
+### MVVM *(default)*
+`Features/<Name>/{<Name>View.swift, <Name>ViewModel.swift, <Name>UseCase.swift,
+<Name>Repository.swift, <Name>Service.swift}`. View binds to an
+`ObservableObject`/`@Observable` ViewModel; ViewModel never touches
+networking/persistence directly.
+
+```
+SwiftUI View → ViewModel (published UI state) → UseCase (pure Swift)
+    → Repository → { Service (remote) | local persistence } → Models/ (shared)
+```
+State flows back up the same chain via `@Published`/`@Observable` — no second call
+path, no layer-skipping.
+
+### VIP (Clean Swift)
+`Features/<Name>/{<Name>View.swift, <Name>Interactor.swift, <Name>Presenter.swift,
+<Name>Router.swift, <Name>Worker.swift}`. Request/Response/ViewModel structs live
+in `Models/<Name>Models.swift`, not here. Strict unidirectional flow:
+View → Interactor → Presenter → View.
+
+### VIPER
+`Features/<Name>/{<Name>View.swift, <Name>Interactor.swift, <Name>Presenter.swift,
+<Name>Router.swift}`. Entity structs live in `Models/<Name>Models.swift`. Full
+separation, heaviest boilerplate.
+
+### MV (SwiftUI-native)
+`Features/<Name>/{<Name>View.swift, <Name>Model.swift}`. `<Name>Model` is
+presentation state (an `@Observable` class calling services), not a data model —
+data models still live in `Models/`. Fewest layers, least isolatable for unit
+testing.
+
+## Two fixed rules, regardless of pattern (§3.2)
+
+- A leaf feature's folder is **flat** — no `Presentation/`/`Domain/`/`Data/`
+  subfolders inside `Features/<Name>/`. Grouping folders *above* a leaf feature
+  are fine (`Features/Settings/Profile/`).
+- Models never live inside a feature folder. Every model type — shared domain
+  model or single-feature Request/Response/Entity struct alike — lives in the
+  top-level `Models/` package, filed as `Models/<Feature>Models.swift`.
+
+## Navigation: {{NAVIGATION_APPROACH}}
+
+<!-- /start keeps only the block matching Q6's answer. -->
+
+### `UINavigationController` + Coordinator
+The Coordinator holds the `UINavigationController` and calls
+`pushViewController`; SwiftUI screens are wrapped in `UIHostingController` before
+pushing. Works regardless of whether individual screens are UIKit or SwiftUI.
+{{#if UI_FRAMEWORK_IS_SWIFTUI}}This app hosts every screen via `UIHostingController`
+and pushes/pops through the Coordinator — never a SwiftUI `NavigationLink` (§2.3:
+mixing both mechanisms in one app is what actually breaks).{{/if}}
+
+### SwiftUI `NavigationStack` + Router
+A `Router` holds a `NavigationPath`/typed `Route` array; Views append/remove from
+it via `.navigationDestination(for:)`. Less glue code, fully declarative.
+
+Whichever is chosen is the **one** navigation mechanism for the whole app —
+`/new-feature` always wires into it, never introduces a second path (§3.4).
+
+{{#if HAS_TABS}}
+## Tab-based navigation
+
+Each tab owns its own navigation stack — never a single shared one. Pushing a
+detail screen from one tab never affects another tab's back stack (§3.5).
+{{/if}}
+
+## Shared states
+
+Every list/detail screen consumes `LoadingView`, `ErrorView` (message + optional
+retry), and `EmptyStateView` from `DesignSystem/SharedViews/` — never a
+per-feature reimplementation (§3.6).

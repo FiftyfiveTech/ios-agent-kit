@@ -1,0 +1,37 @@
+import Foundation
+import Observation
+__MODULE_IMPORTS__
+
+// __FEATURE__UseCaseProtocol is declared here, not in UseCase.swift — a protocol
+// is owned by the module that CONSUMES it, never the one that implements it (§8.2).
+protocol __FEATURE__UseCaseProtocol {
+    func execute() async throws -> [__FEATURE__Model]
+}
+
+@Observable
+final class __FEATURE__ViewModel {
+    enum State {
+        case idle
+        case loading
+        case loaded([__FEATURE__Model])
+        case error(String)
+    }
+
+    private(set) var state: State = .idle
+
+    private let useCase: __FEATURE__UseCaseProtocol
+
+    init(useCase: __FEATURE__UseCaseProtocol) {
+        self.useCase = useCase
+    }
+
+    func load() async {
+        state = .loading
+        do {
+            let items = try await useCase.execute()
+            state = .loaded(items)
+        } catch {
+            state = .error(error.localizedDescription)
+        }
+    }
+}

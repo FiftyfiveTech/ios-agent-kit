@@ -1,0 +1,69 @@
+# Modularization
+
+> Rendered by `/start` from this repo's `ios-skeleton.config.json` — the tier,
+> module graph, and ownership rules below describe **this repo only** (§3.9–§3.11).
+
+## Topology: {{TOPOLOGY_TIER}}
+
+<!-- /start keeps only the block matching the recorded tier. -->
+
+### T1 — single project
+One `.xcodeproj`, one app target. No package boundary — everything can see
+everything. `Models/`, `Networking/`, `DesignSystem/`, `Core/` are plain folders
+inside the app target. `/new-feature` has exactly one destination; there is
+nothing to ask.
+
+### T2 — project + local packages *(default)*
+One `.xcodeproj` + local Swift packages under `Packages/`: `Core`, `Networking`,
+`Models`, `DesignSystem`. A package can't import the app — real compile-time
+layering. `Package.resolved` lives at
+`App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/`.
+
+### T3 — workspace + N projects
+`{{PRODUCT_NAME}}.xcworkspace` + one project per app/framework. `Package.resolved`
+lives at `{{PRODUCT_NAME}}.xcworkspace/xcshareddata/swiftpm/` — it moved off any
+single project. The workspace file is emitted by `Scripts/generate_workspace.sh`,
+never hand-edited (§3.9's tooling note).
+
+## Module graph
+
+{{MODULE_GRAPH_TABLE}}
+<!--
+/start renders one row per app/module from ios-skeleton.config.json, e.g.:
+
+| Module | Kind | Consumers | Owns |
+|---|---|---|---|
+| {{AppName}} | app | — | identity, signing, composition root |
+| Models | package | {{AppName}} | every model type (§3.2) |
+| Networking | package | {{AppName}} | RequestBuilder, APIClient |
+| DesignSystem | package | {{AppName}} | base theme tokens, shared states |
+-->
+
+**Dependency direction:** apps → shared frameworks/packages → leaf modules. Never
+the reverse, never framework → app, never app → app (§3.9). Enforced by
+`/add-module`'s hard refusal on a cycle.
+
+## Ownership rules from T2 onward (§3.11)
+
+- **Localization is per resource-owning module, not per repo.** Every module
+  with UI owns its own `Localization/Localizable.strings` (+ translations) and a
+  **bundle-aware** generated `L10n.swift` — never `Bundle.main` from inside a
+  shared module. Keys are namespaced by module (`shared.error.retry`,
+  `{{APP_NAMESPACE}}.settings.title`).
+- **Theme is base + override, not one file.** Base tokens live in
+  {{BASE_THEME_MODULE}}'s `Theme/`; each app's own thin `Theme/` overrides only
+  what differs. `/update-theme` enforces this split.
+- **Assets, icons, permissions and identity are per app, always.** `AppIcon`,
+  `Info.plist`, `.entitlements`, bundle ID, display name and signing never live
+  in a shared module.
+
+## `/new-feature`'s default destination
+
+{{#if SINGLE_APP}}
+This repo has one app (`{{DEFAULT_MODULE}}`) — `--module` is optional, everything
+lands there.
+{{else}}
+This repo has more than one app/module. `/new-feature` resolves its destination
+as: an explicit `--module` argument → the config's declared default
+(`{{DEFAULT_MODULE}}`, if set) → **stop and ask**. It never guesses (§3.11, §4).
+{{/if}}

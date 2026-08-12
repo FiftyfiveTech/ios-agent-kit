@@ -1,0 +1,48 @@
+import XCTest
+__MODULE_IMPORTS__
+__TESTABLE_IMPORT__
+
+// A real, passing unit test against a fake dependency (§4.1) — the fake is a
+// second conformance to __FEATURE__RepositoryProtocol, not a mocking framework
+// (§8.2), which is exactly what makes this possible at all.
+final class __FEATURE__UseCaseTests: XCTestCase {
+    func test_execute_returnsRepositoryResults() async throws {
+        let expected = __FAKE_MODEL_LIST__
+        let repository = Fake__FEATURE__Repository(result: .success(expected))
+        let useCase = __FEATURE__UseCase(repository: repository)
+
+        let result = try await useCase.execute()
+
+        XCTAssertEqual(result, expected)
+    }
+
+    func test_execute_propagatesRepositoryFailure() async {
+        let repository = Fake__FEATURE__Repository(result: .failure(FakeError.forced))
+        let useCase = __FEATURE__UseCase(repository: repository)
+
+        do {
+            _ = try await useCase.execute()
+            XCTFail("expected FakeError.forced to propagate")
+        } catch is FakeError {
+            // expected
+        } catch {
+            XCTFail("expected FakeError, got \(error)")
+        }
+    }
+}
+
+private enum FakeError: Error {
+    case forced
+}
+
+private final class Fake__FEATURE__Repository: __FEATURE__RepositoryProtocol {
+    private let result: Result<[__FEATURE__Model], Error>
+
+    init(result: Result<[__FEATURE__Model], Error>) {
+        self.result = result
+    }
+
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        try result.get()
+    }
+}

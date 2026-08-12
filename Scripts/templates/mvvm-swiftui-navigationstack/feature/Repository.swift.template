@@ -1,0 +1,20 @@
+import Foundation
+__MODULE_IMPORTS__
+
+// __FEATURE__ServiceProtocol lives here, not in Service.swift — Repository is its
+// consumer (§8.2).
+protocol __FEATURE__ServiceProtocol {
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
+}
+
+struct __FEATURE__Repository: __FEATURE__RepositoryProtocol {
+    private let service: __FEATURE__ServiceProtocol
+
+    init(service: __FEATURE__ServiceProtocol) {
+        self.service = service
+    }
+
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        try await service.fetch__FEATURE__List()
+    }
+}

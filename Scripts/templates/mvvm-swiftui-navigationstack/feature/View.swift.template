@@ -1,0 +1,47 @@
+import SwiftUI
+__MODULE_IMPORTS__
+
+// Presentation layer — binds to the ViewModel, never touches networking/persistence
+// directly (§3.3). Flat in Features/__FEATURE__/, no Presentation/Domain/Data
+// subfolders (§3.2).
+struct __FEATURE__View: View {
+    @State private var viewModel: __FEATURE__ViewModel
+
+    init(viewModel: __FEATURE__ViewModel) {
+        self.viewModel = viewModel
+    }
+
+    var body: some View {
+        content
+            .task { await viewModel.load() }
+            .navigationTitle(L10n.__MODULE_LOWER__.__FEATURE_LOWER__.title)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch viewModel.state {
+        case .idle, .loading:
+            LoadingView()
+        case .loaded(let items) where items.isEmpty:
+            EmptyStateView(message: L10n.__MODULE_LOWER__.__FEATURE_LOWER__.empty)
+        case .loaded(let items):
+            List(items, id: \.self) { item in
+                Text(String(describing: item))
+            }
+        case .error(let message):
+            ErrorView(message: message) {
+                Task { await viewModel.load() }
+            }
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        __FEATURE__View(viewModel: __FEATURE__ViewModel(useCase: Preview__FEATURE__UseCase()))
+    }
+}
+
+private struct Preview__FEATURE__UseCase: __FEATURE__UseCaseProtocol {
+    func execute() async throws -> [__FEATURE__Model] { [] }
+}

@@ -1,0 +1,73 @@
+# Root SwiftLint config — the ONE config for every tier and every module (§7).
+# Per-module scoping is done with included/excluded paths here, never a second .swiftlint.yml.
+
+included:
+  - App
+  - Packages
+  - Shared
+  - DesignSystem
+  - Logging
+
+excluded:
+  - "**/.build"
+  - "**/DerivedData"
+  - "**/*.generated.swift"
+  - "**/L10n.swift"
+
+opt_in_rules:
+  - explicit_init
+  - closure_spacing
+  - empty_count
+  - fatal_error_message
+  - force_unwrapping
+  - redundant_type_annotation
+  - unused_import
+  - vertical_whitespace_closing_braces
+
+disabled_rules:
+  - todo # TODO markers are intentional — see docs/CODING_STANDARDS.md
+
+line_length:
+  warning: 130
+  error: 160
+
+type_body_length:
+  warning: 300
+  error: 400
+
+function_body_length:
+  warning: 60
+  error: 100
+
+file_length:
+  warning: 400
+  error: 500
+
+identifier_name:
+  min_length: 2
+  excluded:
+    - id
+    - x
+    - y
+
+custom_rules:
+  no_print_statements:
+    included: ".*\\.swift"
+    excluded: ".*Tests.*\\.swift"
+    name: "No print()"
+    regex: "\\bprint\\("
+    message: "Use the Logging module instead of print() — see docs/ai/permissions_rules.md and §8.6."
+    severity: warning
+
+  no_force_try:
+    name: "No force try"
+    regex: "try!"
+    message: "Avoid try! — handle or propagate the error explicitly (docs/CODING_STANDARDS.md)."
+    severity: error
+
+  no_hardcoded_localized_string_literal:
+    included: ".*View\\.swift"
+    name: "No raw string literal in a View"
+    regex: "Text\\(\"[^\"]"
+    message: "Use L10n.<key> instead of a raw string literal in Text() — see docs/ai/ui_rules.md."
+    severity: warning

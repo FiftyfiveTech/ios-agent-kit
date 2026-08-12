@@ -1,0 +1,43 @@
+import SwiftUI
+__MODULE_IMPORTS__
+
+// Composition root. Manual initializer injection (Q9 default) — dependencies are
+// constructed here and threaded down, no container. /new-feature registers each
+// new screen's composition as a make<Feature>View() factory and a case in
+// destination(for:) at the markers below — never touch either by hand.
+//
+// /start renders this file with no feature baked in, then runs
+// `Scripts/new_feature.sh <StarterFeature>` (the same path /new-feature takes) to
+// populate both markers, and finally replaces the placeholder root view below with
+// make<StarterFeature>View() — the one substitution that isn't marker-driven,
+// because there is exactly one root view, ever.
+@main
+struct __APP_NAME__App: App {
+    @State private var router = Router()
+
+    // TODO: point this at the real API base URL — see TODO.md.
+    private let requestBuilder = RequestBuilder(baseURL: URL(string: "https://api.example.com")!)
+    private let apiClient: APIClient = URLSessionAPIClient()
+
+    var body: some Scene {
+        WindowGroup {
+            NavigationStack(path: $router.path) {
+                // MARK: starter-feature-root-view-insertion-point
+                Text("Replace with the starter feature's root view — see /start")
+                    .navigationDestination(for: Route.self) { route in
+                        destination(for: route)
+                    }
+            }
+            .environment(router)
+        }
+    }
+
+    // MARK: new-feature-factory-insertion-point
+
+    @ViewBuilder
+    private func destination(for route: Route) -> some View {
+        switch route {
+        // MARK: new-feature-destination-insertion-point
+        }
+    }
+}

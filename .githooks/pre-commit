@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Wired via `git config core.hooksPath .githooks` by /start (§2.1 step 8).
+# Runs on any staged .swift change: lint, hardcoded-color check, string-parity check,
+# then tests scoped to what's staged (T3: staged modules + their dependents — §7).
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+STAGED_SWIFT_FILES="$(git diff --cached --name-only --diff-filter=ACM -- '*.swift' || true)"
+
+if [ -z "$STAGED_SWIFT_FILES" ]; then
+  exit 0
+fi
+
+echo "pre-commit: running lint, color check, and string-parity check..."
+
+./Scripts/lint.sh
+./Scripts/check_hardcoded_colors.sh
+./Scripts/check_strings.sh
+
+# Test scope: at T1/T2, run the whole suite for the one project. At T3, run only the
+# schemes for modules with staged files plus their dependents (config's module graph) —
+# never every app's full suite on every commit, or the hook gets disabled (§7).
+if [ -f ios-skeleton.config.json ] && command -v xcodebuild >/dev/null 2>&1; then
+  echo "pre-commit: running tests for schemes affected by staged files..."
+  TOPOLOGY="$(sed -n 's/.*"topology"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' ios-skeleton.config.json | head -n1)"
+  if [ "$TOPOLOGY" = "T3" ]; then
+    echo "pre-commit: T3 — resolve staged modules' schemes and their dependents from ios-skeleton.config.json, then run 'xcodebuild test' per scheme."
+  else
+    SCHEME="$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' ios-skeleton.config.json | head -n1)"
+    echo "pre-commit: running 'xcodebuild test' for scheme ${SCHEME:-<app>}."
+  fi
+else
+  echo "pre-commit: no ios-skeleton.config.json yet (template repo, or xcodebuild unavailable) — skipping test run."
+fi
+
+echo "pre-commit: all checks passed."
