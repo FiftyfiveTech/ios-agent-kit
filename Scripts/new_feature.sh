@@ -347,13 +347,12 @@ render_template() {
 if [ "$DETERMINISTIC" -eq 1 ]; then
   render_template "$TEMPLATE_DIR/View.swift.template"        "$FEATURE_DIR/${FEATURE}View.swift"        "$IMPORTS_VIEW"
   render_template "$TEMPLATE_DIR/ViewModel.swift.template"    "$FEATURE_DIR/${FEATURE}ViewModel.swift"    "$IMPORTS_LOGIC"
-  render_template "$TEMPLATE_DIR/UseCase.swift.template"      "$FEATURE_DIR/${FEATURE}UseCase.swift"      "$IMPORTS_LOGIC"
   render_template "$TEMPLATE_DIR/Repository.swift.template"  "$FEATURE_DIR/${FEATURE}Repository.swift"  "$IMPORTS_LOGIC"
   render_template "$TEMPLATE_DIR/Service.swift.template"      "$FEATURE_DIR/${FEATURE}Service.swift"      "$IMPORTS_SERVICE"
-  render_template "$TEMPLATE_DIR/Tests.swift.template"        "$TEST_DIR/${FEATURE}UseCaseTests.swift"    "$IMPORTS_LOGIC"
+  render_template "$TEMPLATE_DIR/Tests.swift.template"        "$TEST_DIR/${FEATURE}ViewModelTests.swift"  "$IMPORTS_LOGIC"
 
   if [ "$NEEDS_FATAL_HELPER" -eq 1 ]; then
-    cat >> "$TEST_DIR/${FEATURE}UseCaseTests.swift" <<EOF
+    cat >> "$TEST_DIR/${FEATURE}ViewModelTests.swift" <<EOF
 
 private func fatalErrorFakeValue<T>(_ type: T.Type = T.self) -> T {
     fatalError("TODO: provide a fake value for \\(type)")
@@ -377,10 +376,8 @@ EOF
     FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
         ${FEATURE}View(\\
             viewModel: ${FEATURE}ViewModel(\\
-                useCase: ${FEATURE}UseCase(\\
-                    repository: ${FEATURE}Repository(\\
-                        service: ${FEATURE}Service(requestBuilder: requestBuilder, apiClient: apiClient)\\
-                    )\\
+                repository: ${FEATURE}Repository(\\
+                    service: ${FEATURE}Service(requestBuilder: requestBuilder, apiClient: apiClient)\\
                 )\\
             )\\
         )\\
@@ -425,7 +422,7 @@ struct ${FEATURE}${layer} {
 }
 EOF
   done
-  cat > "$TEST_DIR/${FEATURE}UseCaseTests.swift" <<EOF
+  cat > "$TEST_DIR/${FEATURE}Tests.swift" <<EOF
 import XCTest
 ${TESTABLE_IMPORT}
 

@@ -43,7 +43,7 @@ SwiftLint enforces from what's convention-only.
   satisfying them are injected by whoever composes the app. A shared module
   never branches on which app is running (`if app == .x` inside shared code
   has already failed — the next difference adds a second branch).
-- Every `Service`/`Repository`/`UseCase` is a **protocol plus a concrete
+- Every `Service`/`Repository`/`Interactor` is a **protocol plus a concrete
   implementation**, and the consumer depends on the protocol.
 - **A protocol is owned by the module that consumes it, not the one that
   implements it.** This is what keeps the dependency arrow pointing the right

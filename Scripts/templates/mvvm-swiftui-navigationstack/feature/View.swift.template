@@ -38,10 +38,10 @@ struct __FEATURE__View: View {
 
 #Preview {
     NavigationStack {
-        __FEATURE__View(viewModel: __FEATURE__ViewModel(useCase: Preview__FEATURE__UseCase()))
+        __FEATURE__View(viewModel: __FEATURE__ViewModel(repository: Preview__FEATURE__Repository()))
     }
 }
 
-private struct Preview__FEATURE__UseCase: __FEATURE__UseCaseProtocol {
-    func execute() async throws -> [__FEATURE__Model] { [] }
+private struct Preview__FEATURE__Repository: __FEATURE__RepositoryProtocol {
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] { [] }
 }

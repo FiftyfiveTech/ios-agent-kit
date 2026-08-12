@@ -22,14 +22,14 @@ Scripts/new_feature.sh [--module <M>] <Name>[/<Group/Path>] ["field:Type,..."]
 The script is deterministic for the default stack (MVVM + SwiftUI +
 `NavigationStack`): it generates
 
-- **Business layer** (UseCase/Interactor): pure Swift, no UI/networking
-  imports, depending on the data layer's *protocol* only.
+- **Presentation layer** (ViewModel + View): the ViewModel depends on the
+  Repository's *protocol* directly — MVVM has no separate business-logic
+  layer between them (there's nothing to test in a pass-through that adds no
+  business rule; see `docs/CODING_STANDARDS.md`). Flat in `Features/<Name>/`
+  (or `Features/<Group>/<Name>/`) — no `Presentation/`/`Domain/`/`Data/`
+  subfolders.
 - **Data layer** (Repository + Service): protocol + implementation, wired to
   the project's chosen networking stack — never a second networking path.
-- **Presentation layer** (ViewModel/Presenter/Controller + View): matching the
-  chosen UI framework, flat in `Features/<Name>/` (or
-  `Features/<Group>/<Name>/`) — no `Presentation/`/`Domain/`/`Data/`
-  subfolders.
 - **Models**: `Models/<Name>Models.swift` in the shared location — never a
   file inside the feature folder. The script refuses and asks if a field's
   type collides with an existing type already defined in `Models/`.

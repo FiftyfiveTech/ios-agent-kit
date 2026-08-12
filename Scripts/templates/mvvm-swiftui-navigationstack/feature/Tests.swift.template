@@ -5,28 +5,30 @@ __TESTABLE_IMPORT__
 // A real, passing unit test against a fake dependency (§4.1) — the fake is a
 // second conformance to __FEATURE__RepositoryProtocol, not a mocking framework
 // (§8.2), which is exactly what makes this possible at all.
-final class __FEATURE__UseCaseTests: XCTestCase {
-    func test_execute_returnsRepositoryResults() async throws {
+final class __FEATURE__ViewModelTests: XCTestCase {
+    func test_load_publishesRepositoryResults() async {
         let expected = __FAKE_MODEL_LIST__
         let repository = Fake__FEATURE__Repository(result: .success(expected))
-        let useCase = __FEATURE__UseCase(repository: repository)
+        let viewModel = __FEATURE__ViewModel(repository: repository)
 
-        let result = try await useCase.execute()
+        await viewModel.load()
 
-        XCTAssertEqual(result, expected)
+        guard case .loaded(let items) = viewModel.state else {
+            XCTFail("expected .loaded, got \(viewModel.state)")
+            return
+        }
+        XCTAssertEqual(items, expected)
     }
 
-    func test_execute_propagatesRepositoryFailure() async {
+    func test_load_publishesRepositoryFailure() async {
         let repository = Fake__FEATURE__Repository(result: .failure(FakeError.forced))
-        let useCase = __FEATURE__UseCase(repository: repository)
+        let viewModel = __FEATURE__ViewModel(repository: repository)
 
-        do {
-            _ = try await useCase.execute()
-            XCTFail("expected FakeError.forced to propagate")
-        } catch is FakeError {
-            // expected
-        } catch {
-            XCTFail("expected FakeError, got \(error)")
+        await viewModel.load()
+
+        guard case .error = viewModel.state else {
+            XCTFail("expected .error, got \(viewModel.state)")
+            return
         }
     }
 }

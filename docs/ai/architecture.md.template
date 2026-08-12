@@ -21,13 +21,20 @@ Massive-View-Controller risk — reasonable only for very small or
 legacy-Objective-C-interop apps.
 
 ### MVVM *(default)*
-`Features/<Name>/{<Name>View.swift, <Name>ViewModel.swift, <Name>UseCase.swift,
-<Name>Repository.swift, <Name>Service.swift}`. View binds to an
-`ObservableObject`/`@Observable` ViewModel; ViewModel never touches
-networking/persistence directly.
+`Features/<Name>/{<Name>View.swift, <Name>ViewModel.swift, <Name>Repository.swift,
+<Name>Service.swift}`. View binds to an `ObservableObject`/`@Observable`
+ViewModel; ViewModel depends on the Repository's protocol directly — no
+separate business-logic layer sits between them. (An earlier revision of this
+template inserted a `UseCase.swift` here, matching Clean-Architecture-style
+Android/Flutter conventions. It was dropped: for a single repository call with
+no business rule of its own, it was a pure pass-through — see
+`docs/CODING_STANDARDS.md`'s protocol-boundary rules. If a feature later needs
+to orchestrate more than one repository/service, or apply a rule that belongs
+in neither the ViewModel nor the Repository, add an `Interactor` — the native
+iOS name for that layer — rather than reintroducing `UseCase`.)
 
 ```
-SwiftUI View → ViewModel (published UI state) → UseCase (pure Swift)
+SwiftUI View → ViewModel (published UI state, depends on Repository's protocol)
     → Repository → { Service (remote) | local persistence } → Models/ (shared)
 ```
 State flows back up the same chain via `@Published`/`@Observable` — no second call

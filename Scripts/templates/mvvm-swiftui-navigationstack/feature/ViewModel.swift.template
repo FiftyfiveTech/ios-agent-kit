@@ -2,10 +2,12 @@ import Foundation
 import Observation
 __MODULE_IMPORTS__
 
-// __FEATURE__UseCaseProtocol is declared here, not in UseCase.swift — a protocol
-// is owned by the module that CONSUMES it, never the one that implements it (§8.2).
-protocol __FEATURE__UseCaseProtocol {
-    func execute() async throws -> [__FEATURE__Model]
+// __FEATURE__RepositoryProtocol is declared here, not in Repository.swift — a
+// protocol is owned by the module that CONSUMES it, never the one that
+// implements it (§8.2). ViewModel is the Repository's only consumer for this
+// feature, so there is no separate business-logic layer in between.
+protocol __FEATURE__RepositoryProtocol {
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
 }
 
 @Observable
@@ -19,16 +21,16 @@ final class __FEATURE__ViewModel {
 
     private(set) var state: State = .idle
 
-    private let useCase: __FEATURE__UseCaseProtocol
+    private let repository: __FEATURE__RepositoryProtocol
 
-    init(useCase: __FEATURE__UseCaseProtocol) {
-        self.useCase = useCase
+    init(repository: __FEATURE__RepositoryProtocol) {
+        self.repository = repository
     }
 
     func load() async {
         state = .loading
         do {
-            let items = try await useCase.execute()
+            let items = try await repository.fetch__FEATURE__List()
             state = .loaded(items)
         } catch {
             state = .error(error.localizedDescription)
