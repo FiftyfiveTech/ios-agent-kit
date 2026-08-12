@@ -51,19 +51,25 @@ ios-ai-skeleton/                      # rename per team convention — this IS P
 │   ├── update-theme/                 # §4.5
 │   ├── status/                       # §4.6
 │   ├── add-module/                   # §4.7 — new shared package/framework, wired into every consumer
-│   └── add-app/                      # §4.8 — second app in the same workspace, reusing shared modules
+│   ├── add-app/                      # §4.8 — second app in the same workspace, reusing shared modules
+│   └── translate/                    # §4.9 — drafts target-locale .strings entries for human review
 ├── Scripts/
 │   ├── new_feature.sh                # deterministic for the default stack, template-assisted otherwise — §1.4
 │   ├── new_module.sh                 # §4.7 — creates a module's spec + folders, deterministic at every tier
 │   ├── generate_workspace.sh         # §3.9 — emits <Name>.xcworkspace/contents.xcworkspacedata from config
 │   ├── templates/                    # per-architecture file templates new_feature.sh selects from
-│   │   └── mvvm-swiftui-navigationstack/   # the one fully-authored, deterministic combo — see §1.4
+│   │   ├── mvvm-swiftui-navigationstack/   # fully-authored, deterministic — see §1.4
+│   │   ├── vip-swiftui-navigationstack/    # fully-authored, deterministic — ViewModel bridge (§1.4)
+│   │   ├── vip-uikit-coordinator/          # fully-authored, deterministic — classic Clean Swift (§1.4)
+│   │   └── mvc-uikit-coordinator/          # fully-authored, deterministic — ViewController only (§1.4)
 │   ├── check_hardcoded_colors.sh     # §7 — theming enforcement
 │   ├── check_strings.sh              # §8.5 — missing/extra/duplicate keys across locales and modules
 │   ├── generate_strings.sh           # §3.7 — regenerates each module's L10n.swift from its Localizable.strings
 │   └── lint.sh                       # §7 — swiftlint wrapper
 ├── .swiftlint.yml
-├── .githooks/pre-commit
+├── .githooks/
+│   ├── pre-commit
+│   └── commit-msg                    # §7 — enforces docs/GIT_CONVENTIONS.md's message format
 ├── docs/
 │   ├── ONBOARDING.md                 # how to use *this template* — §1.2
 │   ├── CODING_STANDARDS.md
@@ -92,8 +98,14 @@ Every Skill other than `/start` checks for `ios-skeleton.config.json` at repo ro
 
 Authoring a literal, byte-for-byte code template for every architecture × UI-framework × navigation-approach combination in §3 is a real, ongoing cost — don't pretend one prompt makes all of them free. Scope Phase A's authoring effort like this:
 
-- **Fully deterministic, zero LLM tokens:** the recommended default stack — MVVM + SwiftUI + `NavigationStack` + SwiftData. `Scripts/templates/mvvm-swiftui-navigationstack/` ships complete, real, buildable file templates from day one.
-- **Template-assisted for every other combination:** `new_feature.sh` still generates the folder skeleton, DI wiring, navigation registration, and test scaffold deterministically regardless of architecture — but the body of Presenter/Interactor/Controller files falls back to Claude writing them from the §3 layer description, since that's genuinely custom per combination, not something worth hand-templating on faith before it's been used.
+- **Fully deterministic, zero LLM tokens — four combinations:**
+  - **MVVM + SwiftUI + `NavigationStack` + SwiftData** (the recommended default). `Scripts/templates/mvvm-swiftui-navigationstack/` — View, ViewModel, Repository, Service (§3.8; no `UseCase` — see §3.8's note).
+  - **VIP + SwiftUI + `NavigationStack`.** `Scripts/templates/vip-swiftui-navigationstack/` — View, **ViewModel**, Interactor, Presenter, Router, Worker. SwiftUI Views are value types and cannot hold a weak reference, so classic VIP's `weak var displayLogic` sits on a thin `@Observable` ViewModel bridge instead of the View directly — the Presenter still never calls back into the Interactor, and the ViewModel still contains no formatting or business logic, exactly as in the UIKit variant below. (This shape is evidence-based, not invented for this template — see the production reference in §8's baseline note.)
+  - **VIP + UIKit + Coordinator.** `Scripts/templates/vip-uikit-coordinator/` — classic Clean Swift: View(Controller), Interactor, Presenter, Router, Worker. The ViewController conforms to `XDisplayLogic` directly (it's already a reference type), so no ViewModel bridge is needed here. Per-scene `Router.swift` (VIP's own navigation object — see the naming note below) hands off the actual push to the app-wide `Coordinator` (§3.4) rather than owning a `UINavigationController` itself.
+  - **MVC + UIKit + Coordinator.** `Scripts/templates/mvc-uikit-coordinator/` — `<Name>ViewController.swift` only (§3.3). No SwiftUI variant: a "SwiftUI MVC" has no real controller layer to template and would just duplicate the MV pattern (§3.3's MV row already covers that shape).
+  - **VIPER is deliberately not given its own template.** It differs from VIP only by removing VIP's `weak` ViewController/ViewModel reference and Router taking over full navigation ownership — close enough to the VIP templates above that a dedicated VIPER template would be near-duplicate authoring effort for a pattern §3.3 already calls "heaviest boilerplate." VIPER stays template-assisted.
+  - **Naming note — two different "Router" concepts, don't conflate them.** VIP's per-scene `<Name>Router.swift` (one of its five layer files, §3.3) decides *where* to go from inside that specific scene; §3.4's `Coordinator`/`Router` is the *app-wide* navigation-approach choice that actually owns the `UINavigationController`/`NavigationPath`. VIP's scene-level Router calls into whichever app-wide mechanism §3.4 selected — it doesn't replace it.
+- **Template-assisted for every other combination:** `new_feature.sh` still generates the folder skeleton, DI wiring, navigation registration, and test scaffold deterministically regardless of architecture — but the body of Presenter/Interactor/Controller files falls back to Claude writing them from the §3 layer description, since that's genuinely custom per combination, not something worth hand-templating on faith before it's been used. This now covers: MVC+SwiftUI, MV (either UI framework), VIPER (either), and any architecture paired with the non-default navigation approach for its UI framework (e.g. MVVM+UIKit+Coordinator).
 - **Topology is orthogonal to this split.** The parts that vary by tier — where the files land, which spec gets the new dependency, whether a type needs `public` — are deterministic at all three tiers, because they're driven by `ios-skeleton.config.json` rather than by the architecture templates (§3.9). Only file *bodies* fall back to the agent.
 - As more combinations prove common in real use, add their template folder under `Scripts/templates/` and drop them from the template-assisted set. Track which combinations are fully templated vs. agent-assisted in `docs/PROJECT_MAP.md` — a project team should know which path their `/new-feature` calls take.
 
@@ -112,7 +124,7 @@ Everything in this section is what you're building *into* the Skill file, to run
 5. Generate the spec file(s) per the tooling answer and the tier (§3.9): one `project.yml`/`Project.swift` at T1/T2; one spec **per project** at T3, plus the workspace.
 6. Run `xcodegen generate` (once per spec) or `tuist generate` to produce the real `.xcodeproj`(s). At T3 with XcodeGen, also run `Scripts/generate_workspace.sh` — XcodeGen generates projects, not workspaces, so the template emits `<Name>.xcworkspace/contents.xcworkspacedata` itself from the config's project list (§3.9). **No manual Xcode step, ever, at any point in this flow.**
 7. `git init` if no `.git` exists yet. If this folder came from cloning the template repo directly, **offer** — don't silently do — to detach it from the template's own git history/remote so the new app starts with clean history.
-8. Wire `.githooks/pre-commit` via `core.hooksPath`.
+8. Wire `.githooks/pre-commit` and `.githooks/commit-msg` via `core.hooksPath`.
 9. Materialize the folder tree from §3 for the chosen architecture **and tier**: `App/`, `Core/` (Utilities + Localization), `Networking/`, `Models/`, `DesignSystem/` (Theme + SharedViews), `Features/` — as folders in one target at T1, as local packages at T2, as separate framework projects at T3 (§3.9). Seed **each localization-owning module's** `Localizable.strings` with its first few real strings and run `Scripts/generate_strings.sh` once per module to produce its bundle-aware `L10n.swift` (§3.11) — never leave the localization layer unwired even before the first feature exists.
 10. Scaffold one starter feature (e.g. "Home") **in each app** using the same logic §4.1 describes for `/new-feature` — proving the whole stack actually compiles and its one generated test actually passes, not aspirationally. At T3 with more than one app, also generate one shared base view in the shared UI module that both apps' Home screens consume, so the sharing seam is exercised on day one rather than discovered later (§3.9).
 11. Render `CLAUDE.md`, `docs/ai/architecture.md`, `docs/ai/modularization.md`, `README.md`, `docs/ONBOARDING.md` from their `.template` counterparts, replacing every placeholder with the real, locked-in decisions — a project that chose VIPER should never see MVVM's diagram in its own `docs/ai/architecture.md`, and a T1 project should never see a workspace diagram in its `modularization.md`.
@@ -126,7 +138,7 @@ Q1 is asked and answered **first**, and its answer gates most of what follows: w
 | # | Question | Options | Recommended default | Why it matters |
 |---|---|---|---|---|
 | 1 | **Project topology & modularization** | **T1** single `.xcodeproj`, one app target / **T2** single `.xcodeproj` + local Swift packages (`Core`, `DesignSystem`, `Networking`, `Models`, `Features/*`) / **T3** `.xcworkspace` + N projects (1..N apps + shared framework projects) | T2 for one app; T3 the moment a second app, app-extension, or separately-versioned SDK is on the roadmap | Gates the whole tree (§3.9), the location of lint/strings/`Package.resolved`, and every Skill's "which module?" branch. Also asks: **how many apps now?** — see Q12 |
-| 2 | Language | Swift / Objective-C interop alongside Swift | Swift-only | Determines syntax of every generated file — see §10 for Obj-C scope caveat |
+| 2 | Language | Swift only *(no Objective-C option — decided against; see §10)* | Swift-only | Every generated file is Swift. A project with legacy Objective-C to bridge in still can — add a bridging header manually — but this template generates nothing for it. |
 | 3 | UI framework | SwiftUI / UIKit / Hybrid (UIKit shell hosting SwiftUI screens) | SwiftUI | Changes the shape of the presentation layer |
 | 4 | Persistence | SwiftData / Core Data / None (network + in-memory only) | SwiftData | SwiftData requires iOS 17+ — validate against Q8 |
 | 5 | Architecture pattern | MVVM / MVC / VIP (Clean Swift) / VIPER / MV (SwiftUI-native, `@Observable`, no separate ViewModel) | MVVM | Determines the layer set every feature scaffold generates — see §3 |
@@ -142,7 +154,7 @@ Ask it like this:
 
 > "Before I scaffold your app, I need a few decisions — answer inline or say 'use the recommended defaults' and I'll fill in the rest:
 > 1. Topology — one Xcode project (T1), one project plus local Swift packages (T2), or a workspace with several projects because you'll ship more than one app / a reusable framework (T3)? And how many apps do you expect in this repo — now, and within a year?
-> 2. Swift only, or Swift with Objective-C interop?
+> 2. (Language is fixed at Swift only — this template doesn't scaffold Objective-C interop.)
 > 3. SwiftUI, UIKit, or a hybrid?
 > 4. SwiftData, Core Data, or no local persistence?
 > 5. Architecture: MVVM, MVC, VIP (Clean Swift), VIPER, or MV (SwiftUI-native)?
@@ -160,7 +172,6 @@ Answer Q1 honestly rather than aspirationally. "One app, but we might extract an
 
 - SwiftData or the MV (`@Observable`) pattern selected but deployment target < iOS 17 → stop, ask the user to raise the target or pick Core Data / MVVM instead.
 - `NavigationStack`-based routing selected but deployment target < iOS 16 → same treatment.
-- Objective-C interop selected together with the MV (SwiftUI-native) pattern → flag as an unusual combination (MV leans on Swift-only `@Observable`) and confirm intent.
 - UI framework (Q3) = UIKit **and** navigation (Q6) = `NavigationStack` → invalid, `NavigationStack` is SwiftUI-only; stop and ask the developer to pick the Coordinator/`UINavigationController` route or switch Q3.
 - UI framework (Q3) = SwiftUI **and** navigation (Q6) = `UINavigationController` + Coordinator → valid, but document in the rendered `docs/ai/architecture.md` that every screen is hosted via `UIHostingController` and pushed/popped through the Coordinator, not a SwiftUI `NavigationLink` — mixing both mechanisms in one app is what actually breaks.
 - Topology (Q1) = T1 **and** more than one app declared (Q12) → invalid; two apps need at least T2 with a shared package, realistically T3. Stop and re-ask.
@@ -192,7 +203,9 @@ This is the **T2** layout: one app project plus local Swift packages. At **T1**,
 ├── project.yml                       # or Tuist Project.swift
 ├── ios-skeleton.config.json          # the locked-in Q1–Q12 answers — §1.3's shared precondition checks this
 ├── .swiftlint.yml
-├── .githooks/pre-commit
+├── .githooks/
+│   ├── pre-commit
+│   └── commit-msg
 ├── CLAUDE.md                         # rendered from CLAUDE.md.template — real decisions, not placeholders
 ├── README.md
 ├── docs/
@@ -264,13 +277,13 @@ Applied consistently by both `/start`'s starter feature and every feature `/new-
 
 ### 3.3 Architecture Pattern Reference
 
-| Pattern | Files directly inside `Features/<Name>/` (flat) | Notes |
-|---|---|---|
-| **MVC** | `<Name>ViewController.swift` (+ `.xib`/storyboard if used) | Models live in `Models/`, never here. Simplest, most Massive-View-Controller risk — reasonable only for very small or legacy-Obj-C-interop apps. |
-| **MVVM** *(default)* | `<Name>View.swift`, `<Name>ViewModel.swift`, `<Name>Repository.swift`, `<Name>Service.swift` | View binds to an `ObservableObject`/`@Observable` `ViewModel`; `ViewModel` depends on the Repository's protocol directly — no separate business-logic layer between them. If a feature needs to orchestrate more than one repository/service, or apply a rule that belongs in neither the ViewModel nor the Repository, add an `<Name>Interactor.swift` (the native-iOS name for that layer, already used by VIP/VIPER below) rather than a `UseCase` — see §8.2's "don't abstract on speculation." |
-| **VIP (Clean Swift)** | `<Name>View.swift`, `<Name>Interactor.swift`, `<Name>Presenter.swift`, `<Name>Router.swift`, `<Name>Worker.swift` | Request/Response/ViewModel structs live in `Models/<Name>Models.swift`, not here. Strict unidirectional flow: View → Interactor → Presenter → View. |
-| **VIPER** | `<Name>View.swift`, `<Name>Interactor.swift`, `<Name>Presenter.swift`, `<Name>Router.swift` | Entity structs live in `Models/<Name>Models.swift`. Full separation, heaviest boilerplate. |
-| **MV (SwiftUI-native)** | `<Name>View.swift`, `<Name>Model.swift` | `<Name>Model` is presentation state, not a data model — see the exception in §3.2. Fewest layers, least isolatable for unit testing. |
+| Pattern | Files directly inside `Features/<Name>/` (flat) | Notes | Fully templated? (§1.4) |
+|---|---|---|---|
+| **MVC** | `<Name>ViewController.swift` (+ `.xib`/storyboard if used) | Models live in `Models/`, never here. Simplest, most Massive-View-Controller risk — reasonable only for very small apps. | UIKit: yes (`mvc-uikit-coordinator`). SwiftUI: template-assisted — see the MV row instead. |
+| **MVVM** *(default)* | `<Name>View.swift`, `<Name>ViewModel.swift`, `<Name>Repository.swift`, `<Name>Service.swift` | View binds to an `ObservableObject`/`@Observable` `ViewModel`; `ViewModel` depends on the Repository's protocol directly — no separate business-logic layer between them. If a feature needs to orchestrate more than one repository/service, or apply a rule that belongs in neither the ViewModel nor the Repository, add an `<Name>Interactor.swift` (the native-iOS name for that layer, already used by VIP/VIPER below) rather than a `UseCase` — see §8.2's "don't abstract on speculation." | SwiftUI + `NavigationStack`: yes. UIKit/Coordinator: template-assisted. |
+| **VIP (Clean Swift)** | `<Name>View.swift` (SwiftUI: **+ `<Name>ViewModel.swift`**), `<Name>Interactor.swift`, `<Name>Presenter.swift`, `<Name>Router.swift`, `<Name>Worker.swift` | Request/Response/ViewModel structs live in `Models/<Name>Models.swift`, not here. Strict unidirectional flow: View → Interactor → Presenter → View. SwiftUI needs the extra `ViewModel` as a bridge, since a SwiftUI View can't hold `weak var displayLogic` itself (§1.4) — UIKit's `ViewController` holds it directly, no bridge needed. | Yes, both variants: `vip-swiftui-navigationstack` and `vip-uikit-coordinator`. |
+| **VIPER** | `<Name>View.swift`, `<Name>Interactor.swift`, `<Name>Presenter.swift`, `<Name>Router.swift` | Entity structs live in `Models/<Name>Models.swift`. Full separation, heaviest boilerplate. Differs from VIP only by dropping the `weak` reference and giving Router full navigation ownership — close enough to VIP that it's deliberately not given its own template (§1.4). | Template-assisted. |
+| **MV (SwiftUI-native)** | `<Name>View.swift`, `<Name>Model.swift` | `<Name>Model` is presentation state, not a data model — see the exception in §3.2. Fewest layers, least isolatable for unit testing. | Template-assisted. |
 
 ### 3.4 Navigation approaches (independent of the architecture pattern above and of Q3's UI framework)
 
@@ -280,6 +293,8 @@ Applied consistently by both `/start`'s starter feature and every feature `/new-
 | **SwiftUI `NavigationStack` + Router** | A `Router` holds a `NavigationPath`/typed path array; Views append/remove from it, `.navigationDestination` maps a route to a screen | Less glue code, fully declarative — only available when the hosting screen is SwiftUI. |
 
 Whichever is chosen (Q6) is the **one** navigation mechanism for the whole app — `/new-feature` always wires into it, never introduces a second path. At T3 with more than one app, each app owns its own navigation root, but both must use the *same* mechanism — a shared framework can only vend pushable screens if it can assume one navigation contract (§3.9).
+
+**Don't confuse this `Router` with VIP's per-scene `Router.swift` (§3.3, §1.4).** This section's `Router`/`Coordinator` is the one app-wide mechanism that actually owns the `NavigationPath`/`UINavigationController`. VIP's own `<Name>Router.swift` is a per-scene layer file that decides *where* a given scene should go next and hands that decision to whichever app-wide mechanism is in force here — it never owns navigation state itself.
 
 ### 3.5 Tab-based apps: independent navigation per tab
 
@@ -369,7 +384,7 @@ Same layers, three packagings. Pick the smallest one that fits, because §3.10 m
 ├── Scripts/  .githooks/  docs/  CLAUDE.md
 ├── <AppOne>/
 │   ├── project.yml
-│   ├── <AppOne>.xcodeproj                  # generated, gitignored or committed per team policy
+│   ├── <AppOne>.xcodeproj                  # generated by XcodeGen/Tuist, committed (§8.8)
 │   ├── Sources/{App,Features,Navigation,Theme}     # app-specific screens + brand theme overrides
 │   └── Resources/{Assets.xcassets, en.lproj/…, Info.plist, <AppOne>.entitlements}
 ├── <AppTwo>/                               # same shape — different identity, theme, feature set
@@ -525,6 +540,18 @@ The additive half of §3.10's migration path.
 - Adds the project to the workspace and regenerates; appends both the app and its per-app manual follow-ups (signing, App Store record, push certs) to `TODO.md`.
 - Does **not** copy features from the existing app. If two apps need the same screen, it belongs in a shared module — the Skill says this rather than duplicating, because a copied screen is the fastest way to lose the value of T3.
 
+### 4.9 `/translate [--module <M>] <locale-code> [locale-code...]`
+
+Resolves §10's former "no localization Skill" gap. Drafts target-locale entries; never a substitute for a human review pass before shipping.
+
+- Resolves the target module the same way §4.1 does (`--module` → config default → single-module fallback → ask).
+- Reads that module's base locale (`en.lproj/Localizable.strings`, the only locale `/new-feature`/`/add-permission` write to) as the source of truth.
+- For each requested locale code not yet present under the module's `Localization/` folder, creates `<locale>.lproj/Localizable.strings` from scratch; for a locale that already exists, adds only the keys `check_strings.sh` reports as **missing** in it — never touches a key a human has already translated, drafted or not.
+- Every newly drafted line is agent-translated from the base English string and marked, in-file, as needing review — e.g. `/* NEEDS_REVIEW */ "home.title" = "...";` — so `grep -r NEEDS_REVIEW` finds every unreviewed line across the repo and a reviewer can clear the marker once they've checked it. A key is never left both marked-reviewed and untranslated.
+- Re-runs `Scripts/generate_strings.sh <module>` afterward so the new locale's keys are covered by the same `L10n.swift` accessor as every other locale — `/translate` adds *strings*, it never changes what `L10n` exposes, since the base locale's key set is unchanged.
+- Does not decide which locales a project ships — that's an explicit argument every invocation, never a guessed default, and not part of `/start`'s questionnaire (§2.2). A project records its shipped locale list wherever it already tracks product decisions (`docs/PROJECT_MAP.md` is the natural place); this Skill only fills in what's asked for.
+- Refuses the same way every other Skill does if `ios-skeleton.config.json` is missing (§1.3), and if the base locale itself has keys `check_strings.sh` reports as inconsistent — fix the source of truth before drafting more locales from it.
+
 ---
 
 ## 5. Meta Files ("AI Brain")
@@ -535,7 +562,7 @@ The additive half of §3.10's migration path.
 | `docs/ai/architecture.md` | `/start`, from `.template` | Use the one architecture pattern chosen at setup — no mixing patterns feature-to-feature |
 | `docs/ai/modularization.md` | `/start`, from `.template` | Know the tier, the module graph and its direction, which module owns strings/assets/theme tokens, and what `--module` defaults to — the rules from §3.9–§3.11 rendered for *this* repo only |
 | `docs/ai/theming_rules.md` | shipped as-is in the template | Route every color/font choice through a `Theme/` directory — the shared module's for base tokens, the app's for overrides (§3.11) |
-| `docs/ai/ui_rules.md` | shipped as-is | Mandatory `#Preview`, no hardcoded strings — use the owning module's `L10n.<key>` (§3.7, §3.11), never `Localizable.strings` accessed by raw key, never `Bundle.main` from inside a framework — real/explicit-`nil` accessibility labels |
+| `docs/ai/ui_rules.md` | shipped as-is | Mandatory `#Preview`, no hardcoded strings — use the owning module's `L10n.<key>` (§3.7, §3.11), never `Localizable.strings` accessed by raw key, never `Bundle.main` from inside a framework — real/explicit-`nil` accessibility labels — SF Symbols over imported icon assets wherever a symbol exists, `AsyncImage` for remote images by default (§6, §10) |
 | `docs/ai/permissions_rules.md` | shipped as-is | Never add a permission without a non-empty usage string, a named app target, and a `docs/PERMISSIONS.md` entry |
 | `docs/PROJECT_MAP.md` | `/start` seeds it, features and modules append | One line per file/folder not covered by the feature-first convention, the module list with each module's kind and consumers (§4.7), plus which architecture combos are template-backed vs. agent-assisted (§1.4) |
 | `docs/CODING_STANDARDS.md` | shipped as-is | SwiftLint rules, naming, force-unwrap policy, `// MARK:` organization, and §8.2's protocol-boundary rules — dependencies are protocols, app-specific behaviour is injected, no branching on which app is running inside shared code |
@@ -566,6 +593,8 @@ From T2 onward this splits into base tokens in the shared module and a thin per-
 
 Applies to **colors and typography**. A spacing scale (`Spacing.swift`) is optional — see §10.
 
+**Icons and images (§10):** prefer SF Symbols (`Image(systemName:)`/`UIImage(systemName:)`) over an imported icon asset wherever a suitable symbol exists — one bundled system font instead of a growing set of PDF/SVG assets per icon, free light/dark and Dynamic Type behavior, and no `check_hardcoded_colors.sh`-style asset-catalog problem to enforce against in the first place. Reserve `Assets.xcassets` for genuinely custom iconography/artwork a symbol can't express. Remote images (avatars, thumbnails, hero art) load via SwiftUI's built-in `AsyncImage` by default — see §10 for when that default stops being enough and a caching library becomes the right call.
+
 ---
 
 ## 7. Code Style & Enforcement
@@ -579,6 +608,7 @@ Applies both to the template's own scripts (Phase A) and to whatever `/start`/th
 - `Scripts/check_hardcoded_colors.sh` scans staged Swift files for `UIColor(red:`/`Color(red:`/hex-literal construction outside any `Theme/` directory and blocks the commit.
 - `Scripts/check_strings.sh` checks localization health across modules and locales — see §8.5.
 - `.githooks/pre-commit` (wired via `core.hooksPath` by `/start`) runs these plus the test suite on any staged `.swift` change. At T3 it runs tests only for the modules whose files are staged, plus their dependents — running every app's full suite on every commit is how a hook gets disabled by the team.
+- `.githooks/commit-msg` (§10, resolved) checks the message's first line against `docs/GIT_CONVENTIONS.md`'s format — `(<TICKET-ID> )?<type>: <summary>` with `<type>` one of `feat`/`fix`/`refactor`/`test`/`docs`/`chore` — and rejects the commit with the expected pattern on a mismatch. It checks shape only, never content: it can't tell a well-written summary from a lazy one, only that the format is there.
 - `docs/CODING_STANDARDS.md` documents the conventions, separating tool-enforced from convention-only.
 
 ---
@@ -627,6 +657,7 @@ The structural lesson that outlives every other one here: **a module's public su
 - *Recommended:* every dependency is added at the lowest module that needs it, never to an app "for now" — a dependency added to an app can't be used by the shared module later without moving it, and moving it changes the link graph of every app.
 - *Recommended:* prefer wrapping a third-party SDK behind one of §8.2's protocols at the point it enters the codebase. It costs an hour and it's the difference between replacing a vendor in one file and in two hundred.
 - *Recommended:* `docs/PROJECT_MAP.md` (or a `docs/DEPENDENCIES.md`) records *why* each dependency exists and what removing it would take. Third-party license attribution is a shipping requirement — production apps of this shape bundle an attributions document and surface it in-app.
+- **When to move off manual DI (Q9's default).** Manual initializer injection stays the default at every tier — it's dependency-free and every construction site is visible by reading the code. The signal to introduce a container isn't module count on its own, it's when a composition root's constructor call has grown past what's readable at a glance (rule of thumb: more than ~6-8 positional dependencies threaded through, or the same dependency re-threaded through 3+ layers just to reach a leaf that needs it) — that's when a container's main win, resolving the graph automatically instead of by hand, starts paying for its indirection cost. When that happens, introduce a lightweight container (e.g. Factory) at the composition root only — it should never leak into `Features/`, where constructor injection stays the rule regardless of what wires it at the top. This is a project deciding to opt in later, not something `/start`/`/add-module` generate.
 
 ### 8.5 Localization at scale — the part that always gets underestimated
 
@@ -650,10 +681,10 @@ The structural lesson that outlives every other one here: **a module's public su
 
 ### 8.8 Repo hygiene
 
-- *Recommended:* decide once whether generated `.xcodeproj`s are committed or gitignored, and write it in `README.md`. Committing them keeps the repo openable without tooling; gitignoring them removes the entire class of pbxproj merge conflict. Gitignoring is the stronger choice when everyone has the generator — which the template guarantees, since `/start` requires it.
-- Always gitignored: `xcuserdata/`, `.DS_Store`, build products, `Secrets.xcconfig`, compiled tool binaries.
+- **Decided: generated `.xcodeproj`/`.xcworkspace` files are committed, not gitignored** (§10 — no longer left to the team). `/start` and every subsequent `/add-module`/`/add-app` regenerate them in place; committing keeps the repo openable without requiring XcodeGen/Tuist installed just to get to a build, at the cost of a pbxproj diff on every regenerate. Write this in the rendered `README.md` so a contributor isn't left guessing which policy this repo picked.
+- Always gitignored regardless of that decision: `xcuserdata/`, `.DS_Store`, build products, `Secrets.xcconfig`, compiled tool binaries — none of that is reproducible-by-regeneration, it's either machine-local state or a secret.
 - *Observed in production:* an orphaned framework project sitting in the repo, referenced by no workspace and holding no sources — a module someone started and nobody removed. This is the characteristic T3 failure mode: modules are cheap to add and nobody deletes them. `/status` should flag any project directory not listed in the workspace and any module with no consumers (§4.6).
-- *Observed in production:* commits carry the tracker ticket ID and land via PR. Worth encoding in `docs/GIT_CONVENTIONS.md`, with the honest note that nothing enforces it (§10).
+- *Observed in production:* commits carry the tracker ticket ID and land via PR. Encoded in `docs/GIT_CONVENTIONS.md` and its format mechanically checked by `.githooks/commit-msg` (§7, §10) — though the ticket-ID prefix itself stays convention-only, since the hook can't know whether a given team's tracker issues one.
 
 ### 8.9 App Store requirements that are easy to forget
 
@@ -670,10 +701,10 @@ The structural lesson that outlives every other one here: **a module's public su
 
 - [ ] `ios-ai-skeleton/` repo per §1.1 — no `App/`, `Features/`, `project.yml`, `.xcworkspace`, or `ios-skeleton.config.json`
 - [ ] `.claude/skills/start/SKILL.md` implementing all of §2, including the topology branch and the Path 3 adoption flow
-- [ ] `.claude/skills/{new-feature,add-assets,update-app-icon,add-permission,update-theme,status,add-module,add-app}/`, each gated by §1.3 and each implementing §4's destination-resolution rule
-- [ ] `Scripts/templates/mvvm-swiftui-navigationstack/` fully authored (§1.4); other combinations left template-assisted
+- [ ] `.claude/skills/{new-feature,add-assets,update-app-icon,add-permission,update-theme,status,add-module,add-app,translate}/`, each gated by §1.3 and each implementing §4's destination-resolution rule
+- [ ] `Scripts/templates/{mvvm-swiftui-navigationstack,vip-swiftui-navigationstack,vip-uikit-coordinator,mvc-uikit-coordinator}/` fully authored (§1.4); other combinations left template-assisted
 - [ ] `Scripts/generate_workspace.sh` (§3.9) and `Scripts/new_module.sh` (§4.7)
-- [ ] `.swiftlint.yml`, `Scripts/lint.sh`, `Scripts/check_hardcoded_colors.sh`, `Scripts/check_strings.sh` (§8.5), `Scripts/generate_strings.sh` taking a module argument, `.githooks/pre-commit`
+- [ ] `.swiftlint.yml`, `Scripts/lint.sh`, `Scripts/check_hardcoded_colors.sh`, `Scripts/check_strings.sh` (§8.5), `Scripts/generate_strings.sh` taking a module argument, `.githooks/pre-commit`, `.githooks/commit-msg` (§7)
 - [ ] `docs/*.md` and `docs/ai/*.md`/`.template` files per §1.1 and §5, including `modularization.md.template`
 - [ ] `CLAUDE.md.template`, `README.md` describing the template itself (§1.2)
 
@@ -689,7 +720,7 @@ The structural lesson that outlives every other one here: **a module's public su
 - [ ] `Models/` created, with the starter feature's Request/Response/Entity structs in `Models/HomeModels.swift` — none of them left inside `Features/Home/`
 - [ ] Per-module `Localizable.strings` + generated **bundle-aware** `L10n.swift`, each `Features/Home/` referencing `L10n.*` and not a raw string literal
 - [ ] `Package.resolved` at the tier-correct location (§3.10 step 3)
-- [ ] Git initialized (or detached from the template's history, if offered and accepted) with `.githooks/pre-commit` wired
+- [ ] Git initialized (or detached from the template's history, if offered and accepted) with `.githooks/pre-commit` and `.githooks/commit-msg` wired
 - [ ] `CLAUDE.md`, `README.md`, `docs/ONBOARDING.md`, `docs/ai/architecture.md`, `docs/ai/modularization.md` rendered with real, locked-in decisions — no leftover placeholders
 - [ ] `TODO.md` carrying the manual follow-ups, including the per-app items from §8.9
 
@@ -699,23 +730,23 @@ The structural lesson that outlives every other one here: **a module's public su
 
 Carry an honest, up-to-date version of this section into the rendered `README.md`/`ONBOARDING.md`. As of writing this prompt:
 
-- **Objective-C scope is undefined.** "Swift with Objective-C interop" (Q2) could mean full parity scaffolding in both languages, or just bridging-header support for a legacy module. Decide and document which before the first real feature is scaffolded.
-- **Only one architecture combination is fully template-backed at launch** (MVVM + SwiftUI + `NavigationStack` + SwiftData — §1.4), and only at T1/T2 shape. Everything else is template-assisted rather than fully deterministic, which is an honest scoping choice, not an oversight — expand it as real usage shows which combos are common. At T3, `/add-module`/`/add-app` generate specs, wiring and the workspace deterministically, but a module's *contents* are agent-written.
+- ~~Objective-C scope is undefined.~~ **Resolved:** dropped entirely. Q2 is now a fixed Swift-only default with no interactive choice (§2.2) — this template scaffolds nothing for Objective-C. A project with legacy Objective-C to bridge in still can (a bridging header is a manual, one-time Xcode step), but no Skill or template file accounts for it.
+- ~~Only one architecture combination is fully template-backed at launch.~~ **Resolved, partially:** four now are (§1.4) — MVVM+SwiftUI+`NavigationStack`, VIP+SwiftUI+`NavigationStack`, VIP+UIKit+Coordinator, and MVC+UIKit+Coordinator — and only at T1/T2 shape. Everything else (MVC+SwiftUI, MV either UI framework, VIPER, any architecture on the non-default navigation approach for its UI framework) stays template-assisted rather than fully deterministic — an honest scoping choice, not an oversight; expand further as real usage shows which combos are common. At T3, `/add-module`/`/add-app` generate specs, wiring and the workspace deterministically, but a module's *contents* are agent-written.
 - **Idempotent conflict-handling in `/start` (§2.4) is agent judgment, not a mechanical diff.** Unlike a byte-for-byte "embedded copy in sync" check, deciding whether a new answer conflicts with existing generated code relies on the agent inspecting `Features/` and reasoning about it — there's no automated guarantee it catches every case.
 - **Detaching a cloned template's git history (§2.1 step 7) is offered, not automatic** — a team could still end up with the template repo's history if they decline or if `/start` is run non-interactively.
-- **No localization *Skill* defined**, even though a shared localization *utility* now exists (§3.7). Nothing drafts or updates a second-language `.strings`/`.xcstrings` file — worth a future `/translate`-equivalent Skill if the app ships in more than one language.
+- ~~No localization *Skill* defined.~~ **Resolved:** `/translate` (§4.9) drafts target-locale `.strings` entries from the base locale, marked for human review, on top of the localization *utility* that already existed (§3.7).
 - **`Models/` holding every type — including per-feature Request/Response/Entity structs that aren't actually reused elsewhere — is a deliberate simplicity trade-off (§3.2), not a claim that everything in there is genuinely shared.** It buys "one place to look for any data shape" at the cost of a growing, multi-author file directory and real naming-collision risk (two features both wanting a type called `Item`, say). The mitigation is filename discipline (`Models/<Feature>Models.swift`) plus `/new-feature`'s collision check (§4.1) — there's no compiler-level namespacing beyond that.
 - **No hardcoded-*string* enforcement script**, unlike colors (`check_hardcoded_colors.sh`). A raw string literal in `Text(...)`/`UILabel.text` isn't mechanically caught the way a raw `UIColor(red:...)` is — flagged as a documented convention in `ui_rules.md` only, since a blanket check would false-positive heavily on legitimate non-UI string literals (log messages, format strings, identifiers).
-- **No CI pipeline included.** GitHub Actions/Xcode Cloud wiring is out of scope for both phases; add on request. Note that at T3 this is a per-scheme matrix that grows with every `/add-app` and `/add-module` (§8.7) — the cost is real and the template only reminds you about it.
+- **No CI pipeline included — confirmed as deliberate scope, not an open question.** GitHub Actions/Xcode Cloud wiring stays out of both phases: CI is infra-specific (runners, signing, host choice) in a way that would force a guess this template has no basis for. Add on request. Note that at T3 this is a per-scheme matrix that grows with every `/add-app` and `/add-module` (§8.7) — the cost is real and the template only reminds you about it.
 - **Topology migrations are documented and partly scripted, not automated.** §3.10 lists real steps and `/add-module`/`/add-app` do the additive half, but the access-control pass, the file moves, and the `import` rewrites are manual and reviewed. Nothing verifies an extraction is *complete* — the original app keeps compiling long after it isn't (§3.10). Building the second consumer is the only real check.
 - **Per-module localization is a correctness requirement, not a preference — and it has no compile-time guard.** A framework using `Bundle.main`, or a key present in one locale and missing in another, fails at runtime in one language only. `check_strings.sh` catches key parity; nothing catches a wrong-bundle lookup (§3.11, §8.5).
 - **The base/app theme split is convention-enforced only.** `/update-theme` routes tokens to the right layer, but nothing stops hand-written code in an app from defining a color the shared module already owns; `check_hardcoded_colors.sh` catches raw literals, not duplicated tokens.
-- **Whether generated `.xcodeproj`s are committed is left to the team** (§8.8) — the template states the trade-off and does not decide it, which means two projects built from this template can differ in a way that affects everyone's merge experience.
+- ~~Whether generated `.xcodeproj`s are committed is left to the team.~~ **Resolved:** committed by default (§8.8) — every project built from this template now gets the same merge-experience trade-off rather than picking its own.
 - **§8's production baseline is calibrated against one long-lived multi-app codebase,** UIKit-heavy and hybrid. Items labeled *observed in production* are evidence from that single codebase's structure, not an industry survey; items labeled *recommended* are this template's opinion. A different domain (games, offline-first, extension-heavy apps) will have a different baseline. Nothing from that codebase's naming or domain is embedded in the template — only the structural conclusions.
 - **The protocol-boundary discipline in §8.2 is convention, not tooling.** `/new-feature` generates protocol + implementation pairs, but nothing detects a shared module that has quietly grown an app-specific branch, a protocol that never got a second conformance, or a service protocol that has drifted to 20 methods. These are review concerns, and they're where a protocol-oriented codebase degrades first.
-- **Dependency injection defaults to manual initializer injection.** A container is an explicit upgrade a team requests, not a default. At T3 this means each app owns a composition root that constructs the shared modules' dependencies — workable and explicit, but it grows linearly with module count, and it is the point where teams most often reach for a container.
-- **No image-loading/caching library decided by default.** `AsyncImage` vs. a caching library (Nuke, Kingfisher) is left to the project.
-- **Pagination isn't baked into the base `Repository` contract** — add a cursor/page-index convention once a feature actually needs infinite scroll.
-- **`docs/GIT_CONVENTIONS.md` is documentation only, not tool-enforced** — no commit-msg hook checks the format.
+- **Dependency injection defaults to manual initializer injection — confirmed, with the upgrade path now documented (§8.4).** A container stays an explicit, project-level upgrade a team opts into, never a default this template generates. At T3 each app owns a composition root that constructs the shared modules' dependencies — workable and explicit, and it grows linearly with module count; §8.4 gives the concrete signal for when that growth justifies introducing a container, and where it may (and may not) reach into the codebase once adopted.
+- ~~No image-loading/caching library decided by default.~~ **Resolved: `AsyncImage` is the default** (§6), matching this template's no-third-party-package-by-default posture elsewhere (Q7's networking default). Upgrade to a caching library (Nuke, Kingfisher) once a project's image volume or caching needs justify the dependency — that's a project decision to make explicitly, not something `/start` defaults into. Icons follow the same restraint in the other direction: SF Symbols over imported assets wherever a symbol exists (§6).
+- **Pagination isn't baked into the base `Repository` contract — confirmed as deliberate, not an oversight.** Guessing a cursor/page-index shape before any generated feature needs one risks guessing wrong and then migrating every feature off it (§8.2's "don't abstract on speculation"). Add the convention once a feature actually needs infinite scroll, and document it in that project's `docs/ai/architecture.md` at that point.
+- ~~`docs/GIT_CONVENTIONS.md` is documentation only, not tool-enforced.~~ **Resolved:** `.githooks/commit-msg` (§7) now checks the message format mechanically. What stays convention-only: whether a commit is genuinely feature-based/one-coherent-change (§7's other bullets) — that's a review concern, not something a hook can check.
 - **Spacing scale is optional** — colors/typography are mandatory Swift-token citizens (§6); spacing can be added the same way once a team wants one.
 - **`sips`-based image/icon resizing assumes macOS tooling is present** on whatever machine runs the Skills.
