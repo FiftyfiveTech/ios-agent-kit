@@ -11,26 +11,19 @@
 
 **Phase B (later, per real project):** the `/start` Skill — shipped inside Phase A's output — asks the Setup Questionnaire and builds a real, compiling app from scratch via XcodeGen/Tuist, no manual Xcode step. It can run in a completely different session, months later, against a project that started life either by cloning the template repo directly or by copying its files into an existing folder.
 
-All consumption paths converge on `/start`:
+`/start` takes one optional argument, a target path, and does its own copying — there is no manual `cp -r` step:
 
-```bash
-# Path 1 — clone the template as the new project's root
-git clone <template-repo-url> MyNewApp && cd MyNewApp
-# then, inside Claude Code:
-/start
-
-# Path 2 — copy the template's files into an existing/empty folder
-cp -r ios-ai-skeleton/{.claude,Scripts,docs,.swiftlint.yml,.githooks,CLAUDE.md.template,README.md} MyExistingFolder/
-cd MyExistingFolder
-/start
-
-# Path 3 — adopt into an existing multi-project workspace (see §3.9 tier T3)
-cp -r ios-ai-skeleton/{.claude,Scripts,docs,.githooks} ExistingWorkspaceRepo/
-cd ExistingWorkspaceRepo
-/start            # detects existing .xcworkspace/.xcodeproj, records topology, does NOT regenerate them
+```
+/start [path]
 ```
 
-Path 3 matters because the realistic destination for this template is not always a greenfield app — see §8, whose baseline is drawn from how long-lived production apps are actually structured. On Path 3, `/start` records what already exists into `ios-skeleton.config.json` and generates only what's missing; it never rewrites a hand-maintained `.xcodeproj` it didn't create (§2.3, §3.10).
+- **No `path`** — operate on the current directory, exactly as it always has. This is what running `/start` from inside a direct clone of the template repo looks like (`git clone <template-repo-url> MyNewApp && cd MyNewApp && /start`), and it's still what happens if someone copied the template's files in by hand before invoking it.
+- **A `path`** — `/start` resolves it (creating the directory if it doesn't exist yet), inspects what's there, copies the template's own files into it itself (§2.1's resolve-and-copy step, merge-only — it never overwrites a file already at the destination), and then continues exactly as a no-argument run would, from inside that directory:
+  - **Missing, or exists but is effectively empty** (nothing there besides maybe `.git`) → fresh start.
+  - **Already contains an `.xcodeproj`/`.xcworkspace`** that no spec file describes → adoption (§2.1 step 13) — this covers a single already-shipping `.xcodeproj` exactly as much as a multi-project workspace; the trigger is "a project already exists that no spec file describes," not "more than one project exists" (§3.9 infers the tier from what's actually found).
+  - **Already has `ios-skeleton.config.json`** → already initialized; skip straight to the idempotent re-run (§2.4).
+
+This single command replaces what used to be three separate manual recipes (clone-as-root / copy-into-an-empty-folder / copy-into-an-existing-project) — the underlying scenarios are unchanged, only the manual file-copying step goes away. Adoption still matters for the same reason it always did: the realistic destination for this template is not always a greenfield app — see §8, whose baseline is drawn from how long-lived production apps are actually structured. `/start` records what already exists into `ios-skeleton.config.json` and generates only what's missing; it never rewrites a hand-maintained `.xcodeproj` it didn't create (§2.3, §3.10), and — because an adopted repo's `CLAUDE.md`/`README.md`/`docs/` are almost always hand-authored project history rather than template boilerplate — the copy step and the doc-rendering step both refuse to overwrite anything already there without asking first (§2.1's resolve-and-copy step and step 13's carve-out).
 
 **What this means concretely for this execution:** stay in Plan Mode, produce the plan for §1's tree only, do not write `project.yml`, do not create `App/`/`Features/`, do not ask about topology/Swift/SwiftUI/architecture/etc. — all of that is Phase B's job, specified in §2 for you to build *into* the `/start` Skill, not to perform now.
 
@@ -88,7 +81,7 @@ Deliberately absent at this stage: `project.yml`, any `.xcworkspace`, `App/`, `C
 
 ### 1.2 What the template's own `README.md`/`docs/ONBOARDING.md` must say
 
-All three consumption paths from §0, spelled out for a human reading this repo for the first time, plus: what `/start` does, that it's idempotent (§2.4), the three topology tiers and the honest cost of moving between them (§3.9–§3.10), and a pointer to `docs/ai/architecture.md.template` explaining that the real architecture doc doesn't exist until `/start` renders it.
+The `/start [path]` invocation from §0 and its three detected scenarios (fresh/empty, adoption, already-initialized), spelled out for a human reading this repo for the first time, plus: what `/start` does, that it's idempotent (§2.4), the three topology tiers and the honest cost of moving between them (§3.9–§3.10), and a pointer to `docs/ai/architecture.md.template` explaining that the real architecture doc doesn't exist until `/start` renders it. State the adoption scenario's scope plainly rather than letting it read as workspace-only: a single mature `.xcodeproj` with its own hand-written `CLAUDE.md`/`README.md` and years of history is exactly what it's for, not just a multi-project workspace.
 
 ### 1.3 Shared precondition for every Skill except `/start`
 
@@ -117,19 +110,30 @@ Everything in this section is what you're building *into* the Skill file, to run
 
 ### 2.1 First-run flow
 
-1. Check for `ios-skeleton.config.json`. Absent → continue below. Present → jump to §2.4 (idempotent re-run) instead.
+0. **Resolve the target path and copy the template's own files into it.** `/start` takes one optional argument, a path (§0).
+   - No path → the target is the current directory; nothing to copy (it's either already the template's own clone, or the developer copied the files in by hand already).
+   - A path → resolve it relative to the current directory, creating the directory if it doesn't exist. Then copy this template's `.claude/`, `Scripts/`, `docs/`, `.swiftlint.yml`, `.githooks/`, `CLAUDE.md.template`, and `README.md` into it. **This copy is a merge, never an overwrite:** walk file-by-file (not folder-by-folder) — if a destination file doesn't exist, copy it; if it does, leave it exactly as it is and don't even log noise for the common case (a fresh/empty target has nothing to skip). This one rule is what makes an adoption target safe to point at directly: an adopted repo's `docs/CODING_STANDARDS.md`, `CLAUDE.md.template`'s eventual render target, and `README.md` are the developer's own history, not this template's boilerplate, and a folder-level `cp -r` would clobber them.
+   - Every step from here on operates on the resolved target path, not necessarily the directory `/start` was invoked from.
+1. Check for `ios-skeleton.config.json` at the resolved path. Absent → continue below. Present → jump to §2.4 (idempotent re-run) instead.
 2. Ask the Setup Questionnaire (§2.2) in one batched interaction, not one question per turn.
 3. Validate the answers (§2.3) — stop and re-ask on any invalid combination rather than silently picking a fallback.
 4. Write `ios-skeleton.config.json` recording every answer, **including the topology tier and the full module list** — `{ "topology": "T3", "apps": [...], "modules": [...] }`. Every other Skill reads its "which module?" branch from here (§4).
 5. Generate the spec file(s) per the tooling answer and the tier (§3.9): one `project.yml`/`Project.swift` at T1/T2; one spec **per project** at T3, plus the workspace.
 6. Run `xcodegen generate` (once per spec) or `tuist generate` to produce the real `.xcodeproj`(s). At T3 with XcodeGen, also run `Scripts/generate_workspace.sh` — XcodeGen generates projects, not workspaces, so the template emits `<Name>.xcworkspace/contents.xcworkspacedata` itself from the config's project list (§3.9). **No manual Xcode step, ever, at any point in this flow.**
 7. `git init` if no `.git` exists yet. If this folder came from cloning the template repo directly, **offer** — don't silently do — to detach it from the template's own git history/remote so the new app starts with clean history.
-8. Wire `.githooks/pre-commit` and `.githooks/commit-msg` via `core.hooksPath`.
+8. Wire `.githooks/pre-commit` and `.githooks/commit-msg` via `core.hooksPath` — on Path 3 (step 13), only after that step's adoption dry-run passes, or the developer explicitly accepts report-only mode.
 9. Materialize the folder tree from §3 for the chosen architecture **and tier**: `App/`, `Core/` (Utilities + Localization), `Networking/`, `Models/`, `DesignSystem/` (Theme + SharedViews), `Features/` — as folders in one target at T1, as local packages at T2, as separate framework projects at T3 (§3.9). Seed **each localization-owning module's** `Localizable.strings` with its first few real strings and run `Scripts/generate_strings.sh` once per module to produce its bundle-aware `L10n.swift` (§3.11) — never leave the localization layer unwired even before the first feature exists.
 10. Scaffold one starter feature (e.g. "Home") **in each app** using the same logic §4.1 describes for `/new-feature` — proving the whole stack actually compiles and its one generated test actually passes, not aspirationally. At T3 with more than one app, also generate one shared base view in the shared UI module that both apps' Home screens consume, so the sharing seam is exercised on day one rather than discovered later (§3.9).
-11. Render `CLAUDE.md`, `docs/ai/architecture.md`, `docs/ai/modularization.md`, `README.md`, `docs/ONBOARDING.md` from their `.template` counterparts, replacing every placeholder with the real, locked-in decisions — a project that chose VIPER should never see MVVM's diagram in its own `docs/ai/architecture.md`, and a T1 project should never see a workspace diagram in its `modularization.md`.
+11. Render `CLAUDE.md`, `docs/ai/architecture.md`, `docs/ai/modularization.md`, `README.md`, `docs/ONBOARDING.md` from their `.template` counterparts, replacing every placeholder with the real, locked-in decisions — a project that chose VIPER should never see MVVM's diagram in its own `docs/ai/architecture.md`, and a T1 project should never see a workspace diagram in its `modularization.md`. On Path 3 (step 13), never run this unmodified against a `CLAUDE.md`/`README.md`/`docs/ONBOARDING.md` that already existed before this run — see step 13's carve-out.
 12. Report exactly what's left to do by hand (point the real API base URL, open the project once in Xcode, per-app signing) as `TODO.md` entries — not just a message that scrolls off-screen.
-13. **Path 3 (§0) variant — adopting an existing repo:** skip steps 5–6 for anything already present. Detect the existing `.xcworkspace`/`.xcodeproj` set, record it as the topology, and write a `TODO.md` entry naming each project not yet described by a spec file. Never regenerate or overwrite a hand-maintained `.xcodeproj` — converting one to a generated spec is an explicit, separate migration the developer opts into (§3.10).
+13. **Path 3 (§0) variant — adopting an existing repo:** skip steps 5–6 for anything already present.
+    - **Infer the tier from what's actually there — don't assume workspace means Path 3 and a bare project doesn't.** One `.xcodeproj` with no local packages → T1. One `.xcodeproj` plus local Swift packages → T2. `.xcworkspace` + N projects → T3. State the inferred tier and confirm it with the developer before writing `ios-skeleton.config.json`, exactly the same way whether one project exists or several.
+    - **Record the deployment target actually set on the existing project's build settings** as `minIOSVersion`, instead of asking Q8's greenfield picklist (iOS 16/17/18) — an adopted project may already sit below that floor, and every §2.3 validation rule (SwiftData/`@Observable`/`NavigationStack` gating) must check against the real number, not the picklist default.
+    - **Detect the existing feature-folder convention** (e.g. `Features/`, `Scenes/`, `Modules/`) and record its name in the config instead of assuming the literal `Features/`. `new_feature.sh` and `/new-feature` must read this field rather than hardcode the name — otherwise adoption produces a second, inconsistent folder alongside the one already in use (§3.2).
+    - **Surface an untemplated combo immediately, during this confirmation, not later.** If the detected architecture/UI-framework/navigation combination isn't one of §1.4's four fully-templated ones (e.g. any Hybrid UI-framework project), say so plainly here — don't let the developer discover it only when `/new-feature` first falls back mid-run.
+    - **Never silently overwrite hand-authored project docs.** Before step 11 renders `CLAUDE.md`/`README.md`/`docs/ONBOARDING.md`, check whether each already exists with real content (no leftover `{{placeholder}}` tokens; predates this run's `ios-skeleton.config.json`). If so, do not overwrite it — render the new version to a side file (or simply skip it and note the gap in `TODO.md`) and ask the developer how to reconcile it manually. `docs/ai/architecture.md`/`modularization.md` are still safe to render fresh, since an adopted repo never had them before.
+    - **Never wire hooks blind.** Before step 8, run `Scripts/lint.sh`, `check_hardcoded_colors.sh`, and `check_strings.sh` once against the adopted codebase as a dry run. If any fail, report the failures and ask whether to fix them first or wire the hooks in report-only mode instead — an adopted codebase has never been checked against this template's conventions, and a hard-blocking hook can lock the developer out of their very next commit.
+    - Detect the existing `.xcworkspace`/`.xcodeproj` set, record it as the topology, and write a `TODO.md` entry naming each project not yet described by a spec file. Never regenerate or overwrite a hand-maintained `.xcodeproj` — converting one to a generated spec is an explicit, separate migration the developer opts into (§3.10).
 
 ### 2.2 Setup Questionnaire
 
@@ -144,7 +148,7 @@ Q1 is asked and answered **first**, and its answer gates most of what follows: w
 | 5 | Architecture pattern | MVVM / MVC / VIP (Clean Swift) / VIPER / MV (SwiftUI-native, `@Observable`, no separate ViewModel) | MVVM | Determines the layer set every feature scaffold generates — see §3 |
 | 6 | Navigation implementation | UIKit `UINavigationController` + Coordinator (more mature) / SwiftUI `NavigationStack` + Router object (native, less glue code) | `UINavigationController` + Coordinator if Q3 includes any UIKit; either for SwiftUI-only | **Independent of Q3** — a SwiftUI app can still run its nav backbone on `UINavigationController` via `UIHostingController`; a pure-UIKit app cannot use `NavigationStack` at all — see §2.3 |
 | 7 | Networking & concurrency | URLSession + async/await / URLSession + Combine / Alamofire | URLSession + async/await | Affects the generated `Service`/`Repository` signatures |
-| 8 | Minimum iOS deployment target | iOS 16 / 17 / 18 | 17 | Gates SwiftData, `@Observable`, `NavigationStack` availability |
+| 8 | Minimum iOS deployment target | iOS 16 / 17 / 18 | 17 | Gates SwiftData, `@Observable`, `NavigationStack` availability. **Path 3 (§2.1 step 13):** not asked from this picklist — recorded from the existing project's actual build setting, which may be below 16. |
 | 9 | Dependency injection | Manual initializer injection / lightweight container (e.g. Factory) | Manual initializer injection | Manual keeps the app dependency-free; a container is an explicit upgrade |
 | 10 | Testing framework | XCTest / Swift Testing | XCTest | Swift Testing needs Xcode 16+/iOS 17+ toolchains |
 | 11 | Project generation tooling | XcodeGen (one `project.yml` per project) / Tuist (`Project.swift` + `Workspace.swift`) | XcodeGen at T1/T2; **Tuist at T3** if the team is willing to adopt it — see §3.9's tooling note | Both are deterministic/diffable — hand-maintaining `.xcodeproj` isn't offered here since §2.1 step 6 requires generating the project from scratch |
@@ -273,7 +277,7 @@ Two fixed rules, applied regardless of architecture pattern:
 - **Models never live inside a feature folder, ever.** Every model type — a domain model shared across screens (`Movie`, `TVShow`) and a single feature's own Request/Response/Entity/ViewModel structs alike — lives in the top-level `Models/` package instead. This is a deliberate simplicity choice: one place to look for any data shape in the app, at the cost of `Models/` growing large and needing file-per-feature discipline (`Models/HomeModels.swift`, `Models/SearchModels.swift`) rather than one shared file for everything — see §10 for the naming-collision trade-off this creates. At T2/T3 `Models/` is one module, shared by every consumer; a model needed by only one app still lives there unless it is genuinely app-private, in which case it may stay in that app's own `Models/`.
 - **Exception — MV's `Model` is not a data model.** In the MV (SwiftUI-native) pattern, `<Name>Model.swift` is an `@Observable` class holding view state and calling services — it's presentation-layer plumbing, analogous to a ViewModel, and stays in `Features/<Name>/` like every other layer file. Don't confuse it with the data models in `Models/`.
 
-Applied consistently by both `/start`'s starter feature and every feature `/new-feature` generates afterward.
+Applied consistently by both `/start`'s starter feature and every feature `/new-feature` generates afterward. On an adopted project (Path 3, §2.1 step 13), the folder named `Features/` throughout this section is whatever name `/start` detected on disk (e.g. `Scenes/`, `Modules/`) and recorded in the config — everything else here applies unchanged once that substitution is made; `new_feature.sh` reads the name from config rather than hardcoding it.
 
 ### 3.3 Architecture Pattern Reference
 
