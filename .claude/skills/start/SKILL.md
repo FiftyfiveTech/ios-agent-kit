@@ -1,18 +1,38 @@
 ---
 name: start
-description: First-run setup for a new iOS project from this template — asks the architecture questionnaire, validates the answers, and scaffolds a real, compiling app via XcodeGen/Tuist. Idempotent on re-run. This is the ONLY Skill that runs without ios-skeleton.config.json already present.
+description: First-run setup for a new iOS project from this template — asks the architecture questionnaire, validates the answers, and scaffolds a real, compiling app via XcodeGen/Tuist. Takes an optional target path and copies the template's own files into it automatically (merge-only, never overwriting anything already there) — no manual `cp -r` step. Idempotent on re-run. This is the ONLY Skill that runs without ios-skeleton.config.json already present.
 ---
 
-# /start
+# /start `[path]`
 
 This is Phase B of the template (see the template repo's own `README.md`/§0 of
 the build spec). Everything below runs inside a **real project** — either
-cloned/copied from the template, or an existing repo being adopted (Path 3).
+cloned/copied from the template, or an existing repo being adopted (Path 3) —
+resolved from an optional `path` argument instead of requiring a manual
+`cp -r` first.
 
-## 0. First move: check for `ios-skeleton.config.json`
+## 0. Resolve the target path and copy the template's files in
 
-- **Absent** → go to §1 (first-run flow).
-- **Present** → go to §4 (idempotent re-run).
+- **No `path` given** — the target is the current directory. There's nothing
+  to copy (either this is a direct clone of the template, or its files were
+  already copied in by hand) — go straight to the config check below.
+- **`path` given** — resolve it relative to the current directory, creating
+  the directory if it doesn't exist yet. Then copy this template's `.claude/`,
+  `Scripts/`, `docs/`, `.swiftlint.yml`, `.githooks/`, `CLAUDE.md.template`,
+  and `README.md` into it.
+  - **This copy is a merge, never an overwrite.** Walk it file-by-file, not
+    folder-by-folder: copy a file only if the destination doesn't already have
+    one at that path; if it does, leave it untouched. This is what makes it
+    safe to point `path` directly at a mature, already-shipping project —
+    `docs/CODING_STANDARDS.md`, `CLAUDE.md.template`'s eventual render target,
+    and `README.md` on an adopted repo are the developer's own history, not
+    this template's boilerplate, and a folder-level `cp -r` would clobber
+    them.
+  - Every step from here on operates on this resolved target path, not
+    necessarily the directory this Skill was invoked from.
+- **Check for `ios-skeleton.config.json`** at the resolved path:
+  - **Absent** → go to §1 (first-run flow).
+  - **Present** → go to §4 (idempotent re-run).
 
 Never fall back to a guessed architecture or a "reasonable default" before real
 answers are recorded — there is no such thing before this Skill has run once.
@@ -23,17 +43,48 @@ answers are recorded — there is no such thing before this Skill has run once.
 
 ### 1.1 Detect Path 3 before anything else
 
-If an `.xcworkspace` or `.xcodeproj` already exists on disk that no spec file
-(`project.yml`/`Project.swift`) describes, this is **Path 3 — adoption**, not a
-greenfield run. Do not scaffold as if the repo were empty. Detect the existing
-project set, infer the topology tier from its shape (one project → T1/T2-ish;
-workspace with several → T3), and confirm your inferred topology with the
-developer before writing anything. Then follow the same steps below, but:
+If an `.xcworkspace` or `.xcodeproj` already exists at the target path that no
+spec file (`project.yml`/`Project.swift`) describes, this is **Path 3 —
+adoption**, not a greenfield run — this applies exactly the same way whether
+one bare `.xcodeproj` exists or a whole workspace does. Do not scaffold as if
+the repo were empty. Detect the existing project set, infer the topology tier
+from its shape (one `.xcodeproj` with no local packages → T1; one `.xcodeproj`
+plus local Swift packages → T2; workspace with several projects → T3), and
+confirm your inferred topology with the developer before writing anything.
+Then follow the same steps below, but:
 
 - Skip generating a spec file for anything that already has one.
 - Never regenerate or overwrite a hand-maintained `.xcodeproj`/`.xcworkspace` —
   converting one to a generated spec is an explicit, separate migration the
   developer opts into, not something this run does silently.
+- Record the deployment target actually set on the existing project's build
+  settings as `minIOSVersion`, instead of asking §1.2's Q8 picklist (16/17/18)
+  — an adopted project may already sit below that floor, and every §1.3
+  validation rule involving SwiftData/`@Observable`/`NavigationStack` must
+  check against the real number, not the picklist default.
+- Detect the existing feature-folder convention (`Features/`, `Scenes/`,
+  `Modules/`, ...) and record its name in the config instead of assuming
+  `Features/`. `Scripts/new_feature.sh` must read this field rather than
+  hardcode the name — otherwise adoption produces a second, inconsistent
+  folder alongside the one already in use.
+- If the detected architecture/UI-framework/navigation combination isn't one
+  of the four fully-templated combos (§1.7's table), say so plainly during
+  this confirmation — don't let it surface for the first time only when
+  `/new-feature` falls back mid-run.
+- Before wiring `.githooks/pre-commit`/`commit-msg` (§1.6), run
+  `Scripts/lint.sh`, `check_hardcoded_colors.sh`, and `check_strings.sh` once
+  against the adopted codebase as a dry run. If any fail, report the failures
+  and ask whether to fix them first or wire the hooks in report-only mode
+  instead — an adopted codebase has never been checked against these
+  conventions, and a hard-blocking hook can lock the developer out of their
+  very next commit.
+- Before rendering `CLAUDE.md`/`README.md`/`docs/ONBOARDING.md` (§1.9), check
+  whether each already exists with real content (no leftover `{{placeholder}}`
+  tokens; predates this run's `ios-skeleton.config.json`). If so, do not
+  overwrite it — write the rendered version to a side file, or skip it and
+  note the gap in `TODO.md`, and ask the developer how to reconcile it
+  manually. `docs/ai/architecture.md`/`modularization.md` are still safe to
+  render fresh, since an adopted repo never had them before.
 - Write a `TODO.md` entry naming each existing project not yet described by a
   spec file.
 
@@ -241,7 +292,9 @@ resolved — an agent reading the rendered file should never see one.
 Also write a fresh `docs/ONBOARDING.md` and `README.md` for **this project**
 (not the template) — day-to-day prompting guidance, tech stack, structure,
 getting-started, troubleshooting — overwriting the copies that came from the
-template (which described the template system itself, not this app).
+template (which described the template system itself, not this app). On Path
+3 (§1.1), skip this overwrite for any of the three that already existed with
+real content before this run — see §1.1's carve-out.
 
 ### 1.10 Report what's left
 

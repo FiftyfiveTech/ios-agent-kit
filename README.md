@@ -10,18 +10,18 @@ those all belong to a real project generated *from* this template, via `/start`.
 
 ## Quick start
 
+`/start` takes an optional target path and copies its own files in — no
+manual `cp -r`:
+
 ```bash
-# Path 1 — clone the template as a new project's root
+# No path — clone the template as a new project's root, then run /start inside it
 git clone <template-repo-url> MyNewApp && cd MyNewApp
 /start
 
-# Path 2 — copy the template's files into an existing/empty folder
-cp -r ios-ai-skeleton/{.claude,Scripts,docs,.swiftlint.yml,.githooks,CLAUDE.md.template,README.md} MyExistingFolder/
-cd MyExistingFolder && /start
-
-# Path 3 — adopt into an existing multi-project workspace
-cp -r ios-ai-skeleton/{.claude,Scripts,docs,.githooks} ExistingWorkspaceRepo/
-cd ExistingWorkspaceRepo && /start
+# A path — run from anywhere; /start inspects the target and picks the right scenario
+/start MyNewApp             # missing or empty → fresh start
+/start ~/Code/ExistingApp   # a mature single .xcodeproj → adoption, never overwrites what's there
+/start ~/Code/Workspace     # an existing .xcworkspace + N projects → adoption
 ```
 
 `/start` asks a one-time Setup Questionnaire (topology, language, UI framework,

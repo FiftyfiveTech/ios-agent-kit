@@ -5,24 +5,36 @@ templates, and lint config — no Xcode project, no architecture decision, no
 `ios-skeleton.config.json`. Those are all Phase B, produced by running `/start`
 inside Claude Code against a real project.
 
-## The three ways to start a real project from this template
+## Starting a real project from this template
+
+`/start` takes one optional argument, a target path, and does its own file
+copying — there's no manual `cp -r` step:
 
 ```bash
-# Path 1 — clone the template as the new project's root
-git clone <template-repo-url> MyNewApp && cd MyNewApp
-/start
-
-# Path 2 — copy the template's files into an existing/empty folder
-cp -r ios-ai-skeleton/{.claude,Scripts,docs,.swiftlint.yml,.githooks,CLAUDE.md.template,README.md} MyExistingFolder/
-cd MyExistingFolder
-/start
-
-# Path 3 — adopt into an existing multi-project workspace
-cp -r ios-ai-skeleton/{.claude,Scripts,docs,.githooks} ExistingWorkspaceRepo/
-cd ExistingWorkspaceRepo
-/start   # detects the existing .xcworkspace/.xcodeproj, records the topology,
-         # generates only what's missing, never rewrites a hand-maintained project
+/start [path]
 ```
+
+- **No path** — clone the template as the new project's root, then run
+  `/start` from inside it:
+  ```bash
+  git clone <template-repo-url> MyNewApp && cd MyNewApp
+  /start
+  ```
+- **A path** — run `/start <path>` from anywhere (e.g. from inside this
+  template repo), and it resolves the path, copies its own files in, and
+  scaffolds from there. It inspects what's at that path and picks the right
+  scenario automatically:
+  ```bash
+  /start MyNewApp             # missing or empty → fresh start
+  /start ~/Code/ExistingApp   # a mature single .xcodeproj → adoption
+  /start ~/Code/Workspace     # an existing .xcworkspace + N projects → adoption
+  ```
+  Adoption detects the existing `.xcodeproj`(s)/`.xcworkspace`, infers the
+  topology tier from what's there (a bare project vs. one with local packages
+  vs. a workspace), records it, and generates only what's missing — it never
+  rewrites a hand-maintained project, and the copy step never overwrites a
+  file already at the destination (so an adopted project's own `CLAUDE.md`,
+  `README.md`, and `docs/` are safe).
 
 ## What `/start` actually does
 
