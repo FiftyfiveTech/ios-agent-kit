@@ -1,19 +1,25 @@
 # Git Conventions
 
-Shipped as-is. Documentation only — nothing in this template enforces these
-mechanically (§10: no commit-msg hook checks the format).
+Shipped as-is. The message format below is mechanically checked by
+`.githooks/commit-msg` (§7, §10 — resolved: this used to be documentation
+only). What that hook can't check — whether a commit is genuinely
+feature-based/one-coherent-change, whether the ticket ID is present when a
+tracker issues one — stays a review concern.
 
 ## Commits
 
 - **Feature-based commits.** A commit corresponds to one coherent change — one
   `/new-feature` scaffold, one bug fix, one refactor — not a mix of unrelated
   edits swept up together.
-- **Message format:** `<type>: <summary>`, where `<type>` is one of `feat`,
-  `fix`, `refactor`, `test`, `docs`, `chore`. Ticket ID first if your tracker
-  issues one: `PROJ-123 feat: add Home feature`.
+- **Message format (checked by `.githooks/commit-msg`):** `<type>: <summary>`,
+  where `<type>` is one of `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
+  Ticket ID first if your tracker issues one: `PROJ-123 feat: add Home feature`.
+  The hook checks this shape; it can't tell a well-written summary from a lazy
+  one, only that the format is there.
 - Carry the tracker ticket ID in the commit when one exists — this is what a
-  long-lived, multi-app codebase actually relies on in practice (§8.8), even
-  though nothing here enforces it.
+  long-lived, multi-app codebase actually relies on in practice (§8.8). The
+  hook accepts a commit without one (it can't know whether your tracker issues
+  one), so this part stays convention, not enforcement.
 
 ## Branches (optional — adopt if your team wants named branches)
 

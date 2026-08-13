@@ -1,0 +1,22 @@
+import Foundation
+__MODULE_IMPORTS__
+
+// Wired to the chosen networking stack via RequestBuilder + APIClient — never
+// a second networking path (§4.1). __FEATURE__WorkerProtocol (declared in
+// Interactor.swift) is what the Interactor actually depends on; this is its
+// implementation. The Worker does the real network I/O — Interactor,
+// Presenter and ViewModel never touch RequestBuilder/APIClient directly.
+struct __FEATURE__Worker: __FEATURE__WorkerProtocol {
+    private let requestBuilder: RequestBuilder
+    private let apiClient: APIClient
+
+    init(requestBuilder: RequestBuilder, apiClient: APIClient) {
+        self.requestBuilder = requestBuilder
+        self.apiClient = apiClient
+    }
+
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        let request = requestBuilder.request(path: "__FEATURE_LOWER__")
+        return try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
+    }
+}

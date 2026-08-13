@@ -39,15 +39,16 @@ developer before writing anything. Then follow the same steps below, but:
 
 ### 1.2 Ask the Setup Questionnaire — one batched interaction
 
-Ask all twelve questions together (via `AskUserQuestion` where the option shape
-fits, or as one consolidated prompt otherwise) — never one question per turn.
-Tell the developer they can say "use the recommended defaults" and you'll fill
-in the rest.
+Ask all eleven actual questions together (Q2/Language is fixed at Swift-only —
+nothing to ask) via `AskUserQuestion` where the option shape fits, or as one
+consolidated prompt otherwise — never one question per turn. Tell the
+developer they can say "use the recommended defaults" and you'll fill in the
+rest.
 
 | # | Question | Options | Recommended default |
 |---|---|---|---|
 | 1 | Project topology & modularization, and how many apps now/within a year | T1 single `.xcodeproj` / T2 `.xcodeproj` + local Swift packages / T3 `.xcworkspace` + N projects | T2 for one app; T3 the moment a second app, extension, or separately-versioned SDK is on the roadmap |
-| 2 | Language | Swift / Swift + Objective-C interop | Swift-only |
+| 2 | Language | Swift only — fixed, not asked (Objective-C interop was considered and dropped; nothing here scaffolds it) | Swift-only |
 | 3 | UI framework | SwiftUI / UIKit / Hybrid | SwiftUI |
 | 4 | Persistence | SwiftData / Core Data / None | SwiftData |
 | 5 | Architecture pattern | MVVM / MVC / VIP (Clean Swift) / VIPER / MV (SwiftUI-native) | MVVM |
@@ -69,8 +70,6 @@ Stop and re-ask on any of these rather than silently picking a fallback:
 
 - SwiftData or MV (`@Observable`) chosen with deployment target < iOS 17.
 - `NavigationStack` routing chosen with deployment target < iOS 16.
-- Objective-C interop + MV pattern → flag as unusual (MV leans on Swift-only
-  `@Observable`), confirm intent.
 - UI framework = UIKit **and** navigation = `NavigationStack` → **invalid**,
   `NavigationStack` is SwiftUI-only. Ask the developer to pick Coordinator or
   switch the UI framework.
@@ -96,7 +95,7 @@ template reads — keep it exactly this shape:
 ```json
 {
   "topology": "T1|T2|T3",
-  "language": "swift|swift-objc",
+  "language": "swift",
   "uiFramework": "SwiftUI|UIKit|Hybrid",
   "persistence": "SwiftData|CoreData|None",
   "architecture": "MVVM|MVC|VIP|VIPER|MV",
@@ -150,23 +149,37 @@ template reads — keep it exactly this shape:
   silently do — to detach it from the template's own git history/remote
   (`rm -rf .git && git init`, or an orphan-branch approach) so the new app
   starts with clean history.
-- Wire the pre-commit hook: `git config core.hooksPath .githooks`.
+- Wire the hooks: `git config core.hooksPath .githooks` (covers both
+  `pre-commit` and `commit-msg` — the latter mechanically checks
+  `docs/GIT_CONVENTIONS.md`'s message format, §7/§10).
 
 ### 1.7 Materialize the folder tree
 
-For each app (usually one), render the app-shell templates from
-`Scripts/templates/mvvm-swiftui-navigationstack/app-shell/*.template` into
-`<app.path>/` (or `<app.path>/Sources/App/` at T3), substituting:
+**Resolve the combo folder first, from Q3/Q5/Q6's answers (§1.4 of the build
+spec):**
+
+| Architecture (Q5) | UI framework (Q3) | Navigation (Q6) | Combo folder |
+|---|---|---|---|
+| MVVM | SwiftUI | NavigationStack | `mvvm-swiftui-navigationstack` |
+| VIP | SwiftUI | NavigationStack | `vip-swiftui-navigationstack` |
+| VIP | UIKit | Coordinator | `vip-uikit-coordinator` |
+| MVC | UIKit | Coordinator | `mvc-uikit-coordinator` |
+| *(anything else)* | — | — | no app-shell template exists — hand-write the composition root/navigation backbone yourself from `docs/ai/architecture.md`'s rendered description; `Scripts/new_feature.sh` will still fall back to template-assisted per feature (§1.4) |
+
+For each app (usually one), render that combo's `app-shell/*.template` files
+into `<app.path>/` (or `<app.path>/Sources/App/` at T3), substituting:
 
 - `__APP_NAME__` → the app's real name (from Q12/`apps[].name`).
 - `__MODULE_IMPORTS__` → empty at T1; the resolved `import Models` /
   `import Networking` / `import DesignSystem` lines at T2/T3, per the same
-  role-resolution logic `Scripts/new_feature.sh` uses (only `App.swift.template`
-  needs `import Networking` for `RequestBuilder`/`APIClient`; the rest of the
-  app-shell files are self-contained).
+  role-resolution logic `Scripts/new_feature.sh` uses (only the composition-root
+  file — `App.swift.template` for the SwiftUI combos, `SceneDelegate.swift.template`
+  for the UIKit combos — needs `import Networking` for `RequestBuilder`/
+  `APIClient`; the rest of the app-shell files are self-contained).
 
 This is the **only** time these files are rendered from scratch — after this,
-`Route.swift`/`App.swift`'s markers are owned by `Scripts/new_feature.sh`;
+the insertion-point markers (`Route.swift`/`App.swift` for the SwiftUI combos;
+`AppCoordinator.swift` for the UIKit combos) are owned by `Scripts/new_feature.sh`;
 never re-render them on a later `/start` re-run (§4).
 
 Seed each localization-owning module's `Localizable.strings` with at least the
@@ -183,19 +196,30 @@ Scripts/new_feature.sh Home "title:String"
 ```
 
 (Adjust the field list if the developer already described a real first screen;
-`Home` is just the recommended placeholder name.) This populates
-`Route.swift`'s and `App.swift`'s insertion-point markers automatically.
+`Home` is just the recommended placeholder name.) This populates the combo's
+insertion-point markers automatically — `Route.swift`/`App.swift`'s for the
+SwiftUI combos, `AppCoordinator.swift`'s factory marker for the UIKit combos.
 
-Then do the **one** substitution that isn't marker-driven: in `App.swift`,
-replace the placeholder root view —
+Then do the **one** substitution that isn't marker-driven — which file and
+what it looks like depends on the combo resolved in §1.7:
 
-```swift
-// MARK: starter-feature-root-view-insertion-point
-Text("Replace with the starter feature's root view — see /start")
-```
+- **SwiftUI combos** (`mvvm-swiftui-navigationstack`, `vip-swiftui-navigationstack`):
+  in `App.swift`, replace the placeholder root view —
+  ```swift
+  // MARK: starter-feature-root-view-insertion-point
+  Text("Replace with the starter feature's root view — see /start")
+  ```
+  — with a call to the factory `new_feature.sh` just generated (`makeHomeView()`).
+- **UIKit combos** (`vip-uikit-coordinator`, `mvc-uikit-coordinator`): in
+  `AppCoordinator.swift`, replace the placeholder root screen inside `start()` —
+  ```swift
+  // MARK: starter-feature-root-screen-insertion-point
+  navigationController.setViewControllers([PlaceholderRootViewController()], animated: false)
+  ```
+  — with `navigationController.setViewControllers([makeHomeViewController()], animated: false)`,
+  and delete the now-unused `PlaceholderRootViewController` type.
 
-— with a call to the factory `new_feature.sh` just generated
-(`makeHomeView()`), and delete the marker comment (it only ever applies once).
+Delete the marker comment either way — it only ever applies once.
 
 At T3 with more than one app: repeat this for **each** app, and additionally
 generate one shared base view in the shared UI module that every app's starter
@@ -222,7 +246,7 @@ template (which described the template system itself, not this app).
 ### 1.10 Report what's left
 
 Write `TODO.md` with what can't be automated: the real API base URL (already
-flagged inline in `App.swift`), opening the project once in Xcode, per-app
+flagged inline in `App.swift`/`SceneDelegate.swift`), opening the project once in Xcode, per-app
 signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`. Not
 just a message that scrolls off-screen — a durable checklist.
 

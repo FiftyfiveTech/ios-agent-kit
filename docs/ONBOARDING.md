@@ -64,13 +64,22 @@ does not describe a real app yet. `/start` renders it into a real
 `docs/ai/architecture.md` that shows **only** the one pattern your project
 chose; until then, this file intentionally shows all of them.
 
+## Generated `.xcodeproj`s are committed
+
+`/start`, `/add-module`, and `/add-app` regenerate `.xcodeproj`/`.xcworkspace`
+files in place, and they're committed to the repo — not gitignored. That
+keeps a fresh clone openable without requiring XcodeGen/Tuist just to get to a
+build, at the cost of a pbxproj diff on every regenerate. Always gitignored
+regardless: `xcuserdata/`, `.DS_Store`, build products, `Secrets.xcconfig`.
+
 ## Known limitations (carried over honestly, not hidden)
 
-- Only MVVM + SwiftUI + `NavigationStack` + SwiftData is fully template-backed
-  today; every other combination is template-assisted (folder/DI/nav/test
-  scaffolding is still deterministic, but layer file bodies fall back to the
-  agent writing them from `docs/ai/architecture.md`'s description).
-- No CI pipeline, no localization-authoring Skill, no hardcoded-string
-  enforcement script, no image-caching library choice, no pagination
+- Four combinations are fully template-backed (MVVM+SwiftUI, VIP+SwiftUI,
+  VIP+UIKit, MVC+UIKit — see the template repo's own `README.md`), each at
+  T1/T2 shape only; every other combination is template-assisted
+  (folder/DI/nav/test scaffolding is still deterministic, but layer file
+  bodies fall back to the agent writing them from `docs/ai/architecture.md`'s
+  description).
+- No CI pipeline, no hardcoded-string enforcement script, no pagination
   convention — these are documented gaps, not oversights. See the template
   repo's own `README.md` for the full list.

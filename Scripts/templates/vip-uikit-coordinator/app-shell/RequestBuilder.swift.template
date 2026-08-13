@@ -1,0 +1,35 @@
+import Foundation
+
+// Base URL, headers, API-key injection, query params — the one place every
+// Service calls through (§3.7). Never a second request-construction path.
+public struct RequestBuilder {
+    private let baseURL: URL
+    private let defaultHeaders: [String: String]
+
+    public init(baseURL: URL, defaultHeaders: [String: String] = [:]) {
+        self.baseURL = baseURL
+        self.defaultHeaders = defaultHeaders
+    }
+
+    public func request(
+        path: String,
+        method: String = "GET",
+        queryItems: [URLQueryItem] = [],
+        headers: [String: String] = [:]
+    ) -> URLRequest {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent(path),
+            resolvingAgainstBaseURL: false
+        )!
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = method
+        for (key, value) in defaultHeaders.merging(headers, uniquingKeysWith: { _, new in new }) {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        return request
+    }
+}

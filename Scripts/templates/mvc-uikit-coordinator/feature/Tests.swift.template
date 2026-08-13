@@ -1,0 +1,56 @@
+import XCTest
+__MODULE_IMPORTS__
+__TESTABLE_IMPORT__
+
+// A real, passing unit test against a fake dependency (§4.1) — the fake is a
+// second conformance to __FEATURE__ServiceProtocol, not a mocking framework
+// (§8.2). `state` is a plain property here (no @Observable/Combine — this is
+// UIKit/MVC), so the test constructs the ViewController directly, awaits
+// load(), and asserts on state via guard case. @MainActor because
+// UIViewController (and therefore __FEATURE__ViewController's init/state) is
+// main-actor-isolated — without this the test won't compile under the Swift 6
+// language mode.
+@MainActor
+final class __FEATURE__ViewControllerTests: XCTestCase {
+    func test_load_setsStateToLoadedWithServiceResults() async {
+        let expected = __FAKE_MODEL_LIST__
+        let service = Fake__FEATURE__Service(result: .success(expected))
+        let viewController = __FEATURE__ViewController(service: service)
+
+        await viewController.load()
+
+        guard case .loaded(let items) = viewController.state else {
+            XCTFail("expected .loaded, got \(viewController.state)")
+            return
+        }
+        XCTAssertEqual(items, expected)
+    }
+
+    func test_load_setsStateToErrorOnFailure() async {
+        let service = Fake__FEATURE__Service(result: .failure(FakeError.forced))
+        let viewController = __FEATURE__ViewController(service: service)
+
+        await viewController.load()
+
+        guard case .error = viewController.state else {
+            XCTFail("expected .error, got \(viewController.state)")
+            return
+        }
+    }
+}
+
+private enum FakeError: Error {
+    case forced
+}
+
+private final class Fake__FEATURE__Service: __FEATURE__ServiceProtocol {
+    private let result: Result<[__FEATURE__Model], Error>
+
+    init(result: Result<[__FEATURE__Model], Error>) {
+        self.result = result
+    }
+
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        try result.get()
+    }
+}

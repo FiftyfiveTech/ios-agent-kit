@@ -1,0 +1,20 @@
+import Foundation
+__MODULE_IMPORTS__
+
+// Implements __FEATURE__WorkerProtocol (declared in Interactor.swift —
+// Interactor is its consumer, §8.2) via RequestBuilder + APIClient — never a
+// second networking path (§4.1). Mirrors MVVM's Service.swift.template.
+public struct __FEATURE__Worker: __FEATURE__WorkerProtocol {
+    private let requestBuilder: RequestBuilder
+    private let apiClient: APIClient
+
+    public init(requestBuilder: RequestBuilder, apiClient: APIClient) {
+        self.requestBuilder = requestBuilder
+        self.apiClient = apiClient
+    }
+
+    public func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        let request = requestBuilder.request(path: "__FEATURE_LOWER__")
+        return try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
+    }
+}

@@ -1,0 +1,38 @@
+import Foundation
+__MODULE_IMPORTS__
+
+// __FEATURE__PresentationLogic and __FEATURE__WorkerProtocol are declared here,
+// not in Presenter.swift/Worker.swift — a protocol is owned by the module that
+// CONSUMES it, never the one that implements it (§8.2). Interactor is the only
+// consumer of both.
+public protocol __FEATURE__PresentationLogic {
+    func present(response: __FEATURE__.Load.Response)
+    func present(error: Error)
+}
+
+public protocol __FEATURE__WorkerProtocol {
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
+}
+
+// VIP's one-way flow: View → Interactor → Presenter → View. This Interactor
+// never returns a value to the ViewController — it always calls
+// presenter.present(response:)/present(error:), and the Presenter never calls
+// back into this Interactor.
+public final class __FEATURE__Interactor: __FEATURE__BusinessLogic {
+    private let presenter: __FEATURE__PresentationLogic
+    private let worker: __FEATURE__WorkerProtocol
+
+    public init(presenter: __FEATURE__PresentationLogic, worker: __FEATURE__WorkerProtocol) {
+        self.presenter = presenter
+        self.worker = worker
+    }
+
+    public func load(request: __FEATURE__.Load.Request) async {
+        do {
+            let items = try await worker.fetch__FEATURE__List()
+            presenter.present(response: __FEATURE__.Load.Response(items: items))
+        } catch {
+            presenter.present(error: error)
+        }
+    }
+}

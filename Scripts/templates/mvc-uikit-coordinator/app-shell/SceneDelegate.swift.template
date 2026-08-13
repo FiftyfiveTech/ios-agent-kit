@@ -1,0 +1,31 @@
+import UIKit
+__MODULE_IMPORTS__
+
+// Composition root. Manual initializer injection (Q9 default) — dependencies are
+// constructed here and threaded down, no container.
+final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
+    private var coordinator: AppCoordinator?
+
+    // TODO: point this at the real API base URL — see TODO.md.
+    private let requestBuilder = RequestBuilder(baseURL: URL(string: "https://api.example.com")!)
+    private let apiClient: APIClient = URLSessionAPIClient()
+
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+
+        let navigationController = UINavigationController()
+        let coordinator = AppCoordinator(
+            navigationController: navigationController,
+            requestBuilder: requestBuilder,
+            apiClient: apiClient
+        )
+        coordinator.start()
+        self.coordinator = coordinator
+
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = navigationController
+        window.makeKeyAndVisible()
+        self.window = window
+    }
+}

@@ -1,0 +1,29 @@
+// Nested transport-struct namespace for __FEATURE__ (§3.3, §8.2). Request/
+// Response/ViewState structs live here, namespaced under __FEATURE__.Load, not
+// inside Features/__FEATURE__/. new_feature.sh already generates the flat
+// __FEATURE__Model entity struct at the top of Models/__FEATURE__Models.swift
+// from the field:Type args — this file's content is appended immediately after
+// it in that same file, so the two are never split across locations.
+public enum __FEATURE__ {
+    public enum Load {
+        public struct Request {
+            public init() {}
+        }
+
+        public struct Response {
+            public let items: [__FEATURE__Model]
+
+            public init(items: [__FEATURE__Model]) {
+                self.items = items
+            }
+        }
+
+        public struct ViewState {
+            public let items: [__FEATURE__Model]
+
+            public init(items: [__FEATURE__Model]) {
+                self.items = items
+            }
+        }
+    }
+}

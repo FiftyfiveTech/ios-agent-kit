@@ -1,0 +1,59 @@
+import Foundation
+import Observation
+__MODULE_IMPORTS__
+
+// __FEATURE__BusinessLogic is declared here, not in Interactor.swift — a
+// protocol is owned by the module that CONSUMES it, never the one that
+// implements it (§8.2). The ViewModel calls interactor.load(request:), so the
+// ViewModel is the consumer; __FEATURE__Interactor conforms to this below.
+protocol __FEATURE__BusinessLogic {
+    func load(request: __FEATURE__.Load.Request) async
+}
+
+// Thin reference-type bridge (§1.4). Classic VIP puts `weak var displayLogic`
+// on the ViewController because a UIViewController is a reference type; a
+// SwiftUI View is a value type and can't be the target of a weak reference, so
+// this @Observable class stands in for it instead. It holds NO formatting and
+// NO business logic — its only job is @Observable state plus conforming to
+// __FEATURE__DisplayLogic (declared in Presenter.swift, since Presenter is
+// its consumer, §8.2).
+//
+// __FEATURE__DisplayLogic needs two methods, not one: __FEATURE__BusinessLogic
+// .load(request:) is `async` with no `throws`, so the Interactor catches its
+// own errors and reports them through presenter.present(error:) — a second,
+// symmetric display method (display(errorMessage:)) keeps that path distinct
+// from the success-shaped ViewState rather than overloading one payload with
+// two unrelated meanings. See Presenter.swift.template for the fuller
+// rationale on this choice.
+@Observable
+final class __FEATURE__ViewModel: __FEATURE__DisplayLogic {
+    enum State {
+        case idle
+        case loading
+        case loaded([__FEATURE__Model])
+        case error(String)
+    }
+
+    private(set) var state: State = .idle
+
+    private let interactor: __FEATURE__BusinessLogic
+
+    init(interactor: __FEATURE__BusinessLogic) {
+        self.interactor = interactor
+    }
+
+    func load() async {
+        state = .loading
+        await interactor.load(request: __FEATURE__.Load.Request())
+    }
+
+    // MARK: - __FEATURE__DisplayLogic
+
+    func display(viewState: __FEATURE__.Load.ViewState) {
+        state = .loaded(viewState.items)
+    }
+
+    func display(errorMessage: String) {
+        state = .error(errorMessage)
+    }
+}

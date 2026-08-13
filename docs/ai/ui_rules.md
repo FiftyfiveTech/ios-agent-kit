@@ -29,7 +29,23 @@ Shipped as-is — applies regardless of chosen architecture or UI framework.
 
 Every list/detail screen uses `LoadingView`, `ErrorView` (with retry), and
 `EmptyStateView` from the shared module's `SharedViews/` — never a re-implemented
-spinner or "no results" label (§3.6).
+spinner or "no results" label (§3.6). UIKit screens use the equivalent plain
+UIKit views instead of the SwiftUI ones — same rule, different concrete type.
+
+## Icons and images
+
+- **SF Symbols over imported icon assets, wherever a suitable symbol exists.**
+  `Image(systemName:)` (SwiftUI) / `UIImage(systemName:)` (UIKit) — one bundled
+  system resource instead of a growing set of PDF/SVG assets per icon, free
+  light/dark and Dynamic Type behavior, and nothing for `check_hardcoded_colors.sh`
+  to enforce against in the first place. Reserve `Assets.xcassets` for genuinely
+  custom iconography/artwork a symbol can't express.
+- **`AsyncImage` is the default for remote images** (avatars, thumbnails, hero
+  art) — no third-party image-loading/caching library by default, matching this
+  template's networking default (plain `URLSession`). Upgrade to a caching
+  library (Nuke, Kingfisher) only once a project's image volume or caching needs
+  justify the dependency — that's an explicit project decision, not something
+  `/start` defaults into.
 
 ## Navigation
 

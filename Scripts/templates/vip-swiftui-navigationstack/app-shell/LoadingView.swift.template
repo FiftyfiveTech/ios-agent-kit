@@ -1,0 +1,16 @@
+import SwiftUI
+
+// Shared loading state (§3.6) — every list/detail screen consumes this instead of
+// reinventing a spinner.
+public struct LoadingView: View {
+    public init() {}
+
+    public var body: some View {
+        ProgressView()
+            .accessibilityLabel(Text("Loading"))
+    }
+}
+
+#Preview {
+    LoadingView()
+}

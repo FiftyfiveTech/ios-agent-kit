@@ -17,8 +17,12 @@ follows this pattern — no mixing patterns feature-to-feature (§5).
 ### MVC
 `Features/<Name>/<Name>ViewController.swift` (+ `.xib`/storyboard if used). Models
 live in `Models/`, never in the feature folder. Simplest, most
-Massive-View-Controller risk — reasonable only for very small or
-legacy-Objective-C-interop apps.
+Massive-View-Controller risk — reasonable only for very small apps. Fully
+templated for UIKit (`mvc-uikit-coordinator/`) — deliberately one file, protocol
+and networking implementation included, making the pattern's own risk honest
+rather than hidden behind an extra layer. No SwiftUI variant: a "SwiftUI MVC"
+has no real controller layer to template and would just duplicate the MV
+pattern below.
 
 ### MVVM *(default)*
 `Features/<Name>/{<Name>View.swift, <Name>ViewModel.swift, <Name>Repository.swift,
@@ -42,14 +46,36 @@ path, no layer-skipping.
 
 ### VIP (Clean Swift)
 `Features/<Name>/{<Name>View.swift, <Name>Interactor.swift, <Name>Presenter.swift,
-<Name>Router.swift, <Name>Worker.swift}`. Request/Response/ViewModel structs live
-in `Models/<Name>Models.swift`, not here. Strict unidirectional flow:
-View → Interactor → Presenter → View.
+<Name>Router.swift, <Name>Worker.swift}` — plus, on SwiftUI only, **`<Name>ViewModel.swift`**.
+Request/Response/ViewState structs live in `Models/<Name>Models.swift`, not
+here. Strict unidirectional flow: View → Interactor → Presenter → View.
+
+Fully templated for both UI frameworks:
+- **UIKit** (`vip-uikit-coordinator/`) — classic Clean Swift. The ViewController
+  conforms to `<Name>DisplayLogic` directly; the Presenter holds
+  `weak var displayLogic: <Name>DisplayLogic?` pointing at it. A strong reference
+  here leaks the whole scene on every push — this is the single most important
+  correctness property in VIP, check it on every scene.
+- **SwiftUI** (`vip-swiftui-navigationstack/`) — a SwiftUI `View` is a value type
+  and can't hold a `weak` reference, so a thin `@Observable` ViewModel bridges
+  the gap: View → **ViewModel** (conforms to `DisplayLogic`) → Interactor →
+  Presenter (holds `weak displayLogic` pointing at the ViewModel) → Worker. The
+  ViewModel contains no formatting and no business logic — it only holds
+  published state and forwards intents to the Interactor.
+
+**Don't confuse `<Name>Router.swift` above with the app-wide navigation
+mechanism below.** This per-scene Router decides *where* this scene goes next
+and hands that decision to whichever app-wide Coordinator/Router owns the
+actual `UINavigationController`/`NavigationPath` — it never owns navigation
+state itself.
 
 ### VIPER
 `Features/<Name>/{<Name>View.swift, <Name>Interactor.swift, <Name>Presenter.swift,
 <Name>Router.swift}`. Entity structs live in `Models/<Name>Models.swift`. Full
-separation, heaviest boilerplate.
+separation, heaviest boilerplate. Differs from VIP only by dropping the `weak`
+reference and giving Router full navigation ownership — close enough to VIP
+that it's deliberately template-assisted rather than given its own template;
+write its layer bodies from VIP's shape above with that one difference.
 
 ### MV (SwiftUI-native)
 `Features/<Name>/{<Name>View.swift, <Name>Model.swift}`. `<Name>Model` is
@@ -96,4 +122,18 @@ detail screen from one tab never affects another tab's back stack (§3.5).
 
 Every list/detail screen consumes `LoadingView`, `ErrorView` (message + optional
 retry), and `EmptyStateView` from `DesignSystem/SharedViews/` — never a
-per-feature reimplementation (§3.6).
+per-feature reimplementation (§3.6). This applies to SwiftUI screens directly;
+the UIKit combos (VIP+UIKit, MVC+UIKit) render the equivalent loading/error/empty
+states as plain UIKit views owned by the ViewController itself rather than a
+shared SwiftUI component — extract a shared UIKit equivalent once a second
+UIKit feature needs the same states, not before (§8.2: don't abstract on
+speculation).
+
+## Icons and images
+
+Prefer SF Symbols (`Image(systemName:)`/`UIImage(systemName:)`) over an
+imported icon asset wherever a suitable symbol exists — reserve
+`Assets.xcassets` for genuinely custom iconography a symbol can't express.
+Remote images load via `AsyncImage` by default; upgrade to a caching library
+(Nuke, Kingfisher) only once a project's image volume or caching needs justify
+the dependency — see `docs/ai/ui_rules.md`.

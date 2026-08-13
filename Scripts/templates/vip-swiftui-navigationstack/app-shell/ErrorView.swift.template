@@ -1,0 +1,30 @@
+import SwiftUI
+
+// Shared error state (§3.6). `retry` is wired by the caller to redispatch the same
+// load action — never a dead-end error screen.
+public struct ErrorView: View {
+    private let message: String
+    private let retry: (() -> Void)?
+
+    public init(message: String, retry: (() -> Void)? = nil) {
+        self.message = message
+        self.retry = retry
+    }
+
+    public var body: some View {
+        VStack(spacing: 12) {
+            Text(message)
+                .font(ThemeFont.body)
+                .multilineTextAlignment(.center)
+                .accessibilityLabel(Text(message))
+            if let retry {
+                Button("Retry", action: retry)
+            }
+        }
+        .padding()
+    }
+}
+
+#Preview {
+    ErrorView(message: "Something went wrong", retry: {})
+}

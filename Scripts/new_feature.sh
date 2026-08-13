@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # new_feature.sh [--module <M>] <Name>[/<Group/Path>] ["field:Type,field2:Type2,..."]
 #
-# Deterministic for the default stack (MVVM + SwiftUI + NavigationStack — §1.4):
-# renders Scripts/templates/mvvm-swiftui-navigationstack/feature/*.template into a
-# flat Features/<Name>/ folder (or Features/<Group>/<Name>/ — §3.2), writes
+# Deterministic for four combos (§1.4): mvvm-swiftui-navigationstack (default),
+# vip-swiftui-navigationstack, vip-uikit-coordinator, mvc-uikit-coordinator.
+# Renders that combo's Scripts/templates/<combo>/feature/*.template into a flat
+# Features/<Name>/ folder (or Features/<Group>/<Name>/ — §3.2), writes
 # Models/<Name>Models.swift in the shared Models location, registers the screen
-# with the Route/NavigationStack backbone, and generates a real passing test
-# against a fake dependency (§4.1).
+# with whichever navigation backbone the combo uses (Route/NavigationStack for
+# the SwiftUI combos, a factory on AppCoordinator for the UIKit combos), and
+# generates a real passing test against a fake dependency (§4.1).
 #
-# For any other architecture/navigation combo, folder skeleton + Models file +
+# For any other architecture/UI/navigation combo, folder skeleton + Models file +
 # test scaffold are still generated deterministically; the per-layer file BODIES
 # are left as fatalError() TODO stubs for the agent to write from
 # docs/ai/architecture.md's chosen-pattern description (§1.4, §3.3) — this script
@@ -19,7 +21,6 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 CONFIG="ios-skeleton.config.json"
-TEMPLATE_DIR="Scripts/templates/mvvm-swiftui-navigationstack/feature"
 
 if [ ! -f "$CONFIG" ]; then
   echo "new_feature.sh: no $CONFIG — run /start first." >&2
@@ -200,6 +201,7 @@ dedup_imports() {
 IMPORTS_VIEW="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_DESIGNSYSTEM")"
 IMPORTS_LOGIC="$(dedup_imports "$IMPORT_MODELS")"
 IMPORTS_SERVICE="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_NETWORKING")"
+IMPORTS_ALL="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_NETWORKING" "$IMPORT_DESIGNSYSTEM")"
 TESTABLE_IMPORT="@testable import $TARGET_MODULE"
 
 # ---------------------------------------------------------------------------
@@ -312,15 +314,26 @@ mkdir -p "$MODELS_DIR"
 } > "$MODELS_FILE"
 
 # ---------------------------------------------------------------------------
-# Render feature layer files (deterministic combo) or stub them (assisted mode)
+# Combo resolution (§1.4) — four fully-deterministic combos; everything else
+# falls back to template-assisted layer-name stubs.
 # ---------------------------------------------------------------------------
 ARCHITECTURE="$(jq -r '.architecture // "MVVM"' "$CONFIG")"
 UI_FRAMEWORK="$(jq -r '.uiFramework // "SwiftUI"' "$CONFIG")"
 NAVIGATION="$(jq -r '.navigation // "navigationstack"' "$CONFIG")"
 
+COMBO_KEY="${ARCHITECTURE}:${UI_FRAMEWORK}:${NAVIGATION}"
+COMBO=""
+case "$COMBO_KEY" in
+  "MVVM:SwiftUI:navigationstack") COMBO="mvvm-swiftui-navigationstack" ;;
+  "VIP:SwiftUI:navigationstack")  COMBO="vip-swiftui-navigationstack" ;;
+  "VIP:UIKit:coordinator")        COMBO="vip-uikit-coordinator" ;;
+  "MVC:UIKit:coordinator")        COMBO="mvc-uikit-coordinator" ;;
+esac
+
 DETERMINISTIC=0
-if [ "$ARCHITECTURE" = "MVVM" ] && [ "$UI_FRAMEWORK" = "SwiftUI" ] && [ "$NAVIGATION" = "navigationstack" ]; then
+if [ -n "$COMBO" ]; then
   DETERMINISTIC=1
+  TEMPLATE_DIR="Scripts/templates/$COMBO/feature"
 fi
 
 mkdir -p "$FEATURE_DIR" "$TEST_DIR"
@@ -345,35 +358,21 @@ render_template() {
 }
 
 if [ "$DETERMINISTIC" -eq 1 ]; then
-  render_template "$TEMPLATE_DIR/View.swift.template"        "$FEATURE_DIR/${FEATURE}View.swift"        "$IMPORTS_VIEW"
-  render_template "$TEMPLATE_DIR/ViewModel.swift.template"    "$FEATURE_DIR/${FEATURE}ViewModel.swift"    "$IMPORTS_LOGIC"
-  render_template "$TEMPLATE_DIR/Repository.swift.template"  "$FEATURE_DIR/${FEATURE}Repository.swift"  "$IMPORTS_LOGIC"
-  render_template "$TEMPLATE_DIR/Service.swift.template"      "$FEATURE_DIR/${FEATURE}Service.swift"      "$IMPORTS_SERVICE"
-  render_template "$TEMPLATE_DIR/Tests.swift.template"        "$TEST_DIR/${FEATURE}ViewModelTests.swift"  "$IMPORTS_LOGIC"
+  HAS_ROUTE_NAV=0
+  TEST_FILE=""
+  FACTORY_SNIPPET=""
 
-  if [ "$NEEDS_FATAL_HELPER" -eq 1 ]; then
-    cat >> "$TEST_DIR/${FEATURE}ViewModelTests.swift" <<EOF
+  case "$COMBO" in
+    mvvm-swiftui-navigationstack)
+      render_template "$TEMPLATE_DIR/View.swift.template"        "$FEATURE_DIR/${FEATURE}View.swift"        "$IMPORTS_VIEW"
+      render_template "$TEMPLATE_DIR/ViewModel.swift.template"    "$FEATURE_DIR/${FEATURE}ViewModel.swift"    "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Repository.swift.template"  "$FEATURE_DIR/${FEATURE}Repository.swift"  "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Service.swift.template"      "$FEATURE_DIR/${FEATURE}Service.swift"      "$IMPORTS_SERVICE"
+      TEST_FILE="$TEST_DIR/${FEATURE}ViewModelTests.swift"
+      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
 
-private func fatalErrorFakeValue<T>(_ type: T.Type = T.self) -> T {
-    fatalError("TODO: provide a fake value for \\(type)")
-}
-EOF
-  fi
-
-  # Navigation registration — insert at the marker left in the app-shell files by
-  # /start; never a second navigation path (§3.4).
-  ROUTE_FILE="$(grep -rl "new-feature-route-insertion-point" "$APP_PATH" 2>/dev/null | head -n1 || true)"
-  if [ -n "$ROUTE_FILE" ]; then
-    sed -i.bak "s/    \/\/ MARK: new-feature-route-insertion-point/    case ${FEATURE_LOWER}\\
-    \/\/ MARK: new-feature-route-insertion-point/" "$ROUTE_FILE"
-    rm -f "${ROUTE_FILE}.bak"
-  else
-    echo "new_feature.sh: no Route insertion marker found under $APP_PATH — register '$FEATURE_LOWER' with the navigation backbone manually." >&2
-  fi
-
-  FACTORY_FILE="$(grep -rl "new-feature-factory-insertion-point" "$APP_PATH" 2>/dev/null | head -n1 || true)"
-  if [ -n "$FACTORY_FILE" ]; then
-    FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
+      HAS_ROUTE_NAV=1
+      FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
         ${FEATURE}View(\\
             viewModel: ${FEATURE}ViewModel(\\
                 repository: ${FEATURE}Repository(\\
@@ -383,18 +382,116 @@ EOF
         )\\
     }\\
     \/\/ MARK: new-feature-factory-insertion-point"
-    sed -i.bak "s/    \/\/ MARK: new-feature-factory-insertion-point/${FACTORY_SNIPPET}/" "$FACTORY_FILE"
-    rm -f "${FACTORY_FILE}.bak"
+      ;;
+
+    vip-swiftui-navigationstack)
+      render_template "$TEMPLATE_DIR/View.swift.template"       "$FEATURE_DIR/${FEATURE}View.swift"       "$IMPORTS_VIEW"
+      render_template "$TEMPLATE_DIR/ViewModel.swift.template"   "$FEATURE_DIR/${FEATURE}ViewModel.swift"   "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Interactor.swift.template"  "$FEATURE_DIR/${FEATURE}Interactor.swift"  "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Presenter.swift.template"   "$FEATURE_DIR/${FEATURE}Presenter.swift"   "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Router.swift.template"      "$FEATURE_DIR/${FEATURE}Router.swift"      ""
+      render_template "$TEMPLATE_DIR/Worker.swift.template"      "$FEATURE_DIR/${FEATURE}Worker.swift"      "$IMPORTS_SERVICE"
+      TEST_FILE="$TEST_DIR/${FEATURE}InteractorTests.swift"
+      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+
+      HAS_ROUTE_NAV=1
+      FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
+        let presenter = ${FEATURE}Presenter()\\
+        let worker = ${FEATURE}Worker(requestBuilder: requestBuilder, apiClient: apiClient)\\
+        let interactor = ${FEATURE}Interactor(presenter: presenter, worker: worker)\\
+        let viewModel = ${FEATURE}ViewModel(interactor: interactor)\\
+        presenter.displayLogic = viewModel\\
+        return ${FEATURE}View(viewModel: viewModel)\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      ;;
+
+    vip-uikit-coordinator)
+      render_template "$TEMPLATE_DIR/ViewController.swift.template" "$FEATURE_DIR/${FEATURE}ViewController.swift" "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Interactor.swift.template"      "$FEATURE_DIR/${FEATURE}Interactor.swift"      "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Presenter.swift.template"       "$FEATURE_DIR/${FEATURE}Presenter.swift"       "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Router.swift.template"          "$FEATURE_DIR/${FEATURE}Router.swift"          ""
+      render_template "$TEMPLATE_DIR/Worker.swift.template"          "$FEATURE_DIR/${FEATURE}Worker.swift"          "$IMPORTS_SERVICE"
+      TEST_FILE="$TEST_DIR/${FEATURE}InteractorTests.swift"
+      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+
+      HAS_ROUTE_NAV=0
+      FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+        let presenter = ${FEATURE}Presenter()\\
+        let interactor = ${FEATURE}Interactor(\\
+            presenter: presenter,\\
+            worker: ${FEATURE}Worker(requestBuilder: requestBuilder, apiClient: apiClient)\\
+        )\\
+        let viewController = ${FEATURE}ViewController(interactor: interactor)\\
+        presenter.displayLogic = viewController\\
+        return viewController\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      ;;
+
+    mvc-uikit-coordinator)
+      render_template "$TEMPLATE_DIR/ViewController.swift.template" "$FEATURE_DIR/${FEATURE}ViewController.swift" "$IMPORTS_ALL"
+      TEST_FILE="$TEST_DIR/${FEATURE}ViewControllerTests.swift"
+      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+
+      HAS_ROUTE_NAV=0
+      FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+        ${FEATURE}ViewController(\\
+            service: ${FEATURE}Service(requestBuilder: requestBuilder, apiClient: apiClient)\\
+        )\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      ;;
+  esac
+
+  if [ "$NEEDS_FATAL_HELPER" -eq 1 ]; then
+    cat >> "$TEST_FILE" <<EOF
+
+private func fatalErrorFakeValue<T>(_ type: T.Type = T.self) -> T {
+    fatalError("TODO: provide a fake value for \\(type)")
+}
+EOF
   fi
 
-  DEST_FILE="$(grep -rl "new-feature-destination-insertion-point" "$APP_PATH" 2>/dev/null | head -n1 || true)"
-  if [ -n "$DEST_FILE" ]; then
-    sed -i.bak "s/        \/\/ MARK: new-feature-destination-insertion-point/        case .${FEATURE_LOWER}:\\
+  # VIP's transport-struct namespace (§3.3, §8.2) — appended immediately after
+  # the flat entity struct written above, never split across locations.
+  if [ -f "$TEMPLATE_DIR/ModelsExtra.swift.template" ]; then
+    render_template "$TEMPLATE_DIR/ModelsExtra.swift.template" "$MODELS_FILE.extra" ""
+    cat "$MODELS_FILE.extra" >> "$MODELS_FILE"
+    rm -f "$MODELS_FILE.extra"
+  fi
+
+  # Composition registration — insert at the marker left in the app-shell files by
+  # /start; never a second navigation path (§3.4). Every combo has a factory
+  # marker; only the SwiftUI+NavigationStack combos also have a Route enum and a
+  # destination switch (the UIKit combos push directly from AppCoordinator).
+  FACTORY_FILE="$(grep -rl "new-feature-factory-insertion-point" "$APP_PATH" 2>/dev/null | head -n1 || true)"
+  if [ -n "$FACTORY_FILE" ]; then
+    sed -i.bak "s/    \/\/ MARK: new-feature-factory-insertion-point/${FACTORY_SNIPPET}/" "$FACTORY_FILE"
+    rm -f "${FACTORY_FILE}.bak"
+  else
+    echo "new_feature.sh: no factory insertion marker found under $APP_PATH — wire '$FEATURE_LOWER' into the composition root manually." >&2
+  fi
+
+  if [ "$HAS_ROUTE_NAV" -eq 1 ]; then
+    ROUTE_FILE="$(grep -rl "new-feature-route-insertion-point" "$APP_PATH" 2>/dev/null | head -n1 || true)"
+    if [ -n "$ROUTE_FILE" ]; then
+      sed -i.bak "s/    \/\/ MARK: new-feature-route-insertion-point/    case ${FEATURE_LOWER}\\
+    \/\/ MARK: new-feature-route-insertion-point/" "$ROUTE_FILE"
+      rm -f "${ROUTE_FILE}.bak"
+    else
+      echo "new_feature.sh: no Route insertion marker found under $APP_PATH — register '$FEATURE_LOWER' with the navigation backbone manually." >&2
+    fi
+
+    DEST_FILE="$(grep -rl "new-feature-destination-insertion-point" "$APP_PATH" 2>/dev/null | head -n1 || true)"
+    if [ -n "$DEST_FILE" ]; then
+      sed -i.bak "s/        \/\/ MARK: new-feature-destination-insertion-point/        case .${FEATURE_LOWER}:\\
             make${FEATURE}View()\\
         \/\/ MARK: new-feature-destination-insertion-point/" "$DEST_FILE"
-    rm -f "${DEST_FILE}.bak"
-  else
-    echo "new_feature.sh: no destination insertion marker found under $APP_PATH — wire '$FEATURE_LOWER' into the NavigationStack manually." >&2
+      rm -f "${DEST_FILE}.bak"
+    else
+      echo "new_feature.sh: no destination insertion marker found under $APP_PATH — wire '$FEATURE_LOWER' into the NavigationStack manually." >&2
+    fi
   fi
 else
   echo "new_feature.sh: architecture='$ARCHITECTURE' ui='$UI_FRAMEWORK' nav='$NAVIGATION' is not the fully-templated combo (§1.4)."

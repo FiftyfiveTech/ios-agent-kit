@@ -1,0 +1,55 @@
+import SwiftUI
+__MODULE_IMPORTS__
+
+// Presentation layer — binds to the ViewModel bridge only, never reads the
+// Interactor/Presenter/Worker directly (§1.4). Flat in Features/__FEATURE__/,
+// no Presentation/Domain/Data subfolders (§3.2).
+struct __FEATURE__View: View {
+    @State private var viewModel: __FEATURE__ViewModel
+
+    init(viewModel: __FEATURE__ViewModel) {
+        self.viewModel = viewModel
+    }
+
+    var body: some View {
+        content
+            .task { await viewModel.load() }
+            .navigationTitle(L10n.__MODULE_LOWER__.__FEATURE_LOWER__.title)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch viewModel.state {
+        case .idle, .loading:
+            LoadingView()
+        case .loaded(let items) where items.isEmpty:
+            EmptyStateView(message: L10n.__MODULE_LOWER__.__FEATURE_LOWER__.empty)
+        case .loaded(let items):
+            List(items, id: \.self) { item in
+                Text(String(describing: item))
+            }
+        case .error(let message):
+            ErrorView(message: message) {
+                Task { await viewModel.load() }
+            }
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        __FEATURE__View(viewModel: __FEATURE__ViewModel(interactor: Preview__FEATURE__Interactor()))
+    }
+}
+
+// A minimal fake conforming to __FEATURE__BusinessLogic (§8.2's "second
+// conformance") — mirrors the MVVM View's preview-fake pattern exactly. Unlike
+// MVVM's Repository fake, this one never calls back into the ViewModel's
+// display(viewState:)/display(errorMessage:) — a real, wired Interactor
+// always reaches the Presenter and therefore the ViewModel, one-way (§1.4),
+// but faking that round trip here would mean also faking a Presenter just for
+// the preview canvas. The trade-off is the preview renders the .loading
+// state; that's an acceptable, honest limitation for a #Preview fake.
+private final class Preview__FEATURE__Interactor: __FEATURE__BusinessLogic {
+    func load(request: __FEATURE__.Load.Request) async {}
+}

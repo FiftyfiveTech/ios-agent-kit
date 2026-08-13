@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Wired via `git config core.hooksPath .githooks` by /start (§2.1 step 8).
+# Enforces docs/GIT_CONVENTIONS.md's message format — shape only, never content
+# (§7, §10: resolved — this used to be documentation-only).
+set -euo pipefail
+
+MSG_FILE="$1"
+COMMIT_SOURCE="${2:-}"
+
+# Never enforce shape on a merge/squash commit — git writes those itself.
+if [ "$COMMIT_SOURCE" = "merge" ]; then
+  exit 0
+fi
+
+FIRST_LINE="$(sed -n '1p' "$MSG_FILE")"
+
+# Strip a leading comment/blank line some editors leave as line 1.
+if [ -z "$FIRST_LINE" ] || [[ "$FIRST_LINE" == \#* ]]; then
+  FIRST_LINE="$(sed -n '2p' "$MSG_FILE")"
+fi
+
+PATTERN='^([A-Z][A-Z0-9]+-[0-9]+ )?(feat|fix|refactor|test|docs|chore): .+'
+
+if [[ ! "$FIRST_LINE" =~ $PATTERN ]]; then
+  echo "commit-msg: message doesn't match docs/GIT_CONVENTIONS.md's format." >&2
+  echo "commit-msg: expected '(<TICKET-ID> )?<type>: <summary>', type one of feat/fix/refactor/test/docs/chore." >&2
+  echo "commit-msg: got: ${FIRST_LINE}" >&2
+  echo "commit-msg: example: 'PROJ-123 feat: add Home feature' or 'fix: correct empty-state message'." >&2
+  exit 1
+fi
+
+exit 0

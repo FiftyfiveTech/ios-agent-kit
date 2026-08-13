@@ -1,0 +1,66 @@
+import XCTest
+__MODULE_IMPORTS__
+__TESTABLE_IMPORT__
+
+// A real, passing unit test against fake dependencies (§4.1) — Fake__FEATURE__Worker
+// is a second conformance to __FEATURE__WorkerProtocol and Spy__FEATURE__Presenter
+// is a second conformance to __FEATURE__PresentationLogic (§8.2), not a mocking
+// framework. This tests the Interactor, the one layer with real logic in it —
+// Presenter/ViewController are exercised through their protocols here, never
+// through UIKit.
+final class __FEATURE__InteractorTests: XCTestCase {
+    func test_load_presentsResponseOnSuccess() async {
+        let expected = __FAKE_MODEL_LIST__
+        let worker = Fake__FEATURE__Worker(result: .success(expected))
+        let presenter = Spy__FEATURE__Presenter()
+        let interactor = __FEATURE__Interactor(presenter: presenter, worker: worker)
+
+        await interactor.load(request: __FEATURE__.Load.Request())
+
+        XCTAssertEqual(presenter.presentedResponse?.items, expected)
+        XCTAssertNil(presenter.presentedError)
+    }
+
+    func test_load_presentsErrorOnFailure() async {
+        let worker = Fake__FEATURE__Worker(result: .failure(FakeError.forced))
+        let presenter = Spy__FEATURE__Presenter()
+        let interactor = __FEATURE__Interactor(presenter: presenter, worker: worker)
+
+        await interactor.load(request: __FEATURE__.Load.Request())
+
+        XCTAssertNil(presenter.presentedResponse)
+        XCTAssertNotNil(presenter.presentedError)
+    }
+}
+
+private enum FakeError: Error {
+    case forced
+}
+
+private final class Fake__FEATURE__Worker: __FEATURE__WorkerProtocol {
+    private let result: Result<[__FEATURE__Model], Error>
+
+    init(result: Result<[__FEATURE__Model], Error>) {
+        self.result = result
+    }
+
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        try result.get()
+    }
+}
+
+// A spy, not the real Presenter — records what it received instead of hopping
+// to the main actor and calling a DisplayLogic, which keeps this test
+// synchronous and independent of UIKit/main-thread timing.
+private final class Spy__FEATURE__Presenter: __FEATURE__PresentationLogic {
+    private(set) var presentedResponse: __FEATURE__.Load.Response?
+    private(set) var presentedError: Error?
+
+    func present(response: __FEATURE__.Load.Response) {
+        presentedResponse = response
+    }
+
+    func present(error: Error) {
+        presentedError = error
+    }
+}

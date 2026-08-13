@@ -1,0 +1,155 @@
+import UIKit
+__MODULE_IMPORTS__
+
+// __FEATURE__BusinessLogic is declared here, not in Interactor.swift — a protocol
+// is owned by the module that CONSUMES it, never the one that implements it
+// (§8.2). This ViewController is the Interactor's only consumer.
+//
+// Classic Clean Swift: this ViewController conforms to __FEATURE__DisplayLogic
+// directly, because UIViewController is already a reference type — unlike the
+// SwiftUI VIP combo, no ViewModel bridge is needed here (§1.4).
+public protocol __FEATURE__BusinessLogic {
+    func load(request: __FEATURE__.Load.Request) async
+}
+
+public final class __FEATURE__ViewController: UIViewController, __FEATURE__DisplayLogic {
+    private let interactor: __FEATURE__BusinessLogic
+
+    private let tableView = UITableView(frame: .zero, style: .plain)
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
+    private let errorLabel = UILabel()
+    private let retryButton = UIButton(type: .system)
+
+    private var items: [__FEATURE__Model] = []
+
+    private static let cellReuseIdentifier = "__FEATURE__Cell"
+
+    public init(interactor: __FEATURE__BusinessLogic) {
+        self.interactor = interactor
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    // No Storyboard/.xib (§1.4) — this scene is always composed in code by
+    // AppCoordinator's make__FEATURE__ViewController() factory.
+    @available(*, unavailable)
+    public required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported — no Storyboard/.xib (§1.4)")
+    }
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationItem.title = L10n.__MODULE_LOWER__.__FEATURE_LOWER__.title
+        view.backgroundColor = .systemBackground
+        setUpTableView()
+        setUpLoadingIndicator()
+        setUpErrorState()
+        dispatchLoad()
+    }
+
+    // View → Interactor: fire the request, then wait for display(viewState:)/
+    // displayError(message:) to come back — never read anything off the
+    // Interactor directly (§ VIP one-way flow).
+    private func dispatchLoad() {
+        activityIndicator.startAnimating()
+        errorLabel.isHidden = true
+        retryButton.isHidden = true
+        Task { [weak self] in
+            guard let self else { return }
+            await self.interactor.load(request: __FEATURE__.Load.Request())
+        }
+    }
+
+    @objc private func retryTapped() {
+        dispatchLoad()
+    }
+
+    // MARK: - __FEATURE__DisplayLogic
+
+    // Called already on the main actor — Presenter.swift.template hops there
+    // explicitly before calling either method below, since the
+    // Interactor/Worker chain runs off the main actor. Straight-line UIKit here;
+    // hopping a second time would just defer the UI update by a run-loop turn
+    // for no benefit.
+    public func display(viewState: __FEATURE__.Load.ViewState) {
+        activityIndicator.stopAnimating()
+        errorLabel.isHidden = true
+        retryButton.isHidden = true
+        items = viewState.items
+        tableView.isHidden = false
+        tableView.reloadData()
+    }
+
+    public func displayError(message: String) {
+        activityIndicator.stopAnimating()
+        tableView.isHidden = true
+        errorLabel.text = message
+        errorLabel.isHidden = false
+        retryButton.isHidden = false
+    }
+
+    // MARK: - Layout (plain UIKit — a real UITableView + spinner + error/retry,
+    // not shared SwiftUI views; VIP's View owns only rendering)
+
+    private func setUpTableView() {
+        tableView.dataSource = self
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.cellReuseIdentifier)
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.isHidden = true
+        view.addSubview(tableView)
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+
+    private func setUpLoadingIndicator() {
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(activityIndicator)
+        NSLayoutConstraint.activate([
+            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+    }
+
+    private func setUpErrorState() {
+        errorLabel.numberOfLines = 0
+        errorLabel.textAlignment = .center
+        errorLabel.isHidden = true
+        errorLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        // "Retry" is generic UI chrome, not feature content — no per-feature L10n
+        // key exists for it (new_feature.sh only writes .title/.empty), matching
+        // the shared SwiftUI ErrorView's own precedent (app-shell/ErrorView.swift).
+        retryButton.setTitle("Retry", for: .normal)
+        retryButton.isHidden = true
+        retryButton.translatesAutoresizingMaskIntoConstraints = false
+        retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
+
+        view.addSubview(errorLabel)
+        view.addSubview(retryButton)
+        NSLayoutConstraint.activate([
+            errorLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            errorLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
+            errorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
+            errorLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
+            retryButton.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 12),
+            retryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+    }
+}
+
+extension __FEATURE__ViewController: UITableViewDataSource {
+    public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        items.count
+    }
+
+    public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: Self.cellReuseIdentifier, for: indexPath)
+        let item = items[indexPath.row]
+        cell.textLabel?.text = String(describing: item)
+        return cell
+    }
+}

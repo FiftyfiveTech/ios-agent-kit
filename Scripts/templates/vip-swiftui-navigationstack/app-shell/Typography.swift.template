@@ -1,0 +1,9 @@
+import SwiftUI
+
+// Base type-scale tokens (§6). Same base/override split as ThemeColor (§3.11).
+public enum ThemeFont {
+    public static let title = Font.system(.title2, design: .rounded).weight(.semibold)
+    public static let headline = Font.system(.headline)
+    public static let body = Font.system(.body)
+    public static let caption = Font.system(.caption)
+}

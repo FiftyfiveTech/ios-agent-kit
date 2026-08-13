@@ -1,0 +1,22 @@
+import SwiftUI
+
+// Shared empty state (§3.6) — a list screen with zero items renders this, never a
+// blank screen or a re-implemented "no results" label.
+public struct EmptyStateView: View {
+    private let message: String
+
+    public init(message: String) {
+        self.message = message
+    }
+
+    public var body: some View {
+        Text(message)
+            .font(ThemeFont.body)
+            .foregroundStyle(ThemeColor.secondaryText)
+            .padding()
+    }
+}
+
+#Preview {
+    EmptyStateView(message: "Nothing here yet")
+}

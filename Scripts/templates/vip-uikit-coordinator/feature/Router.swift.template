@@ -1,0 +1,27 @@
+import UIKit
+__MODULE_IMPORTS__
+
+// Naming note (§3.4/§1.4) — two different "Router" concepts, don't conflate
+// them. This is VIP's own PER-SCENE Router: one of the five classic VIP layer
+// files, deciding WHERE this specific scene goes next. It is NOT the app-wide
+// navigation Coordinator — that's AppCoordinator (app-shell/AppCoordinator.swift),
+// the ONE mechanism that actually owns the UINavigationController for the whole
+// app. This Router never pushes/pops the navigation stack itself; it always
+// hands the decision off to AppCoordinator.
+public struct __FEATURE__Router {
+    private let coordinator: AppCoordinator
+
+    public init(coordinator: AppCoordinator) {
+        self.coordinator = coordinator
+    }
+
+    // The starter feature has nowhere to navigate yet — matches how the MVVM
+    // combo ships zero Route cases. Add a routeTo<Destination>() method here
+    // once __FEATURE__ has a next screen, e.g.:
+    //
+    // func routeToDetail(for item: __FEATURE__Model) {
+    //     coordinator.push(DetailViewController(item: item))
+    // }
+    //
+    // TODO(agent/dev): wire this once __FEATURE__ has a next screen.
+}

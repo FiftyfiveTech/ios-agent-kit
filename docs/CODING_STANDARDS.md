@@ -59,6 +59,20 @@ SwiftLint enforces from what's convention-only.
 - Keep protocols narrow enough that a fake is a few lines. A 20-method service
   protocol is a strong signal the module is doing more than one thing.
 
+## Dependency injection — when to move off manual (§8.4)
+
+Manual initializer injection is the default at every tier — dependency-free,
+and every construction site is visible by reading the code. The signal to
+introduce a container isn't module count on its own, it's when a composition
+root's constructor call has grown past what's readable at a glance (rule of
+thumb: more than ~6-8 positional dependencies threaded through, or the same
+dependency re-threaded through 3+ layers just to reach a leaf that needs it).
+When that happens, introduce a lightweight container (e.g. Factory) **at the
+composition root only** — it should never leak into `Features/`, where
+constructor injection stays the rule regardless of what wires it at the top.
+This is a project opting in later, not something `/start`/`/add-module`
+generate.
+
 ## Force-unwrap and fatal error markers
 
 `/new-feature`'s generated tests use `fatalError("TODO: provide a fake value

@@ -1,7 +1,10 @@
 # mvvm-swiftui-navigationstack templates
 
-The one fully-authored, deterministic combo (§1.4): MVVM + SwiftUI + `NavigationStack` +
-SwiftData, at T1/T2 shape (T3 placement for this combo is best-effort — §10).
+One of four fully-authored, deterministic combos (§1.4) — the default: MVVM + SwiftUI +
+`NavigationStack` + SwiftData, at T1/T2 shape (T3 placement for this combo is
+best-effort — §10). The other three (`vip-swiftui-navigationstack/`,
+`vip-uikit-coordinator/`, `mvc-uikit-coordinator/`) share this same token
+convention and `feature/`/`app-shell/` split.
 
 ## Token convention
 
