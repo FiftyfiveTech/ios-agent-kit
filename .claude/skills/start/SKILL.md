@@ -289,6 +289,16 @@ comment them out), `docs/ai/modularization.md.template` →
 filling in the real module graph table). Every `{{placeholder}}` must be
 resolved — an agent reading the rendered file should never see one.
 
+Seed `docs/PROJECT_MAP.md` in the same step — `CLAUDE.md` links to it, so it
+must exist before that link is live. There's no `.template` for it; write it
+fresh with the three sections the build spec's §5 names, each with its real
+day-one content and a one-line note on what appends to it later: any
+file/folder not covered by the feature-first convention, the module list with
+each module's kind and consumers (empty at T1 — say so rather than omitting the
+section), and which architecture combos are template-backed vs. agent-assisted
+for the chosen pattern. `/add-module` and `/translate` append to this file, so
+it must be a real seeded document, not a stub they create on first use.
+
 Also write a fresh `docs/ONBOARDING.md` and `README.md` for **this project**
 (not the template) — day-to-day prompting guidance, tech stack, structure,
 getting-started, troubleshooting — overwriting the copies that came from the
@@ -302,6 +312,22 @@ Write `TODO.md` with what can't be automated: the real API base URL (already
 flagged inline in `App.swift`/`SceneDelegate.swift`), opening the project once in Xcode, per-app
 signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`. Not
 just a message that scrolls off-screen — a durable checklist.
+
+Add one **optional** entry, phrased as an offer rather than a completed step —
+it changes machine-level configuration outside this repo, so never run it as
+part of `/start`:
+
+> Optional — let Claude Code use Xcode's own tools (build, test, project
+> actions) instead of reconstructing `xcodebuild` invocations. Enable
+> **Xcode ▸ Settings ▸ Intelligence ▸ Model Context Protocol ▸ "Allow external
+> agents to use Xcode tools"**, then run
+> `claude mcp add --transport stdio xcode -- xcrun mcpbridge` once. The project
+> must be open in Xcode when an external agent connects.
+
+At T3, add a second entry: Xcode's in-editor agent looks for `CLAUDE.md`
+beside the `.xcodeproj`, which is not the repo root once each project sits in
+its own folder — decide per project whether to symlink or duplicate a pointer
+file.
 
 ---
 

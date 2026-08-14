@@ -91,10 +91,19 @@ Carried over honestly rather than hidden:
   parity, nothing catches a wrong-bundle lookup at runtime.
 - Generated `.xcodeproj`/`.xcworkspace` files are **committed**, not
   gitignored (see `docs/ONBOARDING.md`).
+- Xcode's own localization agent writes String Catalogs (`.xcstrings`);
+  `/translate` and `check_strings.sh` operate on per-module
+  `Localizable.strings`. Nothing detects a project using both — parity passes
+  while a locale is actually incomplete. Pick one (build spec §5.1).
+- Agent permissions granted inside Xcode (Intelligence ▸ Agents ▸ Permissions)
+  are global to the Mac and apply to every project. Nothing in this template
+  can scope, version or audit them.
 
 Resolved since the initial build (Objective-C support dropped entirely,
 `/translate` Skill added, commit-msg format now hook-enforced, DI-container
-upgrade path documented) — see the build spec's §10 for the full history.
+upgrade path documented, `docs/PROJECT_MAP.md` now seeded by `/start` instead of
+first appearing when another Skill appends to it) — see the build spec's §10 for
+the full history.
 
 Full list: `docs/ONBOARDING.md` and the build spec this template was generated
 from.

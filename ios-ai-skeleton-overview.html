@@ -1,0 +1,1309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iOS AI-Optimized Skeleton — Template Reference</title>
+<style>
+/* ─── reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body, h1, h2, h3, h4, p, ul, ol, li, figure, table, pre, dl, dd { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+table { border-collapse: collapse; }
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; }
+
+/* ─── tokens: light is the bare :root ───────────────────────────────────── */
+:root {
+  --paper:      #edf0f4;
+  --surface:    #f9fafc;
+  --surface-2:  #e4e9f0;
+  --ink:        #14181e;
+  --ink-soft:   #4d5766;
+  --ink-faint:  #78838f;
+  --line:       #ccd4de;
+  --line-soft:  #dde3ea;
+
+  --accent:     #27467f;
+  --accent-ink: #1d3763;
+  --accent-wash:#dde5f4;
+
+  --det:        #0f6e63;   /* deterministic */
+  --det-wash:   #d6ebe6;
+  --asst:       #8c6206;   /* agent-assisted */
+  --asst-wash:  #f3e7cc;
+  --stop:       #a33a2e;   /* refuses / limitation */
+  --stop-wash:  #f5dfda;
+
+  --shadow: 0 1px 2px rgba(20, 24, 30, .05), 0 8px 24px -16px rgba(20, 24, 30, .28);
+
+  --font-display: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, "JetBrains Mono", "Cascadia Mono", monospace;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, sans-serif;
+  --font-mono: var(--font-display);
+
+  --measure: 68ch;
+  --rail: 232px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #101317;
+    --surface:    #171b21;
+    --surface-2:  #1e242c;
+    --ink:        #e6eaf0;
+    --ink-soft:   #a3aebc;
+    --ink-faint:  #7d8794;
+    --line:       #2b323b;
+    --line-soft:  #232a32;
+
+    --accent:     #86a8e8;
+    --accent-ink: #a8c2f0;
+    --accent-wash:#1a2436;
+
+    --det:        #4fc0ae;
+    --det-wash:   #102b28;
+    --asst:       #d8a742;
+    --asst-wash:  #2e2513;
+    --stop:       #e5786a;
+    --stop-wash:  #331a17;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px -18px rgba(0, 0, 0, .8);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:      #101317;
+  --surface:    #171b21;
+  --surface-2:  #1e242c;
+  --ink:        #e6eaf0;
+  --ink-soft:   #a3aebc;
+  --ink-faint:  #7d8794;
+  --line:       #2b323b;
+  --line-soft:  #232a32;
+
+  --accent:     #86a8e8;
+  --accent-ink: #a8c2f0;
+  --accent-wash:#1a2436;
+
+  --det:        #4fc0ae;
+  --det-wash:   #102b28;
+  --asst:       #d8a742;
+  --asst-wash:  #2e2513;
+  --stop:       #e5786a;
+  --stop-wash:  #331a17;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px -18px rgba(0, 0, 0, .8);
+}
+
+/* ─── base ──────────────────────────────────────────────────────────────── */
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--accent-wash); color: var(--accent-ink); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+p { max-width: var(--measure); }
+p + p { margin-top: .85em; }
+
+strong { font-weight: 640; color: var(--ink); }
+em { font-style: italic; color: var(--ink-soft); }
+
+code {
+  font-family: var(--font-mono);
+  font-size: .875em;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  padding: .08em .34em;
+  white-space: nowrap;
+}
+
+/* ─── shell ─────────────────────────────────────────────────────────────── */
+.shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 32px 120px;
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: 0 64px;
+  align-items: start;
+}
+
+/* ─── masthead ──────────────────────────────────────────────────────────── */
+.masthead {
+  grid-column: 1 / -1;
+  padding: 72px 0 40px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.eyebrow .tick { color: var(--accent); }
+
+.masthead h1 {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 5.2vw, 54px);
+  line-height: 1.04;
+  letter-spacing: -.045em;
+  font-weight: 600;
+  text-wrap: balance;
+  max-width: 20ch;
+}
+.masthead h1 .dim { color: var(--ink-faint); }
+
+.standfirst {
+  font-size: clamp(17px, 1.6vw, 19.5px);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+.standfirst b { color: var(--ink); font-weight: 600; }
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  max-width: 900px;
+}
+.stat {
+  flex: 1 1 130px;
+  padding: 15px 18px;
+  border-right: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat:last-child { border-right: 0; }
+.stat b {
+  font-family: var(--font-display);
+  font-size: 25px;
+  line-height: 1.1;
+  letter-spacing: -.03em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.stat span {
+  font-size: 11.5px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ─── rail ──────────────────────────────────────────────────────────────── */
+.rail {
+  position: sticky;
+  top: 0;
+  padding: 44px 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+.rail h2 {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 500;
+  padding-bottom: 12px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rail ol { display: flex; flex-direction: column; gap: 1px; }
+.rail a {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 5px 8px 5px 0;
+  text-decoration: none;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  border-radius: 4px;
+  transition: color .12s ease, background .12s ease;
+}
+.rail a:hover { color: var(--accent); background: var(--accent-wash); }
+.rail a .n {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0;
+}
+.rail .rail-foot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+}
+
+/* ─── main flow ─────────────────────────────────────────────────────────── */
+main { padding: 44px 0 0; min-width: 0; }
+
+section { padding-top: 26px; margin-bottom: 62px; scroll-margin-top: 24px; }
+
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.sec-head .ref {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-wash);
+  border-radius: 3px;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+h2.sec-title {
+  font-family: var(--font-display);
+  font-size: clamp(21px, 2.6vw, 27px);
+  letter-spacing: -.035em;
+  font-weight: 600;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+h3 {
+  font-family: var(--font-body);
+  font-size: 16.5px;
+  font-weight: 640;
+  letter-spacing: -.005em;
+  margin: 34px 0 10px;
+  text-wrap: balance;
+}
+h3:first-of-type { margin-top: 22px; }
+h3 .kbd { font-family: var(--font-mono); font-weight: 500; font-size: .92em; }
+
+h4 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 500;
+  margin: 26px 0 8px;
+}
+
+/* lists */
+.bullets { display: flex; flex-direction: column; gap: 9px; margin: 14px 0; max-width: var(--measure); }
+.bullets > li {
+  position: relative;
+  padding-left: 20px;
+  line-height: 1.55;
+}
+.bullets > li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: .68em;
+  width: 6px;
+  height: 1.5px;
+  background: var(--accent);
+}
+.bullets.tight > li { font-size: 15px; }
+
+/* ─── panels ────────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: var(--shadow);
+  margin: 20px 0;
+  overflow: hidden;
+}
+.panel > .panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.panel > .panel-body { padding: 16px 18px; }
+.panel > .panel-body > *:first-child { margin-top: 0; }
+
+pre {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.62;
+  overflow-x: auto;
+  padding: 16px 18px;
+  color: var(--ink-soft);
+  -webkit-overflow-scrolling: touch;
+}
+pre b { color: var(--ink); font-weight: 600; }
+pre i { color: var(--ink-faint); font-style: normal; }
+pre .c { color: var(--accent); }
+pre .g { color: var(--det); }
+
+/* ─── tables ────────────────────────────────────────────────────────────── */
+.tw { overflow-x: auto; margin: 20px 0; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: var(--shadow); -webkit-overflow-scrolling: touch; }
+table { width: 100%; font-size: 14px; min-width: 520px; }
+thead th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 500;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+tbody td, tbody th {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+  line-height: 1.5;
+  text-align: left;
+}
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+tbody th { font-weight: 600; color: var(--ink); }
+tbody th.num {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  width: 34px;
+  padding-right: 0;
+}
+td.mono, th.mono { font-family: var(--font-mono); font-size: 12.5px; }
+tbody tr:hover { background: var(--surface-2); }
+table.fixed-first tbody th { white-space: nowrap; }
+
+/* ─── badges ────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 2.5px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.badge.det  { color: var(--det);  background: var(--det-wash);  border-color: color-mix(in srgb, var(--det) 28%, transparent); }
+.badge.asst { color: var(--asst); background: var(--asst-wash); border-color: color-mix(in srgb, var(--asst) 28%, transparent); }
+.badge.stop { color: var(--stop); background: var(--stop-wash); border-color: color-mix(in srgb, var(--stop) 28%, transparent); }
+.badge.neu  { color: var(--ink-soft); background: var(--surface-2); border-color: var(--line); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 14px 0 4px; font-size: 13px; color: var(--ink-soft); align-items: center; }
+.legend .item { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ─── plain-language layer ──────────────────────────────────────────────── */
+.plain {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 17px 20px 19px;
+  margin: 18px 0 26px;
+  box-shadow: var(--shadow);
+}
+.plain-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 11px;
+}
+.plain-label::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-radius: 1px;
+  background: var(--accent);
+  flex: none;
+}
+.plain p { font-size: 16.5px; line-height: 1.68; color: var(--ink); max-width: 66ch; }
+.plain p + p { margin-top: .72em; }
+.plain .bullets { margin: 12px 0 0; }
+.plain .bullets > li { font-size: 15.5px; }
+.plain .bullets > li::before { top: .72em; }
+.plain > *:last-child { margin-bottom: 0; }
+
+/* hover/focus definitions for jargon */
+.term {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  cursor: help;
+  position: relative;
+}
+.term:hover, .term:focus-visible { color: var(--accent); border-bottom-style: solid; }
+.term::after {
+  content: attr(data-def);
+  position: absolute;
+  /* below the term, never above: containers with overflow:hidden clip upward tooltips */
+  top: calc(100% + 9px);
+  left: 0;
+  width: max-content;
+  max-width: 310px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.06), 0 14px 34px -14px rgba(0,0,0,.34);
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.48;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .12s ease;
+  z-index: 30;
+  pointer-events: none;
+}
+.term:hover::after, .term:focus-visible::after { opacity: 1; visibility: visible; }
+@media (max-width: 620px) { .term::after { max-width: 220px; } }
+
+/* numbered walkthrough */
+.steps { counter-reset: step; display: flex; flex-direction: column; gap: 22px; margin: 24px 0; }
+.step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 16px; align-items: start; }
+.step::before {
+  counter-increment: step;
+  content: counter(step);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-wash);
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  display: grid;
+  place-items: center;
+  margin-top: -3px;
+}
+.step h3 { margin: 0 0 5px; font-size: 16px; }
+.step p { font-size: 15px; color: var(--ink-soft); }
+.step .panel, .step .note { margin: 12px 0 0; }
+.step > div > *:last-child { margin-bottom: 0; }
+
+/* glossary */
+.gloss { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 0 34px; margin: 14px 0 8px; }
+.gloss > div { padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
+.gloss dt { font-weight: 640; font-size: 14.5px; color: var(--ink); }
+.gloss dt code { font-weight: 500; }
+.gloss dd { font-size: 14px; line-height: 1.52; color: var(--ink-soft); margin-top: 3px; }
+
+/* task index emphasis */
+td.cmd { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent); white-space: nowrap; }
+
+/* ─── callouts ──────────────────────────────────────────────────────────── */
+.note {
+  border-left: 2.5px solid var(--accent);
+  background: var(--accent-wash);
+  border-radius: 0 6px 6px 0;
+  padding: 13px 16px;
+  margin: 20px 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+.note.warn { border-left-color: var(--stop); background: var(--stop-wash); }
+.note.ok { border-left-color: var(--det); background: var(--det-wash); }
+.note b { color: var(--ink); }
+.note .tag {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  color: var(--accent);
+}
+.note.warn .tag { color: var(--stop); }
+.note.ok .tag { color: var(--det); }
+
+/* ─── phase cards ───────────────────────────────────────────────────────── */
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 16px; margin: 22px 0; }
+.phase {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.phase .p-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.phase h3 { margin: 0; font-size: 15.5px; }
+.phase p { font-size: 14.5px; color: var(--ink-soft); max-width: none; }
+.phase .out {
+  margin-top: auto;
+  padding-top: 11px;
+  border-top: 1px dashed var(--line);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+
+/* ─── skill cards ───────────────────────────────────────────────────────── */
+.skills { display: flex; flex-direction: column; gap: 14px; margin: 22px 0; }
+.skill {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.skill > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 11px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+.skill .sig {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+.skill .sig .arg { color: var(--ink-faint); font-weight: 400; }
+.skill > .body { padding: 14px 16px; }
+.skill > .body p { font-size: 14.5px; color: var(--ink-soft); }
+.skill .rules { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+.skill .rules li {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  padding-left: 17px;
+  position: relative;
+}
+.skill .rules li::before {
+  content: "";
+  position: absolute; left: 2px; top: .62em;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--line);
+  border: 1px solid var(--ink-faint);
+}
+.skill .rules li.no::before { background: var(--stop-wash); border-color: var(--stop); }
+.skill .rules li b { color: var(--ink); }
+
+/* ─── combo cards ───────────────────────────────────────────────────────── */
+.combos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 22px 0; }
+.combo {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.combo .path { font-family: var(--font-mono); font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
+.combo .who { font-size: 14px; color: var(--ink-soft); }
+.combo .files { display: flex; flex-wrap: wrap; gap: 5px; }
+.combo .files span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  color: var(--ink-soft);
+}
+.combo .files span.hi { color: var(--det); border-color: color-mix(in srgb, var(--det) 30%, transparent); background: var(--det-wash); }
+.combo .why { font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: auto; }
+
+/* ─── diagrams ──────────────────────────────────────────────────────────── */
+figure { margin: 24px 0; }
+figure svg { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; box-shadow: var(--shadow); }
+figcaption { margin-top: 9px; font-size: 13px; color: var(--ink-faint); line-height: 1.5; max-width: var(--measure); }
+.d-box { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; }
+.d-box.accent { fill: var(--accent-wash); stroke: color-mix(in srgb, var(--accent) 40%, transparent); }
+.d-box.leaf { fill: var(--det-wash); stroke: color-mix(in srgb, var(--det) 34%, transparent); }
+.d-box.stopwash { fill: var(--stop-wash); stroke: color-mix(in srgb, var(--stop) 30%, transparent); }
+.d-t { font-family: var(--font-body); font-size: 13px; font-weight: 600; fill: var(--ink); }
+.d-s { font-family: var(--font-mono); font-size: 10px; fill: var(--ink-faint); letter-spacing: .08em; }
+.d-e { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink-soft); }
+.d-line { stroke: var(--ink-faint); stroke-width: 1.3; fill: none; }
+.d-line.back { stroke: var(--accent); stroke-dasharray: 4 3; }
+.d-line.no { stroke: var(--stop); }
+
+/* ─── observed / recommended ────────────────────────────────────────────── */
+.evidence { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+.evidence li {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.evidence li:last-child { border-bottom: 0; }
+.evidence .lab {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border-radius: 3px;
+  text-align: center;
+  margin-top: 2px;
+}
+.evidence .lab.obs { color: var(--det); background: var(--det-wash); }
+.evidence .lab.rec { color: var(--accent); background: var(--accent-wash); }
+.evidence b { color: var(--ink); }
+
+/* ─── limitations ───────────────────────────────────────────────────────── */
+.limits { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin: 20px 0; }
+.limit {
+  border: 1px solid var(--line);
+  border-left: 2.5px solid var(--stop);
+  border-radius: 0 6px 6px 0;
+  background: var(--surface);
+  padding: 13px 15px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.limit.resolved { border-left-color: var(--det); }
+.limit h4 { margin: 0 0 5px; color: var(--ink); font-family: var(--font-body); font-size: 14px; letter-spacing: 0; text-transform: none; font-weight: 640; }
+
+/* ─── footer ────────────────────────────────────────────────────────────── */
+.colophon {
+  grid-column: 1 / -1;
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--ink-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  justify-content: space-between;
+}
+
+/* ─── responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 20px 80px; }
+  .rail {
+    position: static;
+    max-height: none;
+    padding: 24px 0 0;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 18px;
+  }
+  .rail ol { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .rail a { grid-template-columns: auto auto; padding: 4px 9px; border: 1px solid var(--line-soft); background: var(--surface); font-size: 12.5px; }
+  .rail .rail-foot { display: none; }
+  .masthead { padding-top: 44px; }
+  .evidence li { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+  .evidence .lab { justify-self: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+html { scroll-behavior: smooth; }
+
+/* ─── print: fits on 5–6 pages; contents rail and hover tooltips drop out ── */
+@media print {
+  :root { --paper: #fff; --surface: #fff; --surface-2: #f4f6f8; --ink: #000; --ink-soft: #333; }
+  body { font-size: 10.5pt; line-height: 1.45; background: var(--paper); }
+  .shell { display: block; max-width: none; padding: 0; }
+  .rail, .term::after { display: none; }
+  .term { border-bottom: 0; }
+  .masthead { padding: 0 0 16pt; gap: 12pt; }
+  .masthead h1 { font-size: 22pt; }
+  .standfirst { font-size: 11pt; }
+  main { padding: 0; }
+  section { padding-top: 12pt; margin-bottom: 18pt; break-inside: avoid-page; }
+  .sec-head { margin-bottom: 10pt; padding-bottom: 6pt; }
+  .sec-title { font-size: 14pt; }
+  h3 { margin-top: 12pt !important; }
+  table, .note, .plain, .limit, .step, figure, .panel { break-inside: avoid; }
+  tr, li { break-inside: avoid; }
+  a { text-decoration: none; }
+  .stats { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══ MASTHEAD ══════════════════════════════════════════════════════ -->
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>Template, not an app</span><span class="tick">/</span>
+      <span>Greenfield projects</span><span class="tick">/</span>
+      <span>ios-ai-boilerplate</span>
+    </div>
+
+    <h1>iOS AI-Optimized<br>Skeleton <span class="dim">— the guide</span></h1>
+
+    <p class="standfirst">
+      A template for starting a <b>new</b> iOS project that an AI coding agent can work in without
+      re-deriving your conventions every session. Eleven questions at setup produce a compiling app,
+      a rendered rulebook the agent auto-loads, and deterministic scaffolding for everything after.
+    </p>
+
+    <p class="standfirst" style="font-size:15px; color:var(--ink-faint); max-width:64ch">
+      Written for iOS developers moving to agent-assisted work: it assumes Xcode, Swift and SPM, and
+      explains only what's specific to this template. Covers <b
+      style="color:var(--ink-soft);font-weight:600">greenfield use</b> — <code>/start</code> can also
+      adopt an existing app, but that path is out of scope here.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><b>11</b><span>Questions asked</span></div>
+      <div class="stat"><b>9</b><span>Commands</span></div>
+      <div class="stat"><b>7</b><span>Scripts</span></div>
+      <div class="stat"><b>4</b><span>Templated combos</span></div>
+      <div class="stat"><b>3</b><span>Structure tiers</span></div>
+      <div class="stat"><b>2</b><span>Git hooks</span></div>
+    </div>
+  </header>
+
+  <!-- ══ RAIL ══════════════════════════════════════════════════════════ -->
+  <nav class="rail" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#why"><span class="n">01</span><span>Why this exists</span></a></li>
+      <li><a href="#first-app"><span class="n">02</span><span>Setup</span></a></li>
+      <li><a href="#knowledge-base"><span class="n">03</span><span>The knowledge base</span></a></li>
+      <li><a href="#topology"><span class="n">04</span><span>Project topology</span></a></li>
+      <li><a href="#architecture"><span class="n">05</span><span>Architecture</span></a></li>
+      <li><a href="#commands"><span class="n">06</span><span>Day-to-day commands</span></a></li>
+      <li><a href="#xcode"><span class="n">07</span><span>Xcode's own agents</span></a></li>
+      <li><a href="#guardrails"><span class="n">08</span><span>What's enforced</span></a></li>
+      <li><a href="#limits"><span class="n">09</span><span>Limitations</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ══ 01 WHY ══════════════════════════════════════════════════════ -->
+    <section id="why">
+      <div class="sec-head">
+        <span class="ref">01</span>
+        <h2 class="sec-title">Why this exists</h2>
+      </div>
+
+      <p>
+        You already know how to build the app. What you don't have is a way to make an AI assistant build
+        it <em>the same way twice</em>. It has no memory between sessions, so unless your conventions are
+        written where it loads them automatically, screen forty is built however that morning's
+        conversation went — a different folder shape, a different navigation call, a view model wired
+        straight to <code>URLSession</code>.
+      </p>
+      <p>
+        This kit records those decisions once, at setup, into files the assistant reads at the start of
+        every session, and generates code that follows them. Scaffolding and a rulebook, not a framework.
+      </p>
+
+      <ul class="bullets tight">
+        <li><b>A compiling app on the first run</b> — one screen with loading, error and empty states, a network layer, theme tokens, per-module localization, and a test that has already passed.</li>
+        <li><b>Meta-files the assistant loads by itself</b> — see <a href="#knowledge-base" style="color:var(--accent)">03</a>.</li>
+        <li><b>Nine commands</b> for the work you repeat: a screen, an asset, a permission, a token, a locale, a module.</li>
+        <li><b>Commit-time guards</b> for hardcoded colours, string-key drift, lint and commit format.</li>
+      </ul>
+
+      <div class="note">
+        <span class="tag">Before anything else</span>
+        <b>This repository is the template, not an app</b> — no <code>.xcodeproj</code>, no chosen
+        pattern, nothing app-shaped until you run <code>/start</code>.
+      </div>
+
+      <h3>Where the defaults come from</h3>
+      <p>
+        Not taste — one long-lived production workspace: two apps on a shared framework spine, ~20
+        feature flows each, 18 localizations, several years of history.
+      </p>
+      <ul class="evidence">
+        <li><span class="lab obs">observed</span><span>Shared code vends <b>base view controllers and flows each app configures</b>, never finished screens. App-specific behaviour arrives injected — never <code>if app == .x</code> inside a shared module.</span></li>
+        <li><span class="lab obs">observed</span><span><b>18 locales maintained per module</b> — a bundle-resolution consequence, not a preference.</span></li>
+        <li><span class="lab rec">recommended</span><span><b>Don't abstract on speculation.</b> The threshold for a protocol is a <b>second real conformance</b> — a test fake counts, a future backend doesn't.</span></li>
+      </ul>
+    </section>
+
+    <!-- ══ 02 SETUP ════════════════════════════════════════════════════ -->
+    <section id="first-app">
+      <div class="sec-head">
+        <span class="ref">02</span>
+        <h2 class="sec-title">Setup</h2>
+      </div>
+
+      <div class="steps">
+
+        <div class="step">
+          <div>
+            <h3>Install the three command-line tools</h3>
+            <p>What the scripts shell out to, via Homebrew:</p>
+            <div class="panel">
+              <div class="panel-head"><span>Terminal</span><span>one-time</span></div>
+<pre><span class="c"># Homebrew itself, if you don't have it — see brew.sh</span>
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+brew install <b>xcodegen</b> <b>jq</b> <b>swiftlint</b></pre>
+            </div>
+            <ul class="bullets tight">
+              <li><b>xcodegen</b> — generates the <code>.xcodeproj</code> from <code>project.yml</code>. Install <b>tuist</b> instead if you answer Tuist below.</li>
+              <li><b>jq</b> — reads <code>ios-skeleton.config.json</code>; scripts exit rather than guess.</li>
+              <li><b>swiftlint</b> — pre-commit hook and build phase.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step">
+          <div>
+            <h3>Run <code>/start</code> in Claude Code</h3>
+            <div class="panel">
+              <div class="panel-head"><span>Terminal — Claude Code</span><span>pick one</span></div>
+<pre><span class="c"># A: clone the template as the project, run /start inside it</span>
+git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
+<b>/start</b>
+
+<span class="c"># B: give it a path — it creates and populates the folder itself</span>
+<b>/start MyNewApp</b></pre>
+            </div>
+            <p style="margin-top:10px">
+              No manual file copying, no manual Xcode step. Run it from the terminal — see
+              <a href="#xcode" style="color:var(--accent)">07</a> for driving an agent inside Xcode
+              instead.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div>
+            <h3>Answer eleven questions</h3>
+            <p>
+              Say <b>"use the recommended defaults"</b> to skip them. Answers are validated as a set, then
+              written to <code>ios-skeleton.config.json</code>.
+            </p>
+            <div class="tw">
+              <table>
+                <thead><tr><th>Question</th><th>Default</th><th>Why</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Project topology</td><td class="mono">T2</td>
+                    <td><b>T1</b> one <code>.xcodeproj</code>, one app target · <b>T2</b> that plus local Swift packages · <b>T3</b> an <code>.xcworkspace</code> over N projects. T2 buys real module boundaries cheaply — <a href="#topology" style="color:var(--accent)">04</a></td>
+                  </tr>
+                  <tr><td>UI framework</td><td class="mono">SwiftUI</td><td>UIKit fully supported</td></tr>
+                  <tr><td>Persistence</td><td class="mono">SwiftData</td><td>Needs iOS 17+</td></tr>
+                  <tr><td>Architecture pattern</td><td class="mono">MVVM</td><td>Best template coverage here — <a href="#architecture" style="color:var(--accent)">05</a></td></tr>
+                  <tr><td>Navigation</td><td class="mono">NavigationStack</td><td>Least glue; Coordinator on UIKit</td></tr>
+                  <tr><td>Networking</td><td class="mono">URLSession + async/await</td><td>No third-party dependency</td></tr>
+                  <tr><td>Deployment target</td><td class="mono">iOS 17</td><td>Gates SwiftData and <code>@Observable</code></td></tr>
+                  <tr><td>Dependency injection</td><td class="mono">Initializer injection</td><td>No container until it earns itself</td></tr>
+                  <tr><td>Test framework</td><td class="mono">XCTest</td><td>Swift Testing available</td></tr>
+                  <tr><td>Project generation</td><td class="mono">XcodeGen</td><td>Tuist recommended at T3</td></tr>
+                  <tr><td>Name and bundle ID</td><td><span class="badge stop">you answer</span></td><td>No default is possible</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="note warn">
+        <span class="tag">The project file is generated</span>
+        Don't add or move files in Xcode's navigator — the next regenerate overwrites it. Edit
+        <code>project.yml</code>, or use the commands.
+      </div>
+    </section>
+
+    <!-- ══ 03 KNOWLEDGE BASE ═══════════════════════════════════════════ -->
+    <section id="knowledge-base">
+      <div class="sec-head">
+        <span class="ref">03</span>
+        <h2 class="sec-title">The knowledge base</h2>
+      </div>
+
+      <p>
+        The assistant starts every session knowing nothing about your project. These files answer, in
+        advance, what it would otherwise guess. <code>CLAUDE.md</code> loads automatically and points at
+        the rest.
+      </p>
+
+      <h3>On a greenfield project it arrives three ways</h3>
+      <ul class="bullets tight">
+        <li><b>Copied in finished</b> — the rules independent of your answers: theming, UI, permissions, coding standards, git conventions.</li>
+        <li><b>Rendered by <code>/start</code></b> — the templates ship describing every pattern and tier; the render <b>deletes the ones you didn't choose</b>, so your docs describe one architecture, not five. No placeholder survives it.</li>
+        <li><b>Grown as you work</b> — seeded at setup, then appended to by the commands that change what they describe.</li>
+      </ul>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>File</th><th>Origin</th><th>What it settles</th></tr></thead>
+          <tbody>
+            <tr><th class="mono">CLAUDE.md</th><td>rendered</td><td>Stack, pattern, tier, module graph, and where deeper rules live — <b>auto-loaded every session</b></td></tr>
+            <tr><th class="mono">ios-skeleton.config.json</th><td><code>/start</code></td><td>Every answer, machine-readable. Commands resolve "which module / which app" here instead of asking</td></tr>
+            <tr><th class="mono">docs/ai/architecture.md</th><td>rendered</td><td>The one chosen pattern — no mixing patterns feature-to-feature</td></tr>
+            <tr><th class="mono">docs/ai/modularization.md</th><td>rendered</td><td>Tier, module graph and direction, and which module owns strings, assets and tokens</td></tr>
+            <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>as-is</td><td>Colours and fonts only via <code>Theme/</code>; mandatory previews, no raw user-facing strings, never <code>Bundle.main</code> from a framework, real accessibility labels; no permission without a usage string; force-unwrap and <code>// MARK:</code> policy; commit format</td></tr>
+            <tr><th class="mono">docs/PROJECT_MAP.md</th><td>seeded, appended</td><td>What convention doesn't cover: modules with kinds and consumers, shipped locales, which combos are templated</td></tr>
+            <tr><th class="mono">TODO.md</th><td>seeded, appended</td><td>Base URL, signing team, App Store Connect record, push certs, <code>PrivacyInfo.xcprivacy</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <span class="tag">Stale is worse than absent</span>
+        An architecture doc describing a pattern you've moved away from doesn't fail loudly — it steers
+        the assistant wrong for months. The commands append rather than leaving it to discipline, and
+        <code>/status</code> reports drift between what's recorded and what's on disk.
+      </div>
+    </section>
+
+    <!-- ══ 04 TOPOLOGY ═════════════════════════════════════════════════ -->
+    <section id="topology">
+      <div class="sec-head">
+        <span class="ref">04</span>
+        <h2 class="sec-title">Project topology</h2>
+      </div>
+
+      <p>
+        The layers are identical at all three tiers — only the packaging changes, which is what keeps
+        migration tractable. What differs is whether the compiler can enforce a boundary.
+      </p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th></th><th>T1</th><th>T2 <span class="badge neu">default</span></th><th>T3</th></tr></thead>
+          <tbody>
+            <tr><th>Shape</th><td>one <code>.xcodeproj</code>, one app target</td><td>+ local Swift packages under <code>Packages/</code></td><td><code>.xcworkspace</code> over N projects: app + dynamic framework targets</td></tr>
+            <tr><th>Swift modules</th><td>one — all <code>internal</code></td><td>one per package; crossing needs <code>public</code> plus an explicit <code>public init</code></td><td>one per framework, each with a shared scheme, independently buildable</td></tr>
+            <tr><th>Spec files</th><td>one <code>project.yml</code></td><td>+ a <code>Package.swift</code> per package</td><td>one <b>per project</b>, plus a generated <code>contents.xcworkspacedata</code></td></tr>
+            <tr><th><code>Package.resolved</code></th><td colspan="2">inside <code>App.xcodeproj/…/swiftpm/</code></td><td>moves to <code>xcshareddata/swiftpm/</code></td></tr>
+            <tr><th>Good for</th><td>prototypes, &lt;10 screens</td><td>one shipping app, any size</td><td>two apps sharing a spine, or a shipped framework</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:14px">
+        Dependencies point one way — app targets → shared modules → leaf modules; never framework to app
+        or app to app. A shared module needing app-specific behaviour takes it as a protocol injected at
+        the composition root. <code>/add-module</code> refuses to create a cycle.
+      </p>
+
+      <div class="note warn">
+        <span class="tag">Cheap to add, expensive to retrofit</span>
+        Adding a package or project is a spec edit plus a regenerate — never <code>pbxproj</code> surgery.
+        Extracting shared code from an app target that never had boundaries is the expensive path: an
+        access-control pass over every type the new consumer touches, and <code>Bundle.main</code> lookups
+        that compile and then return nothing. A second app is a weekend at T3 from day one, a quarter
+        retrofitted.
+      </div>
+
+      <h3>Ownership rules from T2 onward</h3>
+      <ul class="bullets tight">
+        <li><b>Localization is per resource-owning module.</b> Lookup resolves against a bundle, so each module with UI owns its <code>.strings</code> and a bundle-aware accessor — <code>Bundle.module</code> in a package, <code>Bundle(for:)</code> in a framework, never <code>Bundle.main</code>.</li>
+        <li><b>Theme is base plus per-app override</b>, not one file.</li>
+        <li><b><code>Info.plist</code>, entitlements, asset catalog, icon and signing are app-target-only.</b></li>
+      </ul>
+    </section>
+
+    <!-- ══ 05 ARCHITECTURE ═════════════════════════════════════════════ -->
+    <section id="architecture">
+      <div class="sec-head">
+        <span class="ref">05</span>
+        <h2 class="sec-title">Architecture</h2>
+      </div>
+
+      <p>
+        <code>/new-feature Films "title:String,year:Int"</code> on the MVVM default generates six files —
+        flat feature folder, models hoisted to the shared package:
+      </p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>File</th><th>Job</th><th>Doesn't know</th></tr></thead>
+          <tbody>
+            <tr><th class="mono">FilmsView</th><td>Render state; loading, error and empty from <code>DesignSystem</code></td><td>Where films come from</td></tr>
+            <tr><th class="mono">FilmsViewModel</th><td><code>@Observable</code>; owns state, depends on the repository <em>protocol</em></td><td>SwiftUI, or which host</td></tr>
+            <tr><th class="mono">FilmsRepository</th><td>Owns the protocol's one real conformance; network or cache</td><td>That a view exists</td></tr>
+            <tr><th class="mono">FilmsService</th><td>Builds the request, decodes the response</td><td>Why it was wanted</td></tr>
+            <tr><th class="mono">Models/FilmsModels</th><td>Request, Response, Entity — in the shared <code>Models/</code></td><td>Everything else</td></tr>
+            <tr><th class="mono">FilmsViewModelTests</th><td>Fake conformance, no network, runs in milliseconds</td><td>The server</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:14px">
+        The protocol is owned by the <b>consumer</b>, not the implementer, and named for a capability
+        (<code>FilmsRepository</code>) rather than a pattern (<code>FilmsInteractorProtocol</code>). No
+        <code>UseCase</code> layer sits between ViewModel and Repository — a type that forwards one call
+        is ceremony.
+      </p>
+
+      <div class="note">
+        <span class="tag">Four combinations are fully templated</span>
+        <b>MVVM+SwiftUI</b>, <b>VIP+SwiftUI</b>, <b>VIP+UIKit</b> and <b>MVC+UIKit</b> have every layer
+        file written from a real template. Anything else — MVC+SwiftUI, MV, VIPER, or any pattern on its
+        non-default navigation approach — still gets deterministic folders, models, DI wiring, navigation
+        registration and a test scaffold, but the layer bodies are written by the assistant from your
+        rendered <code>architecture.md</code>. If you didn't take the defaults, review before trusting.
+      </div>
+    </section>
+
+    <!-- ══ 06 COMMANDS ═════════════════════════════════════════════════ -->
+    <section id="commands">
+      <div class="sec-head">
+        <span class="ref">06</span>
+        <h2 class="sec-title">Day-to-day commands</h2>
+      </div>
+
+      <p>Each already knows your recorded answers, so you never restate them.</p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>Command</th><th>Produces</th></tr></thead>
+          <tbody>
+            <tr><td class="cmd">/new-feature Profile "name:String"</td><td>Layer files for the chosen pattern, models in the shared package, DI and navigation registration, a passing test</td></tr>
+            <tr><td class="cmd">/add-assets logo</td><td>Image set at 1×/2×/3×, plus a generated typed accessor</td></tr>
+            <tr><td class="cmd">/update-app-icon icon.png</td><td>Icon regenerated after checking 1024², sRGB and no alpha</td></tr>
+            <tr><td class="cmd">/add-permission camera</td><td>The <code>Info.plist</code> usage key with a real string, plus a <code>PERMISSIONS.md</code> entry</td></tr>
+            <tr><td class="cmd">/update-theme</td><td>Token updated in the correct layer — shared base, or this app's override</td></tr>
+            <tr><td class="cmd">/translate es fr</td><td>Draft entries for every existing key in the target locales, marked for review</td></tr>
+            <tr><td class="cmd">/add-module Shared --kind framework</td><td>Folders, spec, test target, localization and assets if <code>--ui</code>, wired into consumers; cycles refused</td></tr>
+            <tr><td class="cmd">/add-app Companion</td><td>A second app target extending the shared base views rather than copying screens</td></tr>
+            <tr><td class="cmd">/status</td><td>Tier, module graph, orphaned modules, lint state, outstanding TODOs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <span class="tag">Prose works, and gets confirmed first</span>
+        "Add a films list screen showing title and release year" reaches the same script — the agent
+        translates it. Because that translation invents things prose can't carry, <code>/new-feature</code>
+        batch-asks the three before generating: the field list with Swift types, whether the folder nests,
+        and which module — then echoes the resolved command. Fully specified invocations skip the
+        questions. The value of the command form is the checklist behind it: hoist the models, register
+        the route, add strings to the owning module, generate a test that runs.
+      </div>
+    </section>
+
+    <!-- ══ 07 XCODE ════════════════════════════════════════════════════ -->
+    <section id="xcode">
+      <div class="sec-head">
+        <span class="ref">07</span>
+        <h2 class="sec-title">Xcode's own agents, and where this kit sits</h2>
+      </div>
+
+      <p>
+        Xcode now runs coding agents natively — Claude Agent and Codex, enabled under
+        <b>Xcode ▸ Settings ▸ Intelligence</b>. Three consequences worth setting up deliberately.
+      </p>
+
+      <h3>Give terminal Claude Code access to Xcode's tools</h3>
+      <p>
+        Under <b>Intelligence ▸ Model Context Protocol</b>, turn on <b>"Allow external agents to use
+        Xcode tools"</b>, then register the bridge once:
+      </p>
+      <div class="panel">
+        <div class="panel-head"><span>Terminal</span><span>one-time</span></div>
+<pre>claude mcp add --transport stdio xcode -- <b>xcrun mcpbridge</b>
+claude mcp list   <span class="c"># verify</span></pre>
+      </div>
+      <p style="margin-top:10px">
+        Keep the project open in Xcode; Xcode notifies you when an external agent connects and while it's
+        active. The agent then builds and tests through Xcode itself rather than reconstructing
+        <code>xcodebuild</code> invocations.
+      </p>
+
+      <h3>Permissions are global; project config isn't</h3>
+      <ul class="bullets tight">
+        <li><b>Intelligence ▸ Agents ▸ Permissions</b> holds the <b>Allowed Commands</b> and <b>Allowed Tools</b> lists. Anything you approved once in a transcript lands there and applies to every project on that Mac — worth auditing rather than accumulating.</li>
+        <li>Config under <code>~/Library/Developer/Xcode/CodingAssistant/</code> affects agents <em>launched in Xcode only</em>. Your repo's <code>CLAUDE.md</code> is read by both, and Xcode expects it beside the <code>.xcodeproj</code> — repo root at T1/T2, but not automatically at T3.</li>
+      </ul>
+
+      <div class="note">
+        <span class="tag">Use both, for different things</span>
+        Xcode's assistant is stronger where the editor is: inline fixes on a diagnostic, generated
+        previews and playgrounds, doc comments, and its own built-in skills such as <code>/plan</code>.
+        This template's scripts and <code>core.hooksPath</code> hooks are terminal-side regardless, so
+        the terminal is the surface it's designed around. Whether the in-Xcode agent also picks up this
+        repo's <code>.claude/skills/</code> isn't something Apple documents — treat it as worth testing
+        on your setup, not as given.
+      </div>
+    </section>
+
+    <!-- ══ 08 ENFORCED ═════════════════════════════════════════════════ -->
+    <section id="guardrails">
+      <div class="sec-head">
+        <span class="ref">08</span>
+        <h2 class="sec-title">What's enforced</h2>
+      </div>
+
+      <p>Two git hooks, wired via <code>core.hooksPath</code>, block four things:</p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>Check</th><th>Blocks</th></tr></thead>
+          <tbody>
+            <tr><th class="mono">hardcoded colours</th><td><code>UIColor(red:</code>, <code>Color(red:</code>, <code>(hex:</code> and 6-digit hex literals in staged Swift outside any <code>Theme/</code> directory</td></tr>
+            <tr><th class="mono">string key parity</th><td>A key in the base locale missing from another, per module, plus cross-module duplicate keys</td></tr>
+            <tr><th class="mono">swiftlint --strict</th><td>One root config, every tier. <code>try!</code> errors; stray <code>print(</code> and raw <code>Text("…</code> inside a <code>*View.swift</code> warn</td></tr>
+            <tr><th class="mono">commit-msg</th><td>Anything but <code>PROJ-123 feat: summary</code> — ticket prefix optional, type required from feat, fix, refactor, test, docs, chore. Merge commits exempt</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:14px">
+        Then tests, scoped to the staged change — at T3 only the affected schemes and their dependents,
+        because a hook that runs every suite is a hook the team disables.
+      </p>
+
+      <div class="note">
+        <span class="tag">The one deliberate deviation from stock convention</span>
+        <b>Colours are never Asset Catalog colour sets.</b> Every colour and font is a Swift value under
+        <code>Theme/</code>: typed and compiler-checked from both SwiftUI and UIKit instead of
+        string-keyed lookups that fail silently, mechanically enforceable by the colour check, and
+        light/dark stays a one-file change. Across modules a token crosses as a
+        <code>public static let</code>, where a catalog colour needs the right bundle at every lookup
+        site.
+      </div>
+    </section>
+
+    <!-- ══ 09 LIMITATIONS ══════════════════════════════════════════════ -->
+    <section id="limits">
+      <div class="sec-head">
+        <span class="ref">09</span>
+        <h2 class="sec-title">Limitations</h2>
+      </div>
+
+      <p>
+        Deliberate scope calls and known gaps, not bugs. The two likeliest to reach you: off-default
+        combinations are agent-written rather than templated, and localization and theming errors are
+        runtime failures the compiler can't catch.
+      </p>
+
+      <div class="limits">
+        <div class="limit">
+          <h4>Four combinations are deterministic; the rest are assisted</h4>
+          And those four are T1/T2 shape — T3 placement is best-effort.
+        </div>
+        <div class="limit">
+          <h4>Two localization toolchains can collide</h4>
+          Xcode's translation agent writes String Catalogs (<code>.xcstrings</code>) and marks entries
+          Machine Translated. <code>/translate</code> and <code>check_strings.sh</code> operate on
+          per-module <code>.strings</code>. Pick one — running both splits the source of truth, and the
+          parity check won't see the half it doesn't own.
+        </div>
+        <div class="limit">
+          <h4>No hardcoded-<em>string</em> check</h4>
+          A blanket regex false-positives on log messages, format strings and identifiers. The lint rule
+          covers only <code>Text("…</code> in a view file, as a warning.
+        </div>
+        <div class="limit">
+          <h4>Bundle and theme correctness is unguarded</h4>
+          A framework reaching for <code>Bundle.main</code> compiles and returns nothing at runtime, in
+          the consuming app only. Nothing stops app code redefining a token the shared module owns.
+        </div>
+        <div class="limit">
+          <h4>Protocol-boundary discipline is review, not tooling</h4>
+          Nothing detects a shared module that grew an app-specific branch, or a service protocol drifted
+          to twenty methods.
+        </div>
+        <div class="limit">
+          <h4><code>/start</code>'s conflict handling is judgment</h4>
+          Idempotent, refuses structural changes as a re-run side effect, recreates what's missing — but
+          it's reasoning about the tree, not a mechanical diff.
+        </div>
+        <div class="limit">
+          <h4>Deliberately out of scope</h4>
+          No CI pipeline, no pagination in the base repository contract, no image-caching library.
+          Generated project files are committed, so a fresh clone opens without XcodeGen — at the cost of
+          a <code>pbxproj</code> diff per regenerate.
+        </div>
+        <div class="limit">
+          <h4>The baseline is one codebase, not a survey</h4>
+          UIKit-heavy and hybrid. Games, offline-first or extension-heavy apps would calibrate
+          differently.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <span>ios-ai-boilerplate — a guide to starting a new iOS project with this template.</span>
+  </footer>
+
+</div>
+
+</body>
+</html>
