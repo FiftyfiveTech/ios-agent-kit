@@ -977,6 +977,29 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
           </div>
         </div>
 
+        <div class="step">
+          <div>
+            <h3>Fill in <code>Secrets.xcconfig</code> before the first build</h3>
+            <p>
+              <code>/start</code> leaves two files at the repo root: <code>Secrets.xcconfig.example</code>,
+              committed, which records <em>which</em> keys exist, and <code>Secrets.xcconfig</code>, which
+              is gitignored and holds the real values. Set <code>API_BASE_URL</code> there — not in Swift.
+            </p>
+            <div class="panel">
+              <div class="panel-head"><span>Secrets.xcconfig</span><span>gitignored</span></div>
+<pre><span class="c">// `//` starts a comment here, so a URL's scheme needs the $() escape</span>
+API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
+            </div>
+            <p style="margin-top:10px">
+              The value reaches the app as the target's <code>Info.plist</code> key
+              <code>APIBaseURL</code>, which the composition root reads and injects into
+              <code>RequestBuilder</code>. Leave it empty and the app <b>crashes at launch</b> with a
+              message telling you to fill it in — deliberate, because a fallback URL is a
+              staging build silently talking to the wrong server. Every fresh clone repeats this step.
+            </p>
+          </div>
+        </div>
+
       </div>
 
       <div class="note warn">
@@ -1015,10 +1038,42 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
             <tr><th class="mono">ios-skeleton.config.json</th><td><code>/start</code></td><td>Every answer, machine-readable. Commands resolve "which module / which app" here instead of asking</td></tr>
             <tr><th class="mono">docs/ai/architecture.md</th><td>rendered</td><td>The one chosen pattern — no mixing patterns feature-to-feature</td></tr>
             <tr><th class="mono">docs/ai/modularization.md</th><td>rendered</td><td>Tier, module graph and direction, and which module owns strings, assets and tokens</td></tr>
-            <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>as-is</td><td>Colours and fonts only via <code>Theme/</code>; mandatory previews, no raw user-facing strings, never <code>Bundle.main</code> from a framework, real accessibility labels; no permission without a usage string; force-unwrap and <code>// MARK:</code> policy; commit format</td></tr>
+            <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>as-is</td><td>Colours and fonts only via <code>Theme/</code>; mandatory previews, no raw user-facing strings, never <code>Bundle.main</code> from a framework, real accessibility labels; no permission without a usage string; force-unwrap and <code>// MARK:</code> policy; commit format. Plus the Swift-level calls below: where data goes, secrets, concurrency, ARC, <code>struct</code> vs <code>class</code></td></tr>
             <tr><th class="mono">docs/PROJECT_MAP.md</th><td>seeded, appended</td><td>What convention doesn't cover: modules with kinds and consumers, shipped locales, which combos are templated</td></tr>
             <tr><th class="mono">docs/product/</th><td>yours</td><td><b>PRD, SRS, API contracts — the one folder nothing here generates, renders or overwrites.</b> Living documents: <code>CLAUDE.md</code> points at them and never summarizes them, and <code>/new-feature</code> re-reads the relevant one per invocation rather than inferring field names and types</td></tr>
-            <tr><th class="mono">TODO.md</th><td>seeded, appended</td><td>Base URL, signing team, App Store Connect record, push certs, <code>PrivacyInfo.xcprivacy</code></td></tr>
+            <tr><th class="mono">Secrets.xcconfig<br>Secrets.xcconfig.example</th><td><code>/start</code></td><td>Everything that varies by environment. The <code>.example</code> is committed and is the record of which keys exist; the real file is gitignored, and <code>.gitignore</code> ships with that entry already in it</td></tr>
+            <tr><th class="mono">TODO.md</th><td>seeded, appended</td><td><code>API_BASE_URL</code>, signing team, App Store Connect record, push certs, <code>PrivacyInfo.xcprivacy</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The Swift-level calls the rulebook makes for you</h3>
+      <p>
+        None of these follow from your eleven answers, and all four are questions an assistant will
+        otherwise answer by habit — badly, in the same four ways. They're written down so it doesn't
+        have to guess, each one anchored in code the template actually ships.
+      </p>
+
+      <div class="tw">
+        <table class="fixed-first">
+          <thead><tr><th>Question</th><th>The call, and what it's anchored in</th></tr></thead>
+          <tbody>
+            <tr>
+              <th>Where does this data go?</th>
+              <td><code>UserDefaults</code> for small non-sensitive state and preferences · the persistence stack you chose for domain records · <b>Keychain for tokens and credentials</b>, the only encrypted store and the only one kept out of unencrypted backups. The hard line: <b>never a credential in <code>UserDefaults</code> or the local database</b>. <code>UserDefaults</code> itself goes behind a narrow protocol, not reached for as a global</td>
+            </tr>
+            <tr>
+              <th>GCD or async/await?</th>
+              <td>async/await, and the generated code already is: every service, repository and store is <code>async throws</code>, <code>Debouncer</code> is an <code>actor</code>, UI-owning types are <code>@MainActor</code>, and <b>no template contains a single <code>DispatchQueue</code></b>. GCD only where an SDK forces it — wrapped once in a continuation at the boundary. An <code>actor</code> for shared mutable state rather than a serial queue; <code>@MainActor</code> rather than <code>DispatchQueue.main.async</code>; never a semaphore blocking on async work</td>
+            </tr>
+            <tr>
+              <th>When is <code>[weak self]</code> needed?</th>
+              <td>Keyed to ownership direction, not sprinkled. An escaping closure stored on a long-lived object needs it — the generated retry handler is the shape; a non-escaping one doesn't, and adding it there is noise. A back-reference <em>up</em> the graph is always <code>weak</code>, which is why VIP's presenter holds its display layer weakly. Prefer <code>weak</code> over <code>unowned</code>: <code>unowned</code> is a crash where <code>weak</code> is a no-op</td>
+            </tr>
+            <tr>
+              <th><code>struct</code> or <code>class</code>?</th>
+              <td><code>struct</code> by default; <code>class</code> for identity (a coordinator, a view model), a framework requirement (<code>UIViewController</code>, <code>@Model</code>, or needing to be the target of a <code>weak</code> reference), or <code>@Observable</code> view state. Models, <code>RequestBuilder</code> and the API client are structs because none of those apply. Mark classes <code>final</code> unless something subclasses them, and remember a <code>struct</code> holding a mutable reference is not a value type</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -1230,6 +1285,13 @@ claude mcp list   <span class="c"># verify</span></pre>
         because a hook that runs every suite is a hook the team disables.
       </p>
 
+      <p style="margin-top:14px">
+        One guard is structural rather than a check: the <code>.gitignore</code> <code>/start</code>
+        copies in already excludes <code>Secrets.xcconfig</code>, build products and
+        <code>xcuserdata/</code>. A rule saying "don't commit secrets" against a repo that doesn't
+        ignore them is worse than no rule, because the developer believes it.
+      </p>
+
       <div class="note">
         <span class="tag">The one deliberate deviation from stock convention</span>
         <b>Colours are never Asset Catalog colour sets.</b> Every colour and font is a Swift value under
@@ -1296,7 +1358,9 @@ claude mcp list   <span class="c"># verify</span></pre>
         <div class="limit">
           <h4>No auth, deep linking or test tiers beyond unit</h4>
           Nothing generates token refresh, Keychain storage or 401 retry; nothing maps an incoming URL
-          onto a route; no UI or snapshot test target. Unaddressed so far rather than ruled out.
+          onto a route; no UI or snapshot test target. Unaddressed so far rather than ruled out. The
+          <em>rule</em> that credentials belong in the Keychain is documented; the wrapper implementing
+          it is yours to write.
         </div>
         <div class="limit">
           <h4>Deliberately out of scope</h4>
