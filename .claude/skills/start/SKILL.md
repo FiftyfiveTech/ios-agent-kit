@@ -377,6 +377,16 @@ Scripts/new_feature.sh Home "title:String"
 insertion-point markers automatically — `Route.swift`/`App.swift`'s for the
 SwiftUI combos, `AppCoordinator.swift`'s factory marker for the UIKit combos.
 
+**On a `networking: none` project this run does not end green, and that's
+expected.** The script generates the starter feature's folder, models, local
+store, factory, registration and localization as usual, but its data-layer read
+is a `fatalError("TODO(agent): …")` body and its only test is a deliberate
+`XCTFail` placeholder (§1.4). Don't paper over either one: don't implement the
+read as a guess, and don't delete the failing test to make the suite green.
+Report both in §1.10 as the first things the developer (or a follow-up
+`/new-feature`-style pass) has to finish, and say plainly that `xcodebuild test`
+will fail until then. The app still builds and launches.
+
 Then do the **one** substitution that isn't marker-driven — which file and
 what it looks like depends on the combo resolved in §1.7:
 
@@ -452,11 +462,15 @@ Tell the developer, in your closing message, that requirements go in
 
 ### 1.10 Report what's left
 
-Write `TODO.md` with what can't be automated: the real API base URL — set
-`API_BASE_URL` in the gitignored `Secrets.xcconfig` created in §1.5a, not in
-Swift; the composition root crashes at launch until it resolves — plus any
-`.gitignore` entries you appended in §1.5a, opening the project once in Xcode,
-per-app signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`, plus
+Write `TODO.md` with what can't be automated. On a networked project that
+starts with the real API base URL — set `API_BASE_URL` in the gitignored
+`Secrets.xcconfig` created in §1.5a, not in Swift; the composition root crashes
+at launch until it resolves. On a `networking: none` project there is no base
+URL, and the first two entries are instead **the starter feature's data-layer
+`TODO(agent)` body and its failing placeholder test** (§1.8) — state that
+`xcodebuild test` fails until both are done, so nobody reads the red suite as a
+broken scaffold. Either way, also list any `.gitignore` entries you appended in
+§1.5a, opening the project once in Xcode, per-app signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`, plus
 §1.7a's Core Data entries if that was the Q4 answer. Not
 just a message that scrolls off-screen — a durable checklist.
 
