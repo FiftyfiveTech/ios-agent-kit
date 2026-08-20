@@ -7,11 +7,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var coordinator: AppCoordinator?
 
+__IF_NETWORKING__
     // Base URL comes from Secrets.xcconfig via Info.plist's APIBaseURL key (§8.3) —
     // never a literal here, and never inside a Service. Set the real value in
     // Secrets.xcconfig (gitignored); Secrets.xcconfig.example records the keys.
     private let requestBuilder = RequestBuilder(baseURL: SceneDelegate.apiBaseURL)
     private let apiClient: APIClient = URLSessionAPIClient()
+__END_NETWORKING__
 __IF_PERSISTENCE__
 
     // Local persistence (Q4). One container for the whole app, constructed here in
@@ -43,11 +45,18 @@ __END_PERSISTENCE__
         window.makeKeyAndVisible()
         self.window = window
     }
+__IF_NETWORKING__
 
     // Crashing at launch is the correct behavior here: a missing or malformed base
     // URL means every request in the app is misconfigured, and failing loudly at
     // startup beats a screen of empty states. This is the sanctioned exception to
     // the force-unwrap policy in docs/CODING_STANDARDS.md.
+    //
+    // This whole block is absent on a `networking: none` project — an offline app
+    // has no RequestBuilder to feed, so there is nothing to resolve and nothing to
+    // crash about. The rule is "don't render the reader", never "make the read
+    // tolerant": a networked app that silently falls back to a default URL is the
+    // failure this guard exists to prevent.
     private static var apiBaseURL: URL {
         guard let raw = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String,
               let url = URL(string: raw) else {
@@ -58,4 +67,5 @@ __END_PERSISTENCE__
         }
         return url
     }
+__END_NETWORKING__
 }

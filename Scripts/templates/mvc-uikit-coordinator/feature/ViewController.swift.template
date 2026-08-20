@@ -22,6 +22,7 @@ protocol __FEATURE__LocalStoreProtocol {
 __END_PERSISTENCE__
 
 struct __FEATURE__Service: __FEATURE__ServiceProtocol {
+__IF_NETWORKING__
     private let requestBuilder: RequestBuilder
     private let apiClient: APIClient
 __IF_PERSISTENCE__
@@ -64,6 +65,23 @@ __ELSE_PERSISTENCE__
         return try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
     }
 __END_PERSISTENCE__
+__ELSE_NETWORKING__
+    // TODO(agent): implement this against localStore, per docs/ai/architecture.md.
+    //
+    // This project answered Q7 = networking: none, so there is no RequestBuilder
+    // or APIClient and the local store is the SOURCE OF TRUTH here, not a
+    // fallback for a failed request — don't port the read-through policy above.
+    // MVC has no Repository layer, so this Service is the whole data layer.
+    private let localStore: __FEATURE__LocalStoreProtocol
+
+    init(localStore: __FEATURE__LocalStoreProtocol) {
+        self.localStore = localStore
+    }
+
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        fatalError("TODO(agent): read __FEATURE__ from localStore — see the note above")
+    }
+__END_NETWORKING__
 }
 
 final class __FEATURE__ViewController: UIViewController {

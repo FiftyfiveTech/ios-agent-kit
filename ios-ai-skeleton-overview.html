@@ -965,7 +965,7 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
                   <tr><td>Persistence</td><td class="mono">SwiftData</td><td>Needs iOS 17+. Changes generated code, not just config: <code>None</code> means every feature is remote-only; a real stack adds a <code>&lt;Feature&gt;LocalStore</code> beside each remote dependency</td></tr>
                   <tr><td>Architecture pattern</td><td class="mono">MVVM</td><td>Best template coverage here — <a href="#architecture" style="color:var(--accent)">05</a></td></tr>
                   <tr><td>Navigation</td><td class="mono">NavigationStack</td><td>Least glue; Coordinator on UIKit</td></tr>
-                  <tr><td>Networking</td><td class="mono">URLSession + async/await</td><td>No third-party dependency</td></tr>
+                  <tr><td>Networking</td><td class="mono">URLSession + async/await</td><td>No third-party dependency. <b>None</b> for an offline, local-only app — drops the networking layer from the composition root rather than leaving it unused</td></tr>
                   <tr><td>Deployment target</td><td class="mono">iOS 17</td><td>Gates SwiftData and <code>@Observable</code></td></tr>
                   <tr><td>Dependency injection</td><td class="mono">Initializer injection</td><td>No container until it earns itself</td></tr>
                   <tr><td>Test framework</td><td class="mono">XCTest</td><td>Swift Testing available</td></tr>
@@ -996,6 +996,14 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
               <code>RequestBuilder</code>. Leave it empty and the app <b>crashes at launch</b> with a
               message telling you to fill it in — deliberate, because a fallback URL is a
               staging build silently talking to the wrong server. Every fresh clone repeats this step.
+            </p>
+            <p style="margin-top:10px; font-size:15px; color:var(--ink-soft)">
+              Answer <b>None</b> to the networking question and this step doesn't exist: an offline
+              app renders no <code>RequestBuilder</code>, no <code>APIBaseURL</code> key and no reader,
+              so there's nothing to fill in and nothing to crash about. The rule is <em>don't render
+              the reader</em>, never <em>make the read tolerant</em> — softening the check to suit
+              offline apps would trade a correct crash for a networked build quietly pointing at the
+              wrong server.
             </p>
           </div>
         </div>
@@ -1347,6 +1355,16 @@ claude mcp list   <span class="c"># verify</span></pre>
           <h4><code>/start</code>'s conflict handling is judgment</h4>
           Idempotent, refuses structural changes as a re-run side effect, recreates what's missing — but
           it's reasoning about the tree, not a mechanical diff.
+        </div>
+        <div class="limit">
+          <h4>An offline project's data layer is one agent-written method</h4>
+          Answer <b>None</b> to networking and everything about a feature is still generated —
+          folder, models, local store, composition-root factory, navigation registration,
+          localization. What's left is the store read itself and its test, as
+          <code>TODO(agent)</code>, because the templated tests assert remote-vs-cache
+          behaviour an offline feature doesn't have. Networking <em>and</em> persistence both
+          <code>None</code> is refused with an explanation rather than scaffolded — there'd be no
+          data layer at all.
         </div>
         <div class="limit">
           <h4>Core Data's per-feature store is a seam, not an implementation</h4>

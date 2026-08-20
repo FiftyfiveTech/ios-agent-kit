@@ -110,7 +110,7 @@ rest.
 
 | 5 | Architecture pattern | MVVM / MVC / VIP (Clean Swift) / VIPER / MV (SwiftUI-native) | MVVM |
 | 6 | Navigation | `UINavigationController` + Coordinator / SwiftUI `NavigationStack` + Router | Coordinator if any UIKit; either for SwiftUI-only |
-| 7 | Networking & concurrency | URLSession+async/await / URLSession+Combine / Alamofire | URLSession+async/await |
+| 7 | Networking & concurrency | URLSession+async/await / URLSession+Combine / Alamofire / **None (offline, local-only app)** | URLSession+async/await |
 | 8 | Minimum iOS deployment target | 16 / 17 / 18 | 17 |
 | 9 | Dependency injection | Manual initializer injection / lightweight container | Manual initializer injection |
 | 10 | Testing framework | XCTest / Swift Testing | XCTest |
@@ -141,6 +141,13 @@ Stop and re-ask on any of these rather than silently picking a fallback:
   document in the rendered `docs/ai/architecture.md` that every screen is
   hosted via `UIHostingController` and pushed through the Coordinator, never a
   SwiftUI `NavigationLink` in the same app.
+- Networking = `None` **and** persistence = `None` → **stop and ask.** This isn't
+  a contradiction — a calculator, a converter or a drawing app genuinely has
+  neither, and its features are a View plus a ViewModel with no data layer at
+  all. It's outside what the templates cover: every feature scaffold generates a
+  data layer of some kind, so there'd be nothing for `/new-feature` to put in it.
+  Say that plainly, and let the developer either pick a persistence stack or
+  accept that features will be hand-written from `docs/ai/architecture.md`.
 - Topology = T1 **and** more than one app declared → **invalid** — stop and
   re-ask; two apps need at least T2, realistically T3.
 - Topology = T3 **and** one app **and** nothing concrete on the roadmap →
@@ -164,7 +171,7 @@ template reads — keep it exactly this shape:
   "persistence": "SwiftData|CoreData|None",
   "architecture": "MVVM|MVC|VIP|VIPER|MV",
   "navigation": "navigationstack|coordinator",
-  "networking": "urlsession-async|urlsession-combine|alamofire",
+  "networking": "urlsession-async|urlsession-combine|alamofire|none",
   "minIOSVersion": "16|17|18",
   "di": "manual|container",
   "testing": "XCTest|SwiftTesting",
@@ -229,13 +236,19 @@ Two files, at the resolved repo root:
   that doesn't ignore it means the first developer to fill it in commits a
   secret; that ordering is the whole point of this step.
 - In the spec file(s) from §1.5, point **each app target's** configurations at it
-  (`configFiles:` in `project.yml`, `settings(configurations:)` in Tuist) and
-  surface only what the app actually reads — `API_BASE_URL` into `Info.plist` as
-  `APIBaseURL` via `$(API_BASE_URL)`. This is not optional: the rendered
-  composition root (`App.swift`/`SceneDelegate.swift`) reads `APIBaseURL` from
-  `Bundle.main` and `preconditionFailure`s without it, so a missing plist entry
-  is a launch crash, not a silent fallback. No `Service` ever holds a literal
-  URL (§3.7).
+  (`configFiles:` in `project.yml`, `settings(configurations:)` in Tuist).
+  `Secrets.xcconfig` is worth having on any project — environment-varying values
+  aren't only URLs — so this half is unconditional.
+- **`APIBaseURL` only when Q7 isn't `None`.** On a networked project, surface
+  `API_BASE_URL` into each app target's `Info.plist` as `APIBaseURL` via
+  `$(API_BASE_URL)`; this is not optional, because the rendered composition root
+  reads that key from `Bundle.main` and `preconditionFailure`s without it — a
+  missing entry is a launch crash, not a silent fallback, and no `Service` ever
+  holds a literal URL (§3.7). On a `networking: none` project, **don't add the
+  key and don't render the reader**: the app shell's `__IF_NETWORKING__` block
+  drops out entirely (see §1.7), so there's no `RequestBuilder` to feed. Strip
+  `API_BASE_URL` from the rendered `Secrets.xcconfig`/`.example` too, rather than
+  leaving a key nothing reads.
 
 Do not invent an `AppEnvironment` type on a one-environment project — the
 `Info.plist` key plus `RequestBuilder`'s injected `baseURL` already is the seam.
@@ -277,6 +290,19 @@ into `<app.path>/` (or `<app.path>/Sources/App/` at T3), substituting:
   branch. Q4 = None → the reverse. Delete all three marker lines either way. A
   rendered app-shell file containing a literal `__IF_PERSISTENCE__` is a broken
   run — grep for `PERSISTENCE__` across the app before moving on.
+- **`__IF_NETWORKING__` / `__END_NETWORKING__`** → the same treatment for Q7.
+  Not `None` → keep the block's contents. `None` → **delete the block and its
+  contents**, which is what removes the `RequestBuilder`/`APIClient` properties
+  and the `apiBaseURL` reader from an offline app's composition root. Delete the
+  marker lines either way and grep for `NETWORKING__` too. This family has no
+  `__ELSE_` branch on purpose: an offline app's composition root needs *nothing*
+  in place of the networking properties, and inventing a stub there would be the
+  dead code this gate exists to avoid.
+- With Q7 = `None`, the composition root no longer needs `import Networking` at
+  T2/T3 — drop it rather than importing a module the app never calls into.
+  `Networking/` itself still gets materialized (§1.7's tree is fixed): the types
+  compile and sit unused, which is deliberate — a project that later adds a
+  backend edits its composition root, not its module graph.
 - `__MODULE_IMPORTS__` → empty at T1; the resolved `import Models` /
   `import Networking` / `import DesignSystem` lines at T2/T3, per the same
   role-resolution logic `Scripts/new_feature.sh` uses (only the composition-root

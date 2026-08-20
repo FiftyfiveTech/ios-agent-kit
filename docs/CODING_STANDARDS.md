@@ -78,7 +78,9 @@ generate.
 
 ## Configuration and secrets (§8.3)
 
-- **Nothing that varies by environment is a literal in Swift.** `Secrets.xcconfig`
+- **Nothing that varies by environment is a literal in Swift.** (An offline,
+  `networking: none` project has no base URL to configure — everything below
+  still applies to whatever else varies by environment.) `Secrets.xcconfig`
   (gitignored) holds it; `Secrets.xcconfig.example` (committed) records which
   keys exist; the app target's build configurations include the former, and the
   composition root passes the resolved values into `Networking/RequestBuilder`'s
@@ -227,10 +229,15 @@ sanctioned use of `fatalError` as a placeholder — everywhere else, prefer a
 real error path.
 
 The second — and only other — sanctioned crash is the composition root's
-`APIBaseURL` read (`App.swift`/`SceneDelegate.swift`): a missing or malformed
-base URL misconfigures every request in the app, so `preconditionFailure` at
-launch is correct where a fallback URL or a silently broken screen is not. This
-is the "a crash on failure genuinely is the correct behavior" clause of the
-force-unwrap policy above, and it is not a licence to extend the pattern to
-other configuration reads — an absent optional feature flag has a default; a
-base URL doesn't.
+`APIBaseURL` read (`App.swift`/`SceneDelegate.swift`), **on projects that have a
+networking layer at all**: a missing or malformed base URL misconfigures every
+request in the app, so `preconditionFailure` at launch is correct where a
+fallback URL or a silently broken screen is not. This is the "a crash on failure
+genuinely is the correct behavior" clause of the force-unwrap policy above.
+
+Two limits on it. It is not a licence to extend the pattern to other
+configuration reads — an absent optional feature flag has a default; a base URL
+doesn't. And on a `networking: none` project the reader isn't rendered at all,
+which is the right shape: an offline app has no `RequestBuilder` to feed, so the
+answer is to omit the read, never to make it tolerant. If you find yourself
+wanting a fallback URL, the value isn't optional — the layer is.

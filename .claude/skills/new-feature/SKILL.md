@@ -161,7 +161,18 @@ the project's config selects, it generates:
   Service for MVC), appends a SwiftData `<Name>Record` to `Models/`, registers it
   with the app's `ModelContainer` schema, and passes the store into the factory
   it writes at the composition root. With `persistence: None` none of that
-  exists and the feature is remote-only — both are complete outcomes. Core Data
+  exists and the feature is remote-only — both are complete outcomes.
+- **With `networking: none`, the remote half doesn't exist instead.** The store
+  becomes the source of truth rather than a fallback, so the script generates
+  everything except that one file's body: folder, `Models/`, `<Name>LocalStore`,
+  the factory (constructed with `localStore:` and no `requestBuilder`/
+  `apiClient`), navigation registration and localization are all still
+  deterministic, and the data-layer type arrives as a compiling `TODO(agent)`
+  stub that already declares `<Name>LocalStoreProtocol` and conforms to whatever
+  protocol the layer above consumes. Its test is a **failing placeholder**, not a
+  passing one — the templated read-through tests assert remote-vs-cache semantics
+  this feature doesn't have, so generating them would be a green test that proves
+  nothing. See "After the script runs" for what you owe here. Core Data
   is the one seam left half-open on purpose: the store compiles and is wired, but
   its two methods are `TODO(agent)` until the entity exists in the app's
   `.xcdatamodeld` (§10).
@@ -201,6 +212,14 @@ the developer should have chosen before the script ever runs.
   now, following the protocol-boundary rules in `docs/CODING_STANDARDS.md`
   (§8.2): each layer file declares the protocol for the capability it consumes,
   and the concrete type for the capability it implements.
+- **On a `networking: none` project** the script says so explicitly. Write the
+  data layer's one `fatalError` body against `localStore`, then replace the
+  placeholder test with a real one against a fake `<Name>LocalStoreProtocol`.
+  Two things not to do: don't reintroduce a read-through policy (there is no
+  remote call to fall back *from* — the store is the source of truth), and don't
+  add a `RequestBuilder`/`APIClient` dependency to make it look like the
+  networked templates. If the feature genuinely needs a network call, that's the
+  developer changing `networking` in the config, not you widening one screen.
 - Search-as-you-type fields: wire through `Core/Utilities/Debouncer.swift`
   rather than firing a request per keystroke — the script does not do this
   automatically.
