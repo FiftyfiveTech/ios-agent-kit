@@ -40,11 +40,14 @@ Full walkthrough: [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
                       translate, ...)
 Scripts/           — lint, string/color enforcement, codegen, four fully-authored
                       file-template sets (see Architecture below), plus the
-                      persistence/ and logging/ templates /start renders into Core
+                      persistence/, logging/ and config/ templates /start renders
+                      into a real project
 docs/              — this template's own docs + the .template sources /start renders
 docs/product/      — the domain slot: your PRD/SRS/API contracts land here later
 .swiftlint.yml      — one root lint config, every tier
 .githooks/{pre-commit,commit-msg}
+.gitignore          — the always-ignore list (incl. Secrets.xcconfig); copied in
+                      by /start so the secrets rule has something enforcing it
 CLAUDE.md.template  — renders into a real project's CLAUDE.md
 ```
 
@@ -135,7 +138,8 @@ Resolved since the initial build (persistence now actually generates a local
 data layer instead of being recorded and discarded, `Core/Logging/Log.swift` now
 exists so the no-`print()` rule has a referent, Objective-C support dropped entirely,
 `/translate` Skill added, commit-msg format now hook-enforced, DI-container
-upgrade path documented, `docs/PROJECT_MAP.md` now seeded by `/start` instead of
+upgrade path documented, secrets handling now ships a real `Secrets.xcconfig`
+seam and `.gitignore` rather than only a doc line about one, `docs/PROJECT_MAP.md` now seeded by `/start` instead of
 first appearing when another Skill appends to it) — see the build spec's §10 for
 the full history.
 

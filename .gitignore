@@ -1,2 +1,20 @@
+# Machine-local Xcode state
+xcuserdata/
+*.xcuserstate
 .DS_Store
 *.swp
+
+# Build products
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+
+# Secrets — never commit. Copy Secrets.xcconfig.example instead (§8.3).
+Secrets.xcconfig
+
+# Compiled tool binaries (the pinned linter etc. resolve per machine)
+.build/
+
+# NOT ignored, deliberately: generated .xcodeproj/.xcworkspace files are
+# committed so the repo opens without XcodeGen/Tuist installed (§8.8).
