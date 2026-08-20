@@ -22,9 +22,11 @@ hasn't been initialized yet — run `/start` first."*
    `.entitlements`, and an asset catalog with a placeholder icon.
    **Wire configuration into it the way `/start` §1.5a did for app one** —
    configuration files are per app target, so the new spec needs its own
-   `configFiles:` entry pointing at the repo-root `Secrets.xcconfig`, and its own
-   `Info.plist` needs `APIBaseURL` = `$(API_BASE_URL)`. Skip this and the new
-   app's composition root `preconditionFailure`s on first launch. If the app
+   `configFiles:` entry pointing at the repo-root `Secrets.xcconfig`. On a
+   networked project its `Info.plist` also needs `APIBaseURL` = `$(API_BASE_URL)`;
+   skip that and the new app's composition root `preconditionFailure`s on first
+   launch. On a `networking: none` project, neither the key nor the reader
+   exists — don't add either. If the app
    needs a *different* base URL from app one, that's the point a per-app key
    (`APP_TWO_API_BASE_URL`) or a real `AppEnvironment` type earns its place —
    add the key to `Secrets.xcconfig.example` in the same change.
@@ -34,9 +36,12 @@ hasn't been initialized yet — run `/start` first."*
    feature, so the sharing seam is exercised immediately rather than asserted
    in a doc.
 5. **Wire the new app's composition root the way `/start` wired the first one.**
-   Render the same combo's `app-shell/` templates, resolving the
-   `__IF_PERSISTENCE__`/`__ELSE_PERSISTENCE__`/`__END_PERSISTENCE__` block markers
-   against the project's recorded Q4 answer — with a persistence stack, the new
+   Render the same combo's `app-shell/` templates, resolving both marker families
+   against the recorded config: `__IF_PERSISTENCE__`/`__ELSE_PERSISTENCE__`/
+   `__END_PERSISTENCE__` against Q4, and `__IF_NETWORKING__`/`__END_NETWORKING__`
+   against Q7 — `networking: none` means the whole networking block goes, so the
+   new app gets no `RequestBuilder` and needs no `APIBaseURL` plist key (which is
+   also why step 3's wiring is conditional) — with a persistence stack, the new
    app needs its own `PersistenceController` property in the composition root, or
    the factory `new_feature.sh` writes for its starter feature won't compile.
    `Core/Logging/Log.swift` is already shared; nothing to re-render for it.

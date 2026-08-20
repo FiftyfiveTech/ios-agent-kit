@@ -58,6 +58,9 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
   `Secrets.xcconfig` (gitignored) → the app target's `Info.plist` → the
   composition root, which injects the resolved `URL` into `RequestBuilder`. A
   `Service` never builds a URL from a literal — see `docs/CODING_STANDARDS.md`.
+  (Not applicable if this project's `networking` is `none`: there is no
+  `RequestBuilder` and no `APIBaseURL` key. Don't add either to "fix" a build —
+  adding a network call to an offline app is a decision for the developer.)
 - **Credentials go in the Keychain.** Never a token, refresh token or password
   in `UserDefaults` or the local database — both are plaintext in the app
   container and land in an unencrypted backup. `UserDefaults` is for small

@@ -115,6 +115,11 @@ Carried over honestly rather than hidden:
 - No CI pipeline, no image-caching library choice (`AsyncImage` is the
   default — see `docs/ai/ui_rules.md`), no pagination convention — confirmed
   as deliberate scope, not oversights.
+- `networking: none` (an offline, local-only app) generates every part of a
+  feature deterministically except the data layer's read method and its test —
+  those are `TODO(agent)`, the same posture as an off-default combo. Refused
+  outright only when persistence is *also* `None`, since then there's no data
+  layer to generate at all.
 - Core Data's per-feature store is a wired, compiling seam with `TODO(agent)`
   bodies — its entity lives in a `.xcdatamodeld` that can't be text-templated,
   unlike SwiftData's `@Model`, which is generated end to end.

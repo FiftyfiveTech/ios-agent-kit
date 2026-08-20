@@ -83,6 +83,21 @@ esac
 HAS_PERSISTENCE=0
 [ "$PERSISTENCE" != "None" ] && HAS_PERSISTENCE=1
 
+# Q7. `none` means an offline, local-only app: there is no RequestBuilder or
+# APIClient in the composition root (/start drops the app shell's
+# __IF_NETWORKING__ block), so this feature's data layer has no remote half.
+NETWORKING="$(jq -r '.networking // "urlsession-async"' "$CONFIG")"
+case "$NETWORKING" in
+  none|None|NONE) HAS_NETWORKING=0 ;;
+  *)              HAS_NETWORKING=1 ;;
+esac
+
+if [ "$HAS_NETWORKING" -eq 0 ] && [ "$HAS_PERSISTENCE" -eq 0 ]; then
+  echo "new_feature.sh: config has networking='none' AND persistence='None' — this feature would have no data layer at all." >&2
+  echo "new_feature.sh: that's a legitimate app shape (a calculator, a converter), but no template covers it — write the View/ViewModel by hand from docs/ai/architecture.md, or pick a persistence stack in ios-skeleton.config.json." >&2
+  exit 1
+fi
+
 resolve_target_module() {
   if [ -n "$MODULE_ARG" ]; then echo "$MODULE_ARG"; return; fi
   local default
@@ -214,6 +229,14 @@ IMPORTS_VIEW="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_DESIGNSYSTEM")"
 IMPORTS_LOGIC="$(dedup_imports "$IMPORT_MODELS")"
 IMPORTS_SERVICE="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_NETWORKING")"
 IMPORTS_ALL="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_NETWORKING" "$IMPORT_DESIGNSYSTEM")"
+
+# Offline (Q7 = none): nothing generated here calls into Networking, so don't
+# import it. An unused import is only a warning, but it's also a false signal
+# about what this feature depends on — and at T2/T3 it's a link-graph claim.
+if [ "$HAS_NETWORKING" -eq 0 ]; then
+  IMPORTS_SERVICE="$IMPORTS_LOGIC"
+  IMPORTS_ALL="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_DESIGNSYSTEM")"
+fi
 TESTABLE_IMPORT="@testable import $TARGET_MODULE"
 # With a local store in play, the VIP/MVC test files construct the Worker/Service
 # themselves (RequestBuilder + a fake APIClient) to cover the read-through policy,
@@ -380,6 +403,7 @@ render_template() {
   awk -v feature="$FEATURE" -v featureLower="$FEATURE_LOWER" -v moduleLower="$TARGET_MODULE_LOWER" \
       -v appName="$TARGET_MODULE" -v imports="$imports" -v testableImport="$TESTABLE_IMPORT" \
       -v fakeList="$FAKE_MODEL_LIST" -v hasPersistence="$HAS_PERSISTENCE" \
+      -v hasNetworking="$HAS_NETWORKING" \
       -v recordProperties="$RECORD_PROPERTIES" -v recordInitAssign="$RECORD_INIT_ASSIGN" \
       -v recordToModelArgs="$RECORD_TO_MODEL_ARGS" '
   {
@@ -391,6 +415,17 @@ render_template() {
     if (inBlock) {
       if (branch == 1 && hasPersistence != "1") next
       if (branch == 2 && hasPersistence == "1") next
+    }
+
+    # Q7'"'"'s family, tracked in its own state so the two can nest in either order
+    # (they are distinct tokens, so no stack is needed — a line survives only if
+    # neither active family suppresses it).
+    if (line == "__IF_NETWORKING__")   { inNet = 1; netBranch = 1; next }
+    if (line == "__ELSE_NETWORKING__") { if (inNet) { netBranch = 2; next } }
+    if (line == "__END_NETWORKING__")  { inNet = 0; netBranch = 0; next }
+    if (inNet) {
+      if (netBranch == 1 && hasNetworking != "1") next
+      if (netBranch == 2 && hasNetworking == "1") next
     }
 
     gsub(/__FEATURE_LOWER__/, featureLower, line)
@@ -408,6 +443,76 @@ render_template() {
   ' "$src" > "$dest"
 }
 
+# On a `networking: none` project the data layer has no remote half, so the file
+# that would implement it isn't rendered from the template — this emits a stub in
+# its place, with the protocol declarations its neighbours need and a TODO(agent)
+# body. Everything else about the feature stays deterministic: folder, Models,
+# LocalStore, navigation registration, localization. That's the same posture the
+# off-default combos already use (§1.4) — deterministic structure, agent-written
+# body — scoped here to one file instead of the whole feature.
+#
+# The consumer's protocol is unchanged and still named for a capability rather
+# than a transport (§8.2), which is exactly why a local-backed implementation can
+# satisfy it without the layer above knowing anything changed.
+emit_offline_data_layer_stub() {
+  local dest="$1" type_name="$2" conforms_to="$3" imports="$4"
+  cat > "$dest" <<EOF
+import Foundation
+${imports}
+
+// ${FEATURE}LocalStoreProtocol is declared here because this type is its consumer
+// (§8.2) — ${FEATURE}LocalStore in the persistence layer is only the implementation.
+protocol ${FEATURE}LocalStoreProtocol {
+    func loadCached${FEATURE}List() async throws -> [${FEATURE}Model]
+    func cache${FEATURE}List(_ items: [${FEATURE}Model]) async throws
+}
+
+// TODO(agent): implement this against localStore, per docs/ai/architecture.md.
+//
+// This project answered Q7 = networking: none, so there is no RequestBuilder or
+// APIClient to call and the local store is the SOURCE OF TRUTH here, not a
+// fallback for a failed request — don't port the read-through policy the
+// networked templates use. \`cache${FEATURE}List\` is on the protocol because a
+// local-only feature still writes: it's how a create/edit path persists.
+//
+// Keep conforming to ${conforms_to} — the layer above depends on that protocol,
+// and it names a capability, not a transport, so nothing above this file changes.
+struct ${type_name}: ${conforms_to} {
+    private let localStore: ${FEATURE}LocalStoreProtocol
+
+    init(localStore: ${FEATURE}LocalStoreProtocol) {
+        self.localStore = localStore
+    }
+
+    func fetch${FEATURE}List() async throws -> [${FEATURE}Model] {
+        fatalError("TODO(agent): read ${FEATURE} from localStore — see the note above")
+    }
+}
+EOF
+}
+
+# The templated combos' test files exercise the remote/cache read-through policy,
+# which doesn't exist offline. Emit a failing placeholder instead of a passing
+# test that asserts semantics this feature doesn't have — the same choice the
+# assisted branch below makes, and for the same reason (§4.1).
+emit_offline_placeholder_test() {
+  local dest="$1"
+  cat > "$dest" <<EOF
+import XCTest
+${TESTABLE_IMPORT}
+
+final class ${FEATURE}PlaceholderTests: XCTestCase {
+    func test_todo() {
+        // TODO(agent): write a real test against a fake ${FEATURE}LocalStoreProtocol
+        // once the local-only data layer above is implemented (§4.1, §8.2). The
+        // networked templates' read-through tests were deliberately NOT generated:
+        // this project has no remote half for them to assert against.
+        XCTFail("TODO: implement ${FEATURE}'s local-only data layer and this test")
+    }
+}
+EOF
+}
+
 if [ "$DETERMINISTIC" -eq 1 ]; then
   HAS_ROUTE_NAV=0
   TEST_FILE=""
@@ -417,13 +522,26 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
     mvvm-swiftui-navigationstack)
       render_template "$TEMPLATE_DIR/View.swift.template"        "$FEATURE_DIR/${FEATURE}View.swift"        "$IMPORTS_VIEW"
       render_template "$TEMPLATE_DIR/ViewModel.swift.template"    "$FEATURE_DIR/${FEATURE}ViewModel.swift"    "$IMPORTS_LOGIC"
-      render_template "$TEMPLATE_DIR/Repository.swift.template"  "$FEATURE_DIR/${FEATURE}Repository.swift"  "$IMPORTS_LOGIC"
-      render_template "$TEMPLATE_DIR/Service.swift.template"      "$FEATURE_DIR/${FEATURE}Service.swift"      "$IMPORTS_SERVICE"
       TEST_FILE="$TEST_DIR/${FEATURE}ViewModelTests.swift"
-      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        # No remote half: Repository is local-only and Service doesn't exist at all.
+        emit_offline_data_layer_stub "$FEATURE_DIR/${FEATURE}Repository.swift" \
+          "${FEATURE}Repository" "${FEATURE}RepositoryProtocol" "$IMPORTS_LOGIC"
+        emit_offline_placeholder_test "$TEST_FILE"
+      else
+        render_template "$TEMPLATE_DIR/Repository.swift.template"  "$FEATURE_DIR/${FEATURE}Repository.swift"  "$IMPORTS_LOGIC"
+        render_template "$TEMPLATE_DIR/Service.swift.template"      "$FEATURE_DIR/${FEATURE}Service.swift"      "$IMPORTS_SERVICE"
+        render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+      fi
 
       HAS_ROUTE_NAV=1
-      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        FACTORY_SNIPPET="    @MainActor private func make${FEATURE}View() -> ${FEATURE}View {\\
+        let repository = ${FEATURE}Repository(localStore: ${FEATURE}LocalStore(context: persistence.context))\\
+        return ${FEATURE}View(viewModel: ${FEATURE}ViewModel(repository: repository))\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      elif [ "$HAS_PERSISTENCE" -eq 1 ]; then
         # @MainActor because the local store is (PersistenceController.context is
         # main-actor-isolated); the composition root already calls this from the
         # main actor.
@@ -455,12 +573,28 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
       render_template "$TEMPLATE_DIR/Interactor.swift.template"  "$FEATURE_DIR/${FEATURE}Interactor.swift"  "$IMPORTS_LOGIC"
       render_template "$TEMPLATE_DIR/Presenter.swift.template"   "$FEATURE_DIR/${FEATURE}Presenter.swift"   "$IMPORTS_LOGIC"
       render_template "$TEMPLATE_DIR/Router.swift.template"      "$FEATURE_DIR/${FEATURE}Router.swift"      ""
-      render_template "$TEMPLATE_DIR/Worker.swift.template"      "$FEATURE_DIR/${FEATURE}Worker.swift"      "$IMPORTS_SERVICE"
       TEST_FILE="$TEST_DIR/${FEATURE}InteractorTests.swift"
-      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        emit_offline_data_layer_stub "$FEATURE_DIR/${FEATURE}Worker.swift" \
+          "${FEATURE}Worker" "${FEATURE}WorkerProtocol" "$IMPORTS_LOGIC"
+        emit_offline_placeholder_test "$TEST_FILE"
+      else
+        render_template "$TEMPLATE_DIR/Worker.swift.template"      "$FEATURE_DIR/${FEATURE}Worker.swift"      "$IMPORTS_SERVICE"
+        render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
+      fi
 
       HAS_ROUTE_NAV=1
-      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        FACTORY_SNIPPET="    @MainActor private func make${FEATURE}View() -> ${FEATURE}View {\\
+        let presenter = ${FEATURE}Presenter()\\
+        let worker = ${FEATURE}Worker(localStore: ${FEATURE}LocalStore(context: persistence.context))\\
+        let interactor = ${FEATURE}Interactor(presenter: presenter, worker: worker)\\
+        let viewModel = ${FEATURE}ViewModel(interactor: interactor)\\
+        presenter.displayLogic = viewModel\\
+        return ${FEATURE}View(viewModel: viewModel)\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      elif [ "$HAS_PERSISTENCE" -eq 1 ]; then
         FACTORY_SNIPPET="    @MainActor private func make${FEATURE}View() -> ${FEATURE}View {\\
         let presenter = ${FEATURE}Presenter()\\
         let worker = ${FEATURE}Worker(\\
@@ -492,12 +626,28 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
       render_template "$TEMPLATE_DIR/Interactor.swift.template"      "$FEATURE_DIR/${FEATURE}Interactor.swift"      "$IMPORTS_LOGIC"
       render_template "$TEMPLATE_DIR/Presenter.swift.template"       "$FEATURE_DIR/${FEATURE}Presenter.swift"       "$IMPORTS_LOGIC"
       render_template "$TEMPLATE_DIR/Router.swift.template"          "$FEATURE_DIR/${FEATURE}Router.swift"          ""
-      render_template "$TEMPLATE_DIR/Worker.swift.template"          "$FEATURE_DIR/${FEATURE}Worker.swift"          "$IMPORTS_SERVICE"
       TEST_FILE="$TEST_DIR/${FEATURE}InteractorTests.swift"
-      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        emit_offline_data_layer_stub "$FEATURE_DIR/${FEATURE}Worker.swift" \
+          "${FEATURE}Worker" "${FEATURE}WorkerProtocol" "$IMPORTS_LOGIC"
+        emit_offline_placeholder_test "$TEST_FILE"
+      else
+        render_template "$TEMPLATE_DIR/Worker.swift.template"          "$FEATURE_DIR/${FEATURE}Worker.swift"          "$IMPORTS_SERVICE"
+        render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
+      fi
 
       HAS_ROUTE_NAV=0
-      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+        let presenter = ${FEATURE}Presenter()\\
+        let worker = ${FEATURE}Worker(localStore: ${FEATURE}LocalStore(context: persistence.context))\\
+        let interactor = ${FEATURE}Interactor(presenter: presenter, worker: worker)\\
+        let viewController = ${FEATURE}ViewController(interactor: interactor)\\
+        presenter.displayLogic = viewController\\
+        return viewController\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      elif [ "$HAS_PERSISTENCE" -eq 1 ]; then
         FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
         let presenter = ${FEATURE}Presenter()\\
         let worker = ${FEATURE}Worker(\\
@@ -527,12 +677,26 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
       ;;
 
     mvc-uikit-coordinator)
+      # MVC keeps its Service in the same file as the ViewController, so this one
+      # combo can't use the skip-and-stub path — the template carries an
+      # __IF_NETWORKING__ branch instead, and the TODO(agent) body lands there.
       render_template "$TEMPLATE_DIR/ViewController.swift.template" "$FEATURE_DIR/${FEATURE}ViewController.swift" "$IMPORTS_ALL"
       TEST_FILE="$TEST_DIR/${FEATURE}ViewControllerTests.swift"
-      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        emit_offline_placeholder_test "$TEST_FILE"
+      else
+        render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
+      fi
 
       HAS_ROUTE_NAV=0
-      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+      if [ "$HAS_NETWORKING" -eq 0 ]; then
+        FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+        ${FEATURE}ViewController(\\
+            service: ${FEATURE}Service(localStore: ${FEATURE}LocalStore(context: persistence.context))\\
+        )\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      elif [ "$HAS_PERSISTENCE" -eq 1 ]; then
         FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
         let service = ${FEATURE}Service(\\
             requestBuilder: requestBuilder,\\
@@ -553,7 +717,7 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
       ;;
   esac
 
-  if [ "$NEEDS_FATAL_HELPER" -eq 1 ]; then
+  if [ "$NEEDS_FATAL_HELPER" -eq 1 ] && [ "$HAS_NETWORKING" -eq 1 ]; then
     cat >> "$TEST_FILE" <<EOF
 
 private func fatalErrorFakeValue<T>(_ type: T.Type = T.self) -> T {
@@ -638,8 +802,10 @@ EOF
 else
   echo "new_feature.sh: architecture='$ARCHITECTURE' ui='$UI_FRAMEWORK' nav='$NAVIGATION' is not the fully-templated combo (§1.4)."
   echo "new_feature.sh: generating folder skeleton + Models + test scaffold; layer BODIES are TODO stubs for the agent to write from docs/ai/architecture.md."
-  if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+  if [ "$HAS_PERSISTENCE" -eq 1 ] && [ "$HAS_NETWORKING" -eq 1 ]; then
     echo "new_feature.sh: persistence='$PERSISTENCE' — also give this feature's data layer a <Feature>LocalStoreProtocol dependency alongside its remote one, following Scripts/templates/persistence/ (§3.8)."
+  elif [ "$HAS_PERSISTENCE" -eq 1 ]; then
+    echo "new_feature.sh: networking='none' — this feature's data layer has NO remote half. <Feature>LocalStore is the source of truth, not a cache; don't write a read-through policy (§3.8)."
   fi
 
   # One stub file per layer name for the CHOSEN architecture (§3.3) — the folder
@@ -693,6 +859,9 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
 fi
 
 echo "new_feature.sh: created $FEATURE_DIR (module: $TARGET_MODULE, topology: $TOPOLOGY)."
+if [ "$HAS_NETWORKING" -eq 0 ]; then
+  echo "new_feature.sh: networking='none' — the data layer's BODY is a TODO(agent) stub and its test is a failing placeholder (§1.4). Everything else (folder, Models, LocalStore, registration, localization) is generated. Implement the local-only read, then replace the placeholder test."
+fi
 if [ -n "$GROUP_PATH" ]; then
   echo "new_feature.sh: nested under group '$GROUP_PATH' (§3.2)."
 fi

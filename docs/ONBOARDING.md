@@ -134,8 +134,10 @@ chose; until then, this file intentionally shows all of them.
 
 **On a fresh clone, copy `Secrets.xcconfig.example` to `Secrets.xcconfig` and
 fill it in before the first build** — the file is gitignored, so it isn't in
-your clone, and the app deliberately crashes at launch with a message saying so
-rather than falling back to a wrong URL.
+your clone. On a networked project the app deliberately crashes at launch with a
+message saying so, rather than falling back to a wrong URL. An offline project
+(`networking: none` in the config) has no `API_BASE_URL` and no such check — its
+composition root never had a `RequestBuilder` rendered into it.
 
 `Secrets.xcconfig` (gitignored) holds anything that varies by environment or
 must not be committed; `Secrets.xcconfig.example` (committed) is the record of
