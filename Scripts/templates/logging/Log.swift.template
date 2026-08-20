@@ -1,0 +1,63 @@
+import Foundation
+import OSLog
+
+// The referent for `docs/CODING_STANDARDS.md`'s "no print() — use the Logging
+// module" rule and for `.swiftlint.yml`'s no_print_statements (§8.6). Rendered by
+// /start into Core at every tier, so that rule is never a dead reference on day
+// one.
+//
+// A protocol with a default implementation, not a global function: logging is the
+// LEAF of the dependency graph (§3.9) — it depends on nothing in this repo, and
+// every module above it can swap the implementation without touching a call site.
+// Extract it into its own module with `/add-module Logging` if it ever needs
+// independent versioning; nothing here changes when you do.
+public enum LogLevel: String, Sendable {
+    case debug, info, warning, error
+}
+
+public protocol Logging: Sendable {
+    func log(_ level: LogLevel, _ message: @autoclosure () -> String, category: String)
+}
+
+public extension Logging {
+    func debug(_ message: @autoclosure () -> String, category: String = "app") {
+        log(.debug, message(), category: category)
+    }
+
+    func info(_ message: @autoclosure () -> String, category: String = "app") {
+        log(.info, message(), category: category)
+    }
+
+    func warning(_ message: @autoclosure () -> String, category: String = "app") {
+        log(.warning, message(), category: category)
+    }
+
+    func error(_ message: @autoclosure () -> String, category: String = "app") {
+        log(.error, message(), category: category)
+    }
+}
+
+public struct OSLogLogger: Logging {
+    private let subsystem: String
+
+    public init(subsystem: String = Bundle.main.bundleIdentifier ?? "__APP_NAME__") {
+        self.subsystem = subsystem
+    }
+
+    public func log(_ level: LogLevel, _ message: @autoclosure () -> String, category: String) {
+        let logger = Logger(subsystem: subsystem, category: category)
+        // Interpolated as .private by default: a log line must never carry a
+        // token, credential or personal data (§8.6). Mark a value .public
+        // deliberately, at the call site, when it genuinely isn't sensitive.
+        switch level {
+        case .debug: logger.debug("\(message())")
+        case .info: logger.info("\(message())")
+        case .warning: logger.warning("\(message())")
+        case .error: logger.error("\(message())")
+        }
+    }
+}
+
+/// The app-wide default. Injected like any other dependency where a type is
+/// testable; used directly only from composition roots and top-level error paths.
+public let log: any Logging = OSLogLogger()

@@ -12,19 +12,34 @@ __MODULE_IMPORTS__
 // populate the factory, and finally replaces the placeholder root screen below
 // with `make<StarterFeature>ViewController()` — the one substitution that isn't
 // marker-driven, because there is exactly one root screen, ever.
+// @MainActor because it owns a UINavigationController and constructs screens —
+// true regardless of Q4, and what lets a feature factory below touch a
+// main-actor-isolated persistence context without further annotation.
+@MainActor
 public final class AppCoordinator {
     private let navigationController: UINavigationController
     private let requestBuilder: RequestBuilder
     private let apiClient: APIClient
+__IF_PERSISTENCE__
+    private let persistence: PersistenceController
+__END_PERSISTENCE__
 
     public init(
         navigationController: UINavigationController,
         requestBuilder: RequestBuilder,
+__IF_PERSISTENCE__
+        apiClient: APIClient,
+        persistence: PersistenceController
+__ELSE_PERSISTENCE__
         apiClient: APIClient
+__END_PERSISTENCE__
     ) {
         self.navigationController = navigationController
         self.requestBuilder = requestBuilder
         self.apiClient = apiClient
+__IF_PERSISTENCE__
+        self.persistence = persistence
+__END_PERSISTENCE__
     }
 
     public func start() {

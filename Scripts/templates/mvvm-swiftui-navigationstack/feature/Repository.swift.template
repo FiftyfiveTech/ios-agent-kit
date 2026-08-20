@@ -6,9 +6,43 @@ __MODULE_IMPORTS__
 protocol __FEATURE__ServiceProtocol {
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
 }
+__IF_PERSISTENCE__
+
+// Same rule for the local half of the data layer: the Repository consumes it, so
+// the Repository declares it. This exists only because the project answered Q4
+// with a persistence stack — a `persistence: None` project's Repository is
+// remote-only, with no second dependency to construct or fake (§3.8).
+protocol __FEATURE__LocalStoreProtocol {
+    func loadCached__FEATURE__List() async throws -> [__FEATURE__Model]
+    func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws
+}
+__END_PERSISTENCE__
 
 struct __FEATURE__Repository: __FEATURE__RepositoryProtocol {
     private let service: __FEATURE__ServiceProtocol
+__IF_PERSISTENCE__
+    private let localStore: __FEATURE__LocalStoreProtocol
+
+    init(service: __FEATURE__ServiceProtocol, localStore: __FEATURE__LocalStoreProtocol) {
+        self.service = service
+        self.localStore = localStore
+    }
+
+    // Remote is the source of truth; the cache is a fallback consulted only when
+    // the network call actually failed. An empty cache rethrows that error rather
+    // than reporting an empty screen as a success.
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        do {
+            let items = try await service.fetch__FEATURE__List()
+            try await localStore.cache__FEATURE__List(items)
+            return items
+        } catch {
+            let cached = try await localStore.loadCached__FEATURE__List()
+            guard !cached.isEmpty else { throw error }
+            return cached
+        }
+    }
+__ELSE_PERSISTENCE__
 
     init(service: __FEATURE__ServiceProtocol) {
         self.service = service
@@ -17,4 +51,5 @@ struct __FEATURE__Repository: __FEATURE__RepositoryProtocol {
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         try await service.fetch__FEATURE__List()
     }
+__END_PERSISTENCE__
 }

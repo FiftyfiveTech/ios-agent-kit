@@ -38,9 +38,11 @@ Full walkthrough: [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 ```
 .claude/skills/    — /start plus 9 routine-work Skills (new-feature, add-module,
                       translate, ...)
-Scripts/           — lint, string/color enforcement, codegen, and four
-                      fully-authored file-template sets (see Architecture below)
+Scripts/           — lint, string/color enforcement, codegen, four fully-authored
+                      file-template sets (see Architecture below), plus the
+                      persistence/ and logging/ templates /start renders into Core
 docs/              — this template's own docs + the .template sources /start renders
+docs/product/      — the domain slot: your PRD/SRS/API contracts land here later
 .swiftlint.yml      — one root lint config, every tier
 .githooks/{pre-commit,commit-msg}
 CLAUDE.md.template  — renders into a real project's CLAUDE.md
@@ -72,6 +74,30 @@ actually chosen. Four combinations are fully template-backed today:
 
 VIPER is deliberately template-assisted only — it's close enough to VIP (drops the `weak` reference, gives Router full navigation ownership) that a dedicated template would be near-duplicate effort. Every other combination still gets deterministic folder/DI/navigation/test scaffolding from `/new-feature`, but the layer file bodies fall back to the agent writing them from the rendered architecture doc.
 
+## Where the product goes
+
+This repo describes **how** an app here is built. It knows nothing about **what**
+any given app is for, and it never will — that's `docs/product/`, the one folder
+nothing in this template generates, renders or overwrites. Drop the PRD, SRS, API
+contracts and anything else domain-specific in there whenever they arrive, and
+keep changing them; they're expected to be living, contradictory and incomplete.
+
+`CLAUDE.md` carries a *pointer* to that folder and deliberately never a summary —
+a digest of a living document is stale within weeks and reads as current.
+`/new-feature` reads the relevant requirement at the start of each invocation, so
+a spec'd field list beats an inferred one, and says which document it used.
+
+## Local persistence is a real choice, not a config note
+
+`/start`'s Q4 (SwiftData / Core Data / None) changes what every feature
+generates. `None` gives remote-only screens — a complete answer, not a degraded
+one. A real stack gives each feature a `<Name>LocalStore` alongside its remote
+dependency (behind a protocol its consumer owns), a `PersistenceController`
+injected from the composition root, and — on SwiftData — a `@Model` record in
+`Models/` registered with the container schema. The generated policy is
+cache-on-success / read-on-failure; a feature that pages or syncs deltas
+rewrites that one method.
+
 ## Known limitations
 
 Carried over honestly rather than hidden:
@@ -86,6 +112,12 @@ Carried over honestly rather than hidden:
 - No CI pipeline, no image-caching library choice (`AsyncImage` is the
   default — see `docs/ai/ui_rules.md`), no pagination convention — confirmed
   as deliberate scope, not oversights.
+- Core Data's per-feature store is a wired, compiling seam with `TODO(agent)`
+  bodies — its entity lives in a `.xcdatamodeld` that can't be text-templated,
+  unlike SwiftData's `@Model`, which is generated end to end.
+- No auth/session layer (token refresh, Keychain, 401 retry), no deep-link →
+  `Route` mapping, and no UI/snapshot test tier — unaddressed so far rather than
+  deliberately excluded.
 - Per-module localization and the base/app theme split are correctness
   requirements with no compile-time guard — `check_strings.sh` catches key
   parity, nothing catches a wrong-bundle lookup at runtime.
@@ -99,7 +131,9 @@ Carried over honestly rather than hidden:
   are global to the Mac and apply to every project. Nothing in this template
   can scope, version or audit them.
 
-Resolved since the initial build (Objective-C support dropped entirely,
+Resolved since the initial build (persistence now actually generates a local
+data layer instead of being recorded and discarded, `Core/Logging/Log.swift` now
+exists so the no-`print()` rule has a referent, Objective-C support dropped entirely,
 `/translate` Skill added, commit-msg format now hook-enforced, DI-container
 upgrade path documented, `docs/PROJECT_MAP.md` now seeded by `/start` instead of
 first appearing when another Skill appends to it) — see the build spec's §10 for

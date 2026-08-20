@@ -29,6 +29,33 @@ carries no Swift type, "under the account section" may or may not mean a
 nested folder, and a project with more than one module has no obvious
 destination. Never resolve any of that silently.
 
+## Before the questions: read the requirement
+
+Look in `docs/product/` for the PRD/SRS/API document covering the screen being
+asked for, and read the relevant part **now, from the file**, not from memory or
+from anything summarized in `CLAUDE.md`. These documents change constantly; the
+version on disk today is the only one that counts.
+
+What it changes:
+
+- **Fields and types** come from the requirement when it states them. A spec'd
+  field list beats an inferred one every time, and it turns question 3 below from
+  an invention into a confirmation.
+- **Behaviour** — validation, error and empty states, whether the list pages —
+  comes from there too, and is what you implement after the script runs.
+- **The endpoint** the feature's Service/Worker should call, if the document
+  names one; otherwise the generated placeholder path stays and goes to
+  `TODO.md`.
+
+If `docs/product/` is empty or the screen isn't described there yet, that's
+normal and not a blocker — proceed on the developer's description and say plainly
+that you found no requirement for it. If a requirement exists but is ambiguous or
+self-contradicting, ask rather than picking a reading; the answer belongs back in
+`docs/product/`, not only in this conversation.
+
+When you echo the resolved command, say which document you drew from (or that
+there wasn't one).
+
 ## Confirm before generating — the three questions
 
 Ask them in **one batched interaction**, not one per turn. Skip any question the
@@ -70,8 +97,11 @@ specific choice (`Features/Profile/` vs `Features/Account/Profile/`) rather than
 an open question. Nesting affects the folder path and the mirrored test path,
 nothing else.
 
-**3. Fields — ask unless given as explicit `field:Type` pairs.**
-Never infer a Swift type from an English noun. Propose a concrete typed list
+**3. Fields — ask unless given as explicit `field:Type` pairs, or specified in
+`docs/product/`.**
+Never infer a Swift type from an English noun. Where the requirement states the
+shape, propose exactly that and cite the document — a spec'd `year: Int` is not
+something to re-derive. Propose a concrete typed list
 derived from what was described and ask for confirmation or correction, e.g.
 *"I'll generate `FilmsModel` with `title: String`, `year: Int`, `posterURL: URL`
 — correct, or different types?"* Call out the genuinely ambiguous ones rather
@@ -124,7 +154,21 @@ the project's config selects, it generates:
 - **Localization**: appends the target module's `Localizable.strings` with
   `<module>.<feature>.title`/`.empty` and regenerates that module's `L10n.swift`
   — never a hardcoded string literal.
-- **A real, passing unit test** against a fake dependency (not a placeholder).
+- **A local store, only when the project's Q4 answer isn't `None`.** With
+  SwiftData or Core Data recorded in the config, the script also generates
+  `<Name>LocalStore.swift` in the feature folder, declares its protocol beside
+  the remote one in the consuming layer (Repository for MVVM, Worker for VIP,
+  Service for MVC), appends a SwiftData `<Name>Record` to `Models/`, registers it
+  with the app's `ModelContainer` schema, and passes the store into the factory
+  it writes at the composition root. With `persistence: None` none of that
+  exists and the feature is remote-only — both are complete outcomes. Core Data
+  is the one seam left half-open on purpose: the store compiles and is wired, but
+  its two methods are `TODO(agent)` until the entity exists in the app's
+  `.xcdatamodeld` (§10).
+- **A real, passing unit test** against a fake dependency (not a placeholder),
+  plus — when persistence is on — a second test class covering the read-through
+  policy itself: remote result cached, cache used when the remote call fails,
+  remote error rethrown when the cache is empty.
   Fake values default sensibly by type; an unrecognized/custom type still
   compiles but fails loudly at test runtime via `fatalErrorFakeValue()`.
 
@@ -160,6 +204,14 @@ the developer should have chosen before the script ever runs.
 - Search-as-you-type fields: wire through `Core/Utilities/Debouncer.swift`
   rather than firing a request per keystroke — the script does not do this
   automatically.
+- With a local store generated, check the read-through policy against the
+  requirement before calling it done: the template caches the whole list and
+  falls back to the cache only when the remote call fails. A feature that pages,
+  syncs deltas, or must read local-first needs that method rewritten — the
+  generated version is a starting policy, not a decision made for you.
+- Implement the behaviour the requirement describes (validation, empty/error
+  copy, paging) on top of the scaffold, and note anything the requirement left
+  open in `TODO.md` rather than choosing silently.
 - Refuses to run if the feature folder already exists — don't work around this
   by picking a different name; either the feature is genuinely new, or you
   meant to edit the existing one.

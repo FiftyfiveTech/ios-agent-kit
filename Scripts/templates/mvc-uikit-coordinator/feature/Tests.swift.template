@@ -54,3 +54,87 @@ private final class Fake__FEATURE__Service: __FEATURE__ServiceProtocol {
         try result.get()
     }
 }
+
+__IF_PERSISTENCE__
+
+// The read-through policy is the densest logic /new-feature generates, so it
+// carries its own coverage (§3.8): remote wins when it succeeds and is cached,
+// the cache answers when the remote call fails, and an empty cache rethrows the
+// remote error rather than reporting an empty screen as success. Both fakes are
+// second conformances, not mocks (§8.2). Delete these tests only if you replace
+// the policy — a feature that pages or syncs deltas needs its own.
+final class __FEATURE__ServiceReadThroughTests: XCTestCase {
+    private let requestBuilder = RequestBuilder(baseURL: URL(string: "https://example.test")!)
+
+    func test_fetch_returnsRemoteResultAndCachesIt() async throws {
+        let expected = __FAKE_MODEL_LIST__
+        let localStore = Fake__FEATURE__LocalStore()
+        let subject = __FEATURE__Service(
+            requestBuilder: requestBuilder,
+            apiClient: Fake__FEATURE__APIClient(result: .success(expected)),
+            localStore: localStore
+        )
+
+        let items = try await subject.fetch__FEATURE__List()
+
+        XCTAssertEqual(items, expected)
+        let cached = await localStore.cached
+        XCTAssertEqual(cached, expected)
+    }
+
+    func test_fetch_fallsBackToCacheWhenRemoteFails() async throws {
+        let expected = __FAKE_MODEL_LIST__
+        let subject = __FEATURE__Service(
+            requestBuilder: requestBuilder,
+            apiClient: Fake__FEATURE__APIClient(result: .failure(FakeError.forced)),
+            localStore: Fake__FEATURE__LocalStore(cached: expected)
+        )
+
+        let items = try await subject.fetch__FEATURE__List()
+
+        XCTAssertEqual(items, expected)
+    }
+
+    func test_fetch_rethrowsRemoteErrorWhenCacheIsEmpty() async {
+        let subject = __FEATURE__Service(
+            requestBuilder: requestBuilder,
+            apiClient: Fake__FEATURE__APIClient(result: .failure(FakeError.forced)),
+            localStore: Fake__FEATURE__LocalStore()
+        )
+
+        do {
+            _ = try await subject.fetch__FEATURE__List()
+            XCTFail("expected the remote error to propagate")
+        } catch {
+            XCTAssertTrue(error is FakeError)
+        }
+    }
+}
+
+private struct Fake__FEATURE__APIClient: APIClient {
+    let result: Result<[__FEATURE__Model], Error>
+
+    func send<Response: Decodable>(_ request: URLRequest, decodingTo: Response.Type) async throws -> Response {
+        // Force-cast is sanctioned in test code: this fake only ever answers the
+        // one request the subject makes, so a mismatch is a broken test, not a
+        // runtime condition to handle.
+        try result.get() as! Response
+    }
+}
+
+private actor Fake__FEATURE__LocalStore: __FEATURE__LocalStoreProtocol {
+    private(set) var cached: [__FEATURE__Model]
+
+    init(cached: [__FEATURE__Model] = []) {
+        self.cached = cached
+    }
+
+    func loadCached__FEATURE__List() async throws -> [__FEATURE__Model] {
+        cached
+    }
+
+    func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws {
+        cached = items
+    }
+}
+__END_PERSISTENCE__

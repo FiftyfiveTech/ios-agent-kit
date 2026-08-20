@@ -54,7 +54,11 @@ ios-ai-skeleton/                      # rename per team convention — this IS P
 │   │   ├── mvvm-swiftui-navigationstack/   # fully-authored, deterministic — see §1.4
 │   │   ├── vip-swiftui-navigationstack/    # fully-authored, deterministic — ViewModel bridge (§1.4)
 │   │   ├── vip-uikit-coordinator/          # fully-authored, deterministic — classic Clean Swift (§1.4)
-│   │   └── mvc-uikit-coordinator/          # fully-authored, deterministic — ViewController only (§1.4)
+│   │   ├── mvc-uikit-coordinator/          # fully-authored, deterministic — ViewController only (§1.4)
+│   │   ├── persistence/                    # §3.8 — the OPTIONAL local half of the data layer
+│   │   │   ├── swiftdata/                  # PersistenceController + per-feature LocalStore + @Model record
+│   │   │   └── coredata/                   # PersistenceController + a LocalStore seam (§10)
+│   │   └── logging/                        # §8.6 — Log.swift, rendered into Core at every tier
 │   ├── check_hardcoded_colors.sh     # §7 — theming enforcement
 │   ├── check_strings.sh              # §8.5 — missing/extra/duplicate keys across locales and modules
 │   ├── generate_strings.sh           # §3.7 — regenerates each module's L10n.swift from its Localizable.strings
@@ -67,6 +71,8 @@ ios-ai-skeleton/                      # rename per team convention — this IS P
 │   ├── ONBOARDING.md                 # how to use *this template* — §1.2
 │   ├── CODING_STANDARDS.md
 │   ├── GIT_CONVENTIONS.md
+│   ├── product/
+│   │   └── README.md                 # §5.2 — the domain slot: PRD/SRS/API land here later
 │   └── ai/
 │       ├── architecture.md.template  # generic multi-pattern reference — /start renders the one chosen pattern
 │       ├── modularization.md.template # §3.9–§3.11 — /start renders the chosen tier's module graph + ownership rules
@@ -81,7 +87,7 @@ Deliberately absent at this stage: `project.yml`, any `.xcworkspace`, `App/`, `C
 
 ### 1.2 What the template's own `README.md`/`docs/ONBOARDING.md` must say
 
-The `/start [path]` invocation from §0 and its three detected scenarios (fresh/empty, adoption, already-initialized), spelled out for a human reading this repo for the first time, plus: what `/start` does, that it's idempotent (§2.4), the three topology tiers and the honest cost of moving between them (§3.9–§3.10), and a pointer to `docs/ai/architecture.md.template` explaining that the real architecture doc doesn't exist until `/start` renders it. State the adoption scenario's scope plainly rather than letting it read as workspace-only: a single mature `.xcodeproj` with its own hand-written `CLAUDE.md`/`README.md` and years of history is exactly what it's for, not just a multi-project workspace.
+The `/start [path]` invocation from §0 and its three detected scenarios (fresh/empty, adoption, already-initialized), spelled out for a human reading this repo for the first time, plus: what `/start` does, that it's idempotent (§2.4), the three topology tiers and the honest cost of moving between them (§3.9–§3.10), and a pointer to `docs/ai/architecture.md.template` explaining that the real architecture doc doesn't exist until `/start` renders it. State the adoption scenario's scope plainly rather than letting it read as workspace-only: a single mature `.xcodeproj` with its own hand-written `CLAUDE.md`/`README.md` and years of history is exactly what it's for, not just a multi-project workspace. Also state where the *domain* goes: this template describes how an app is built, never what it's for, and `docs/product/` (§5.2) is the slot a PRD/SRS/API contract lands in later — a living, never-final set of documents nothing here generates or overwrites.
 
 ### 1.3 Shared precondition for every Skill except `/start`
 
@@ -122,15 +128,18 @@ Everything in this section is what you're building *into* the Skill file, to run
 6. Run `xcodegen generate` (once per spec) or `tuist generate` to produce the real `.xcodeproj`(s). At T3 with XcodeGen, also run `Scripts/generate_workspace.sh` — XcodeGen generates projects, not workspaces, so the template emits `<Name>.xcworkspace/contents.xcworkspacedata` itself from the config's project list (§3.9). **No manual Xcode step, ever, at any point in this flow.**
 7. `git init` if no `.git` exists yet. If this folder came from cloning the template repo directly, **offer** — don't silently do — to detach it from the template's own git history/remote so the new app starts with clean history.
 8. Wire `.githooks/pre-commit` and `.githooks/commit-msg` via `core.hooksPath` — on Path 3 (step 13), only after that step's adoption dry-run passes, or the developer explicitly accepts report-only mode.
-9. Materialize the folder tree from §3 for the chosen architecture **and tier**: `App/`, `Core/` (Utilities + Localization), `Networking/`, `Models/`, `DesignSystem/` (Theme + SharedViews), `Features/` — as folders in one target at T1, as local packages at T2, as separate framework projects at T3 (§3.9). Seed **each localization-owning module's** `Localizable.strings` with its first few real strings and run `Scripts/generate_strings.sh` once per module to produce its bundle-aware `L10n.swift` (§3.11) — never leave the localization layer unwired even before the first feature exists.
+9. Materialize the folder tree from §3 for the chosen architecture **and tier**: `App/`, `Core/` (Utilities + Localization), `Networking/`, `Models/`, `DesignSystem/` (Theme + SharedViews), `Features/` — as folders in one target at T1, as local packages at T2, as separate framework projects at T3 (§3.9). Render two things into `Core` that every tier gets and neither depends on the architecture combo: **`Logging/Log.swift`** from `Scripts/templates/logging/` — always, at every tier, because `docs/CODING_STANDARDS.md` and `.swiftlint.yml`'s `no_print_statements` both point at it and would otherwise be dead references on day one (§8.6) — and, **only when Q4 isn't `None`**, `Persistence/PersistenceController.swift` from `Scripts/templates/persistence/<swiftdata|coredata>/` (§3.8). Neither becomes its own module at any tier: one file doesn't justify a spec, a workspace entry and a scheme, and `/add-module Logging` is there for a team that later wants independent versioning. Seed **each localization-owning module's** `Localizable.strings` with its first few real strings and run `Scripts/generate_strings.sh` once per module to produce its bundle-aware `L10n.swift` (§3.11) — never leave the localization layer unwired even before the first feature exists.
 10. Scaffold one starter feature (e.g. "Home") **in each app** using the same logic §4.1 describes for `/new-feature` — proving the whole stack actually compiles and its one generated test actually passes, not aspirationally. At T3 with more than one app, also generate one shared base view in the shared UI module that both apps' Home screens consume, so the sharing seam is exercised on day one rather than discovered later (§3.9).
-11. Render `CLAUDE.md`, `docs/ai/architecture.md`, `docs/ai/modularization.md`, `README.md`, `docs/ONBOARDING.md` from their `.template` counterparts, **and seed `docs/PROJECT_MAP.md`** with the three sections §5 names (there is no `.template` for it — it's written fresh, and `CLAUDE.md` links to it, so it can't be left for `/add-module` to create on first append), replacing every placeholder with the real, locked-in decisions — a project that chose VIPER should never see MVVM's diagram in its own `docs/ai/architecture.md`, and a T1 project should never see a workspace diagram in its `modularization.md`. On Path 3 (step 13), never run this unmodified against a `CLAUDE.md`/`README.md`/`docs/ONBOARDING.md` that already existed before this run — see step 13's carve-out.
+11. Render `CLAUDE.md`, `docs/ai/architecture.md` and `docs/ai/modularization.md` from their `.template` counterparts, **write `README.md` and `docs/ONBOARDING.md` fresh for this project** (there is deliberately no `.template` for either: the copies that arrived with the template describe the template system itself, per §1.2, and are overwritten rather than substituted), **and seed `docs/PROJECT_MAP.md`** with the three sections §5 names (there is no `.template` for it — it's written fresh, and `CLAUDE.md` links to it, so it can't be left for `/add-module` to create on first append), replacing every placeholder with the real, locked-in decisions — a project that chose VIPER should never see MVVM's diagram in its own `docs/ai/architecture.md`, and a T1 project should never see a workspace diagram in its `modularization.md`. On Path 3 (step 13), never run this unmodified against a `CLAUDE.md`/`README.md`/`docs/ONBOARDING.md` that already existed before this run — see step 13's carve-out.
+
+    Then create `docs/product/` with the template's own `README.md` in it, and stop there (§5.2). This step is the exception to everything else in step 11: nothing in that folder is rendered, substituted or regenerated, on a first run or a re-run — it's create-if-missing only, because its contents are hand-authored requirements that change constantly and are never this template's to write.
 12. Report exactly what's left to do by hand (point the real API base URL, open the project once in Xcode, per-app signing) as `TODO.md` entries — not just a message that scrolls off-screen. Include the optional Xcode MCP bridge step from §5.1 as an *offer*, never as something this run performed.
 13. **Path 3 (§0) variant — adopting an existing repo:** skip steps 5–6 for anything already present.
     - **Infer the tier from what's actually there — don't assume workspace means Path 3 and a bare project doesn't.** One `.xcodeproj` with no local packages → T1. One `.xcodeproj` plus local Swift packages → T2. `.xcworkspace` + N projects → T3. State the inferred tier and confirm it with the developer before writing `ios-skeleton.config.json`, exactly the same way whether one project exists or several.
     - **Record the deployment target actually set on the existing project's build settings** as `minIOSVersion`, instead of asking Q8's greenfield picklist (iOS 16/17/18) — an adopted project may already sit below that floor, and every §2.3 validation rule (SwiftData/`@Observable`/`NavigationStack` gating) must check against the real number, not the picklist default.
     - **Detect the existing feature-folder convention** (e.g. `Features/`, `Scenes/`, `Modules/`) and record its name in the config instead of assuming the literal `Features/`. `new_feature.sh` and `/new-feature` must read this field rather than hardcode the name — otherwise adoption produces a second, inconsistent folder alongside the one already in use (§3.2).
     - **Surface an untemplated combo immediately, during this confirmation, not later.** If the detected architecture/UI-framework/navigation combination isn't one of §1.4's four fully-templated ones (e.g. any Hybrid UI-framework project), say so plainly here — don't let the developer discover it only when `/new-feature` first falls back mid-run.
+    - **Product docs belong to the developer.** An adopted repo may already keep a PRD/SRS/API contract somewhere. Never move, rewrite or absorb it — either point `docs/product/README.md` at where it lives or leave the folder uncreated, and record the location in `docs/PROJECT_MAP.md`.
     - **Never silently overwrite hand-authored project docs.** Before step 11 renders `CLAUDE.md`/`README.md`/`docs/ONBOARDING.md`, check whether each already exists with real content (no leftover `{{placeholder}}` tokens; predates this run's `ios-skeleton.config.json`). If so, do not overwrite it — render the new version to a side file (or simply skip it and note the gap in `TODO.md`) and ask the developer how to reconcile it manually. `docs/ai/architecture.md`/`modularization.md` are still safe to render fresh, since an adopted repo never had them before.
     - **Never wire hooks blind.** Before step 8, run `Scripts/lint.sh`, `check_hardcoded_colors.sh`, and `check_strings.sh` once against the adopted codebase as a dry run. If any fail, report the failures and ask whether to fix them first or wire the hooks in report-only mode instead — an adopted codebase has never been checked against this template's conventions, and a hard-blocking hook can lock the developer out of their very next commit.
     - Detect the existing `.xcworkspace`/`.xcodeproj` set, record it as the topology, and write a `TODO.md` entry naming each project not yet described by a spec file. Never regenerate or overwrite a hand-maintained `.xcodeproj` — converting one to a generated spec is an explicit, separate migration the developer opts into (§3.10).
@@ -144,7 +153,7 @@ Q1 is asked and answered **first**, and its answer gates most of what follows: w
 | 1 | **Project topology & modularization** | **T1** single `.xcodeproj`, one app target / **T2** single `.xcodeproj` + local Swift packages (`Core`, `DesignSystem`, `Networking`, `Models`, `Features/*`) / **T3** `.xcworkspace` + N projects (1..N apps + shared framework projects) | T2 for one app; T3 the moment a second app, app-extension, or separately-versioned SDK is on the roadmap | Gates the whole tree (§3.9), the location of lint/strings/`Package.resolved`, and every Skill's "which module?" branch. Also asks: **how many apps now?** — see Q12 |
 | 2 | Language | Swift only *(no Objective-C option — decided against; see §10)* | Swift-only | Every generated file is Swift. A project with legacy Objective-C to bridge in still can — add a bridging header manually — but this template generates nothing for it. |
 | 3 | UI framework | SwiftUI / UIKit / Hybrid (UIKit shell hosting SwiftUI screens) | SwiftUI | Changes the shape of the presentation layer |
-| 4 | Persistence | SwiftData / Core Data / None (network + in-memory only) | SwiftData | SwiftData requires iOS 17+ — validate against Q8 |
+| 4 | Persistence | SwiftData / Core Data / None (network + in-memory only) | SwiftData | **Changes generated code, not just the config.** `None` → every feature's data layer is remote-only. SwiftData/Core Data → each feature additionally gets a `<Name>LocalStore` beside its remote dependency, and the app gets one `PersistenceController` (§3.8). SwiftData requires iOS 17+ — validate against Q8 |
 | 5 | Architecture pattern | MVVM / MVC / VIP (Clean Swift) / VIPER / MV (SwiftUI-native, `@Observable`, no separate ViewModel) | MVVM | Determines the layer set every feature scaffold generates — see §3 |
 | 6 | Navigation implementation | UIKit `UINavigationController` + Coordinator (more mature) / SwiftUI `NavigationStack` + Router object (native, less glue code) | `UINavigationController` + Coordinator if Q3 includes any UIKit; either for SwiftUI-only | **Independent of Q3** — a SwiftUI app can still run its nav backbone on `UINavigationController` via `UIHostingController`; a pure-UIKit app cannot use `NavigationStack` at all — see §2.3 |
 | 7 | Networking & concurrency | URLSession + async/await / URLSession + Combine / Alamofire | URLSession + async/await | Affects the generated `Service`/`Repository` signatures |
@@ -160,7 +169,7 @@ Ask it like this:
 > 1. Topology — one Xcode project (T1), one project plus local Swift packages (T2), or a workspace with several projects because you'll ship more than one app / a reusable framework (T3)? And how many apps do you expect in this repo — now, and within a year?
 > 2. (Language is fixed at Swift only — this template doesn't scaffold Objective-C interop.)
 > 3. SwiftUI, UIKit, or a hybrid?
-> 4. SwiftData, Core Data, or no local persistence?
+> 4. SwiftData, Core Data, or no local persistence? (This one changes what every feature generates — "None" means remote-only screens, and adding a local store later is a per-feature edit.)
 > 5. Architecture: MVVM, MVC, VIP (Clean Swift), VIPER, or MV (SwiftUI-native)?
 > 6. Navigation: SwiftUI `NavigationStack`, or a `UINavigationController` + Coordinator backbone (more mature, works even if the screens themselves are SwiftUI)?
 > 7. Networking: URLSession+async/await, URLSession+Combine, or Alamofire?
@@ -218,6 +227,7 @@ This is the **T2** layout: one app project plus local Swift packages. At **T1**,
 │   ├── GIT_CONVENTIONS.md
 │   ├── PERMISSIONS.md                # created on first use of /add-permission
 │   ├── PROJECT_MAP.md
+│   ├── product/                      # §5.2 — PRD/SRS/API contracts, hand-authored and never generated
 │   └── ai/
 │       ├── architecture.md           # rendered with the ONE chosen pattern's layers
 │       ├── modularization.md         # rendered with THIS repo's tier + module graph — §3.9–§3.11
@@ -247,7 +257,10 @@ This is the **T2** layout: one app project plus local Swift packages. At **T1**,
 │   ├── Core/
 │   │   ├── Package.swift
 │   │   └── Sources/Core/
-│   │       └── Utilities/Debouncer.swift    # shared debounce helper for search-as-you-type interactors
+│   │       ├── Utilities/Debouncer.swift    # shared debounce helper for search-as-you-type interactors
+│   │       ├── Logging/Log.swift            # §8.6 — always generated, at every tier
+│   │       └── Persistence/                 # ONLY when Q4 named a stack (§3.8)
+│   │           └── PersistenceController.swift
 │   ├── Networking/
 │   │   └── Sources/Networking/
 │   │       ├── RequestBuilder.swift  # base URL, headers, API-key injection, query params — one place
@@ -319,6 +332,8 @@ These five live in exactly one place each, referenced by every feature that need
 | Models | `Models/` | Every model type in the app, per §3.2 — domain models and per-feature Request/Response/Entity structs alike |
 | Localization | `<module>/Localization/` | One strings catalog **per resource-owning module**, not one per repo, with a bundle-aware `L10n` per module — §3.11 |
 | Theming | `DesignSystem/Theme/` (base) + `App/Theme/` (overrides) | Colors and typography as Swift values — see §6 and §3.11 |
+| Logging | `Core/Logging/Log.swift` | A `Logging` protocol + an `OSLog`-backed default. The referent for the no-`print()` rule (§8.6) — rendered by `/start` at every tier, never left as a doc reference with no file behind it |
+| Local persistence | `Core/Persistence/PersistenceController.swift` + per-feature `<Name>LocalStore.swift` | One container for the app, injected from the composition root. Exists only when Q4 named a stack — see §3.8 |
 
 `Scripts/generate_strings.sh <module>` regenerates that module's `L10n.swift` from its `Localizable.strings` whenever the latter changes — run by `/start` once per module at setup and by `/add-permission`/`/new-feature` whenever they add a new user-facing string, the same "typed accessor over a magic string" pattern already used for colors (§6) and assets (§4.2). Run with no argument it does every module in the config.
 
@@ -348,6 +363,22 @@ These five live in exactly one place each, referenced by every feature that need
 ```
 
 State flows back up the same chain via `@Published`/`@Observable` — no second call path, no layer-skipping.
+
+**The local branch is optional, and Q4 is what decides it — never the feature author.** The diagram's `Local` box exists in generated code only when Q4 named a persistence stack. Concretely:
+
+| Q4 | What every feature gets |
+|---|---|
+| `None` | Remote only. One dependency (`Service`/`Worker`), one protocol, one fake in the test. No local store, no record type, no `PersistenceController`. A complete answer, not a degraded one — plenty of apps are a view onto a server. |
+| `SwiftData` / `Core Data` | The same remote path, unchanged, **plus** a `<Name>LocalStore` injected alongside it. The consuming layer declares both protocols (§8.2): Repository for MVVM, Worker for VIP/VIPER, Service for MVC — whichever type the screen actually depends on. |
+
+The generated read-through policy is deliberately the simplest one that is correct for a whole-list fetch: **remote is the source of truth; the cache is written on success and read only when the remote call actually failed, and an empty cache rethrows that error rather than reporting an empty screen as success.** A feature that pages, syncs deltas or must read local-first replaces that one method — the template gives it a wired seam, not a caching strategy it has to live with.
+
+Two structural rules follow from §3.2 and §8.2 and are worth stating outright, because they're where a local layer usually goes wrong:
+
+- **A SwiftData `@Model` record is a model.** `<Name>Record` lives in `Models/`, appended to `Models/<Name>Models.swift` beside the struct it mirrors — never in the feature folder, and never instead of the plain struct the rest of the app passes around. The record is a storage shape; the struct is the domain shape; the store maps between them.
+- **The local store is behind a protocol its consumer owns**, exactly like the remote one, which is what keeps the generated test a two-fake test rather than a test that needs a real container.
+
+One container per app, constructed in the composition root and injected — nothing below the composition root reaches for `PersistenceController.shared`.
 
 There is deliberately no `UseCase` layer between `ViewModel` and `Repository`. A
 layer that only forwards one call to the one below it (`execute() { try await
@@ -495,12 +526,14 @@ Generates, end to end, per §3.2's layer shape for the project's chosen architec
 - Business layer: for MVVM (default), the ViewModel depends on the data layer's *protocol* directly — no separate business-logic layer is generated by default (§3.8). For VIP/VIPER, the Interactor is this layer: one operation, pure Swift, no UI/networking imports. Never generate a `UseCase` — if a feature's ViewModel later needs to orchestrate more than one repository/service, add an `Interactor` instead (§3.8, §8.2).
 - Data layer (Repository + Service): protocol + implementation, wired to the chosen networking stack (`Networking/RequestBuilder.swift` + `APIClient.swift` — never a second networking path). The protocol is declared where it's consumed, named for the capability rather than the type it abstracts (§8.2).
 - Presentation layer (ViewModel/Presenter/Controller + View): matching the chosen UI framework, as a flat set of files directly in `Features/<Name>/` — see §3.2.
+- Reads `docs/product/` first (§5.2). Where the requirement states a screen's fields, types, states or endpoint, that document is the source — the confirmation step below becomes "here's what the spec says, correct?" rather than an invention. An absent or silent requirement is normal and not a blocker; a contradictory one is a question, not a coin toss. Never work from a summary of a requirement — these documents change constantly, so re-read per invocation.
+- Local persistence, only when Q4 isn't `None` (§3.8): a `<Name>LocalStore.swift` in the feature folder, its protocol declared beside the remote one in the consuming layer, a `<Name>Record` appended to `Models/` and registered with the app's container schema (SwiftData), and the store passed into the composition-root factory. With `persistence: None` none of this is generated and the feature is remote-only.
 - Models: writes `Models/<Name>Models.swift` in the shared package (§3.2/§3.7), never a file inside the feature folder. If a type name in the new feature's field list collides with an existing type already in `Models/`, stops and asks rather than silently overwriting or shadowing it.
 - Navigation: registers the new screen with whichever mechanism Q6 selected — a new `Router`/`Route` case or a new `start()` method on the feature's `Coordinator` — never a second, ad-hoc path. If part of a tab-bar flow, wires into that tab's own stack only (§3.5).
 - If the field list includes a search-as-you-type input, wires it through `Core/Utilities/Debouncer.swift` rather than firing a request per keystroke.
 - Destination: resolves the target module per §4's topology branch before generating anything. Accepts a grouped path (`/new-feature Settings/Profile`) per §3.2. If the resolved module is a shared framework rather than an app, every generated type the app must see is `public` with an explicit `public init` — the single most common reason an extracted module doesn't compile from its consumer (§3.10).
 - If the feature introduces new user-facing text, adds it to **the target module's** `Localizable.strings` with that module's key namespace and re-runs `Scripts/generate_strings.sh <module>` rather than hardcoding a string literal (§3.11).
-- A **real, passing unit test** against a fake dependency — not a placeholder. Fake values default sensibly by type (`String → "test"`, `Int/Double → 0`, `Bool → true`, `Date → .now`, `Optional<T> → nil`); an unrecognized/custom type still compiles but fails loudly at test runtime (`fatalError("TODO: provide a fake value for <Type>")`) rather than silently guessing wrong.
+- A **real, passing unit test** against a fake dependency — not a placeholder. With persistence on, a second test class covers the read-through policy itself against a fake local store (and, for VIP/MVC, a fake `APIClient`), since that policy is the densest logic generated per feature. Fake values default sensibly by type (`String → "test"`, `Int/Double → 0`, `Bool → true`, `Date → .now`, `Optional<T> → nil`); an unrecognized/custom type still compiles but fails loudly at test runtime (`fatalError("TODO: provide a fake value for <Type>")`) rather than silently guessing wrong.
 - Refuses to run if the feature folder already exists.
 - Leaves exactly the follow-ups that can't be automated — e.g. the real API endpoint — as `TODO.md` entries.
 
@@ -581,8 +614,9 @@ Resolves §10's former "no localization Skill" gap. Drafts target-locale entries
 | `docs/PROJECT_MAP.md` | `/start` seeds it, features and modules append | One line per file/folder not covered by the feature-first convention, the module list with each module's kind and consumers (§4.7), plus which architecture combos are template-backed vs. agent-assisted (§1.4) |
 | `docs/CODING_STANDARDS.md` | shipped as-is | SwiftLint rules, naming, force-unwrap policy, `// MARK:` organization, and §8.2's protocol-boundary rules — dependencies are protocols, app-specific behaviour is injected, no branching on which app is running inside shared code |
 | `docs/GIT_CONVENTIONS.md` | shipped as-is | Feature-based commits, message format, optional branch naming |
-| `docs/ONBOARDING.md` | `/start`, from `.template` | What this project is, day-to-day prompting guidance |
-| `README.md` | `/start`, from `.template` | Tech stack, structure, getting-started, troubleshooting — for the real app, not the template |
+| `docs/ONBOARDING.md` | `/start`, **written fresh** (no `.template` — the copy that arrives with the template describes the template system, §1.2) | What this project is, day-to-day prompting guidance |
+| `README.md` | `/start`, **written fresh** (same reason) | Tech stack, structure, getting-started, troubleshooting — for the real app, not the template |
+| `docs/product/*` | **nobody** — the developer writes these, `/start` only creates the folder and its README | Read the actual requirement before implementing a feature — see §5.2 |
 | `docs/PERMISSIONS.md` | created on first `/add-permission` | Running list of every declared permission + justification |
 
 ### 5.1 Xcode's own coding intelligence — interoperate, don't compete
@@ -593,6 +627,18 @@ Xcode now runs coding agents natively (Claude Agent, Codex) under **Xcode ▸ Se
 2. **Agent permissions are global to the Mac, not scoped to the repo.** **Intelligence ▸ Agents ▸ Permissions** holds the Allowed Commands / Allowed Tools lists, accumulating whatever was approved in any transcript, and applies across every project. Nothing this template writes can scope, audit or version that list — say so rather than implying the repo controls it.
 3. **In-Xcode agent config lives outside the repo.** Files under `~/Library/Developer/Xcode/CodingAssistant/` (e.g. `ClaudeAgentConfig`) affect agents *launched in Xcode only*. The repo's `CLAUDE.md` is read by both surfaces, but Xcode expects it beside the `.xcodeproj` — repo root at T1/T2, which is **not** automatic at T3 where each project sits in its own folder. At T3, `/start` and `/add-app` should note this in `TODO.md` rather than assume the root file is found.
 4. **Xcode's localization agent targets String Catalogs, this template targets `.strings`.** Xcode adds languages, populates `.xcstrings`, and marks entries Machine Translated (`state-qualifier: leveraged-mt` on XLIFF export). `/translate` (§4.9), `generate_strings.sh` and `check_strings.sh` operate on per-module `Localizable.strings`. **These are two sources of truth for the same content** — §10 carries this as a limitation, and a project must pick one. If a team chooses String Catalogs, the parity/order scripts no longer describe reality (§8.5 already flags this trade-off for new projects).
+
+### 5.2 `docs/product/` — the domain slot, and why it's exempt from everything above
+
+Every file in §5's table is generated, rendered or shipped by this template. `docs/product/` is the one place that isn't, and it's deliberately the only part of the repo that carries what the app is actually *for*: the PRD, the SRS, API contracts, a glossary, whatever a given project keeps.
+
+This template is a build system for iOS projects, not for one product. The domain arrives later — after `/start`, often weeks later — and then keeps changing: a PRD is rewritten mid-sprint, an SRS grows a section after sign-off, an endpoint changes shape twice before launch. Three consequences, and they're rules, not observations:
+
+- **Pointer, never summary.** `CLAUDE.md` links to `docs/product/` and does not digest it. A summary of a living document is stale within weeks and is worse than no summary, because it reads as current. Every Skill that needs a requirement re-reads the file at the start of that task.
+- **Create-if-missing, never overwrite, never render.** `/start` creates the folder and the shipped `README.md` explaining the slot; nothing else. A re-run doesn't touch it (§2.4), and on Path 3 an adopted repo's existing product docs stay exactly where they are (§2.1 step 13).
+- **Incomplete is the normal state.** A `TBD` or an open question is not an error to resolve before work can proceed. Where a requirement an agent needs is genuinely missing or self-contradicting, it asks and the answer is written back into `docs/product/` — not left in a chat transcript.
+
+`/new-feature` is the concrete consumer today (§4.1): it reads the requirement before proposing field names and Swift types, so a spec'd field list beats an inferred one, and it says which document it drew from. Traceability stays lightweight on purpose — a feature notes its requirement in a commit message or in `docs/PROJECT_MAP.md`; there is no generated requirement-to-code matrix, because keeping one accurate by hand is work nobody does twice.
 
 ---
 
@@ -693,6 +739,7 @@ The structural lesson that outlives every other one here: **a module's public su
 ### 8.6 Observability
 
 - *Observed in production:* a first-party logging module with explicit levels rather than scattered `print`, plus an analytics layer inside the shared framework. A logging module as the *leaf* of the dependency graph — depending on nothing — is exactly the right shape (§3.9), and it's only reusable because it's a protocol with a default implementation rather than a global function.
+- **This template ships that file, it doesn't just recommend it.** `/start` renders `Core/Logging/Log.swift` (a `Logging` protocol, level helpers, an `OSLog`-backed `OSLogLogger`) at every tier, because `docs/CODING_STANDARDS.md`'s no-`print()` rule and `.swiftlint.yml`'s `no_print_statements` both name it — a standard whose referent doesn't exist is a dead rule on day one. It lives in `Core` rather than its own project even at T3: one file doesn't earn a spec, a workspace entry and a scheme. `/add-module Logging` moves it out when a team wants independent versioning, and the config schema reserves the `logging` role for exactly that.
 - *Recommended:* crash reporting and analytics sit behind a protocol owned by the shared module, with the concrete SDK injected per app (§8.2). Two apps frequently report to different destinations, and the vendor changes more often than the call sites.
 - *Recommended:* logging is level-gated and never logs tokens, credentials, or personal data — a rule worth a `custom_rules` regex, not just a doc line.
 
@@ -726,9 +773,11 @@ The structural lesson that outlives every other one here: **a module's public su
 - [ ] `.claude/skills/start/SKILL.md` implementing all of §2, including the topology branch and the Path 3 adoption flow
 - [ ] `.claude/skills/{new-feature,add-assets,update-app-icon,add-permission,update-theme,status,add-module,add-app,translate}/`, each gated by §1.3 and each implementing §4's destination-resolution rule
 - [ ] `Scripts/templates/{mvvm-swiftui-navigationstack,vip-swiftui-navigationstack,vip-uikit-coordinator,mvc-uikit-coordinator}/` fully authored (§1.4); other combinations left template-assisted
+- [ ] `Scripts/templates/persistence/{swiftdata,coredata}/` (§3.8) and `Scripts/templates/logging/` (§8.6)
 - [ ] `Scripts/generate_workspace.sh` (§3.9) and `Scripts/new_module.sh` (§4.7)
 - [ ] `.swiftlint.yml`, `Scripts/lint.sh`, `Scripts/check_hardcoded_colors.sh`, `Scripts/check_strings.sh` (§8.5), `Scripts/generate_strings.sh` taking a module argument, `.githooks/pre-commit`, `.githooks/commit-msg` (§7)
 - [ ] `docs/*.md` and `docs/ai/*.md`/`.template` files per §1.1 and §5, including `modularization.md.template`
+- [ ] `docs/product/README.md` — the domain slot, explaining what lands there and that nothing generates it (§5.2)
 - [ ] `CLAUDE.md.template`, `README.md` describing the template itself (§1.2)
 
 ### 9.2 Phase B — what a successful `/start` run must produce (build this expectation into the Skill itself)
@@ -740,11 +789,14 @@ The structural lesson that outlives every other one here: **a module's public su
 - [ ] `Theme/` with at least one real color + font token, no Asset Catalog colors — base tokens in the shared module and a per-app override layer from T2 onward (§3.11)
 - [ ] `DesignSystem/SharedViews/` — `LoadingView`, `ErrorView` (with retry), `EmptyStateView`
 - [ ] `Networking/RequestBuilder.swift` + `APIClient.swift`
+- [ ] `Core/Logging/Log.swift` — at every tier, unconditionally (§8.6)
+- [ ] If Q4 isn't `None`: `Core/Persistence/PersistenceController.swift`, and the starter feature's `<Name>LocalStore` wired into its data layer and into the composition-root factory. If Q4 is `None`: none of those files exist, and the starter feature is remote-only (§3.8)
+- [ ] `docs/product/` created with the template's `README.md`, nothing rendered into it, and named in the closing report as where requirements go (§5.2)
 - [ ] `Models/` created, with the starter feature's Request/Response/Entity structs in `Models/HomeModels.swift` — none of them left inside `Features/Home/`
 - [ ] Per-module `Localizable.strings` + generated **bundle-aware** `L10n.swift`, each `Features/Home/` referencing `L10n.*` and not a raw string literal
 - [ ] `Package.resolved` at the tier-correct location (§3.10 step 3)
 - [ ] Git initialized (or detached from the template's history, if offered and accepted) with `.githooks/pre-commit` and `.githooks/commit-msg` wired
-- [ ] `CLAUDE.md`, `README.md`, `docs/ONBOARDING.md`, `docs/ai/architecture.md`, `docs/ai/modularization.md` rendered with real, locked-in decisions — no leftover placeholders
+- [ ] `CLAUDE.md`, `docs/ai/architecture.md`, `docs/ai/modularization.md` rendered with real, locked-in decisions, and `README.md`/`docs/ONBOARDING.md` written fresh for this project — no leftover `{{placeholder}}` and no leftover `__IF_PERSISTENCE__`/`__ELSE_PERSISTENCE__`/`__END_PERSISTENCE__` marker in any rendered app-shell file
 - [ ] `docs/PROJECT_MAP.md` seeded with §5's three sections (uncovered files/folders, the module list with kinds and consumers, template-backed vs. agent-assisted combos) — `CLAUDE.md` links to it, so a missing file is a dead link on day one
 - [ ] `TODO.md` carrying the manual follow-ups, including the per-app items from §8.9
 
@@ -759,6 +811,13 @@ Carry an honest, up-to-date version of this section into the rendered `README.md
 - **Idempotent conflict-handling in `/start` (§2.4) is agent judgment, not a mechanical diff.** Unlike a byte-for-byte "embedded copy in sync" check, deciding whether a new answer conflicts with existing generated code relies on the agent inspecting `Features/` and reasoning about it — there's no automated guarantee it catches every case.
 - ~~`docs/PROJECT_MAP.md` is referenced but never created.~~ **Resolved:** §5's table always said `/start` seeds it and `CLAUDE.md.template` links to it, but neither §2.1 step 11 nor `start/SKILL.md` §1.9 created one — it first appeared whenever `/add-module` or `/translate` happened to append to it, leaving a dead link in `CLAUDE.md` until then. Both the step and the Skill now seed it explicitly, and §9.2's checklist verifies it. There is deliberately no `.template` for it: its day-one content is derived from the answers, not from placeholder substitution.
 - **Proactive confirmation is implemented in `/new-feature` only (§4.1).** It batch-asks module, grouping and field types before generating; `/add-assets`, `/add-module`, `/add-app`, `/update-theme`, `/translate` and `/add-permission` still rely on their script refusing an ambiguous destination, which raises the same question later and with less context. The inconsistency is documented rather than fixed — extending the pattern is a deliberate follow-up.
+- ~~Q4's persistence answer had no downstream effect on any generated file.~~ **Resolved:** the questionnaire recorded SwiftData/Core Data/None and validated it against the deployment target, but every generated feature was remote-only, `§3.8`'s own diagram showed a `Local` branch nothing produced, and §9.2's checklist never asked for one. Persistence is now the optional half of the data layer (§3.8): `None` generates exactly what it always did, and a real stack additionally generates a per-feature `<Name>LocalStore` behind a consumer-owned protocol, a `<Name>Record` in `Models/`, and one injected `PersistenceController`.
+- **Core Data's per-feature store is a wired seam, not a finished implementation.** SwiftData is fully generated end to end — record type, store, schema registration, factory wiring. Core Data gets the same wiring and a compiling `LocalStore`, but its two methods are `TODO(agent)` stubs, because a Core Data entity lives in a `.xcdatamodeld` bundle that can't be text-templated deterministically the way a `@Model` class can. Until the developer adds the data model and the entity, a Core Data project behaves exactly like a `persistence: None` one: local reads return nothing and the remote error propagates. `/start` writes both follow-ups to `TODO.md`, `/status` flags stores still holding the stubs, and `docs/PROJECT_MAP.md` records this in its template-backed-vs-agent-assisted section.
+- **The generated read-through policy is a starting point, not a caching strategy.** Cache-on-success, read-on-failure, replace-the-whole-list. It is correct for a whole-list fetch and wrong for paging, delta sync, or local-first editing — all of which need that one method rewritten per feature. It ships with its own three generated tests (remote cached, cache used on failure, empty cache rethrows), so a rewrite starts from red rather than from nothing — but nothing detects a feature that has outgrown the policy in the first place.
+- ~~`docs/CODING_STANDARDS.md` and `.swiftlint.yml` pointed at a Logging module nothing created.~~ **Resolved:** the no-`print()` rule and `no_print_statements` cited "the Logging module (§8.6)", §3.9's T3 tree drew a `Logging/` project, and no script or Skill ever produced either — a dead reference in every generated project on day one. `/start` now renders `Core/Logging/Log.swift` at every tier (§8.6); extracting it into its own module stays a deliberate `/add-module Logging`.
+- ~~`README.md`/`docs/ONBOARDING.md` were described as rendered "from their `.template` counterparts", which don't exist.~~ **Resolved as a documentation bug:** `start/SKILL.md` always wrote both fresh for the real project — only §2.1 step 11 and §5's table claimed otherwise. Both now say what actually happens; no `.template` was added, because neither file's day-one content is placeholder substitution.
+- **The domain lands in `docs/product/`, and nothing in this template validates it (§5.2).** The slot, its living-document rules, and `/new-feature`'s read-before-inventing step are specified; what is *not* specified is any check that a requirement was followed, any requirement-to-code traceability beyond a commit message, or any detection of a PRD that contradicts the code. Those are review concerns by design — a generated traceability matrix is work nobody keeps accurate.
+- **Auth/session handling, deep linking, and test tiers beyond unit tests are unaddressed** — not by decision, just out of scope so far. `Networking/` has no token-refresh, Keychain or 401-retry story; §3.4's navigation covers in-app pushes but nothing maps an incoming URL onto a `Route`; and nothing generates a UI-test target or a snapshot-test convention. A project needing any of them builds it by hand today.
 - **`new_feature.sh` cannot place a feature in a module that isn't an app.** §4.1 contemplates a shared framework as the destination (hence its `public`/`public init` guidance), and §4's topology branch resolves "the target module" generally — but the script's path lookup reads the config's `apps` list only and falls back to the app path when the name isn't found there, so `--module <framework>` silently writes the feature, its tests and its strings into the app instead. Either the script should resolve against `modules` too, or §4.1 should restrict the destination to app targets; today the spec and the script disagree.
 - **Two localization toolchains can silently split the source of truth (§5.1).** Xcode's built-in localization agent writes String Catalogs (`.xcstrings`); `/translate`, `generate_strings.sh` and `check_strings.sh` operate on per-module `Localizable.strings`. Nothing detects a project using both — `check_strings.sh` simply doesn't see the half it doesn't own, so parity passes while a locale is actually incomplete. A project must pick one, and this template has no mechanism to enforce that choice.
 - **Agent permissions granted inside Xcode are global to the Mac and invisible to this repo (§5.1).** The Allowed Commands / Allowed Tools lists in Intelligence settings apply to every project and every agent launched in Xcode. Nothing here can scope, version or audit them, so a repo-level review of "what can an agent run?" is incomplete by construction.

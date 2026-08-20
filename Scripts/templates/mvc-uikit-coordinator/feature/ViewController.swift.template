@@ -9,10 +9,50 @@ __MODULE_IMPORTS__
 protocol __FEATURE__ServiceProtocol {
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
 }
+__IF_PERSISTENCE__
+
+// MVC has no Repository layer, so the Service is what consumes the local store —
+// and therefore what declares its protocol (§8.2). This exists only because the
+// project answered Q4 with a persistence stack; a `persistence: None` project's
+// Service is remote-only and the ViewController is unchanged either way (§3.8).
+protocol __FEATURE__LocalStoreProtocol {
+    func loadCached__FEATURE__List() async throws -> [__FEATURE__Model]
+    func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws
+}
+__END_PERSISTENCE__
 
 struct __FEATURE__Service: __FEATURE__ServiceProtocol {
     private let requestBuilder: RequestBuilder
     private let apiClient: APIClient
+__IF_PERSISTENCE__
+    private let localStore: __FEATURE__LocalStoreProtocol
+
+    init(
+        requestBuilder: RequestBuilder,
+        apiClient: APIClient,
+        localStore: __FEATURE__LocalStoreProtocol
+    ) {
+        self.requestBuilder = requestBuilder
+        self.apiClient = apiClient
+        self.localStore = localStore
+    }
+
+    // Remote is the source of truth; the cache is a fallback consulted only when
+    // the network call actually failed. An empty cache rethrows that error rather
+    // than reporting an empty screen as a success.
+    func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        do {
+            let request = requestBuilder.request(path: "__FEATURE_LOWER__")
+            let items = try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
+            try await localStore.cache__FEATURE__List(items)
+            return items
+        } catch {
+            let cached = try await localStore.loadCached__FEATURE__List()
+            guard !cached.isEmpty else { throw error }
+            return cached
+        }
+    }
+__ELSE_PERSISTENCE__
 
     init(requestBuilder: RequestBuilder, apiClient: APIClient) {
         self.requestBuilder = requestBuilder
@@ -23,6 +63,7 @@ struct __FEATURE__Service: __FEATURE__ServiceProtocol {
         let request = requestBuilder.request(path: "__FEATURE_LOWER__")
         return try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
     }
+__END_PERSISTENCE__
 }
 
 final class __FEATURE__ViewController: UIViewController {

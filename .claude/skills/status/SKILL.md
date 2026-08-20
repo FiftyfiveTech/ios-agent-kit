@@ -32,6 +32,21 @@ hasn't been initialized yet — run `/start` first."*
    it's anywhere else, which usually means a stale copy from before a topology
    migration.
 
+8. **Persistence wiring, if Q4 isn't `None`.** Report whether
+   `PersistenceController.swift` exists in Core, and — for SwiftData — whether
+   every feature that has a `<Name>LocalStore.swift` also has its
+   `<Name>Record.self` listed in the container's schema. A record missing from
+   the schema is a runtime failure in that feature only. For Core Data, flag any
+   `LocalStore` whose methods are still the generated `TODO(agent)` stubs, and
+   whether a `.xcdatamodeld` exists at all. Features generated before a
+   `None` → SwiftData/Core Data switch have no local store by design — list them
+   rather than reporting them as broken.
+9. **Product context.** Say whether `docs/product/` holds anything beyond the
+   shipped `README.md`, and list what's there. Don't summarize the contents and
+   don't judge their completeness — these are living documents and being
+   incomplete is their normal state; the point is only that an agent working here
+   knows whether requirements exist to read.
+
 ## What NOT to do
 
 - **No full build/test unless asked.** This Skill reports state; it doesn't

@@ -4,9 +4,50 @@ __MODULE_IMPORTS__
 // Implements __FEATURE__WorkerProtocol (declared in Interactor.swift —
 // Interactor is its consumer, §8.2) via RequestBuilder + APIClient — never a
 // second networking path (§4.1). Mirrors MVVM's Service.swift.template.
+__IF_PERSISTENCE__
+//
+// The Worker is also where local persistence enters this pattern: it consumes the
+// local store, so it declares its protocol. This half exists only because the
+// project answered Q4 with a persistence stack — a `persistence: None` project's
+// Worker is remote-only (§3.8).
+public protocol __FEATURE__LocalStoreProtocol {
+    func loadCached__FEATURE__List() async throws -> [__FEATURE__Model]
+    func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws
+}
+
+__END_PERSISTENCE__
 public struct __FEATURE__Worker: __FEATURE__WorkerProtocol {
     private let requestBuilder: RequestBuilder
     private let apiClient: APIClient
+__IF_PERSISTENCE__
+    private let localStore: __FEATURE__LocalStoreProtocol
+
+    public init(
+        requestBuilder: RequestBuilder,
+        apiClient: APIClient,
+        localStore: __FEATURE__LocalStoreProtocol
+    ) {
+        self.requestBuilder = requestBuilder
+        self.apiClient = apiClient
+        self.localStore = localStore
+    }
+
+    // Remote is the source of truth; the cache is a fallback consulted only when
+    // the network call actually failed. An empty cache rethrows that error rather
+    // than reporting an empty screen as a success.
+    public func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
+        do {
+            let request = requestBuilder.request(path: "__FEATURE_LOWER__")
+            let items = try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
+            try await localStore.cache__FEATURE__List(items)
+            return items
+        } catch {
+            let cached = try await localStore.loadCached__FEATURE__List()
+            guard !cached.isEmpty else { throw error }
+            return cached
+        }
+    }
+__ELSE_PERSISTENCE__
 
     public init(requestBuilder: RequestBuilder, apiClient: APIClient) {
         self.requestBuilder = requestBuilder
@@ -17,4 +58,5 @@ public struct __FEATURE__Worker: __FEATURE__WorkerProtocol {
         let request = requestBuilder.request(path: "__FEATURE_LOWER__")
         return try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
     }
+__END_PERSISTENCE__
 }

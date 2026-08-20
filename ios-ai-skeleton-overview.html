@@ -962,7 +962,7 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
                     <td><b>T1</b> one <code>.xcodeproj</code>, one app target · <b>T2</b> that plus local Swift packages · <b>T3</b> an <code>.xcworkspace</code> over N projects. T2 buys real module boundaries cheaply — <a href="#topology" style="color:var(--accent)">04</a></td>
                   </tr>
                   <tr><td>UI framework</td><td class="mono">SwiftUI</td><td>UIKit fully supported</td></tr>
-                  <tr><td>Persistence</td><td class="mono">SwiftData</td><td>Needs iOS 17+</td></tr>
+                  <tr><td>Persistence</td><td class="mono">SwiftData</td><td>Needs iOS 17+. Changes generated code, not just config: <code>None</code> means every feature is remote-only; a real stack adds a <code>&lt;Feature&gt;LocalStore</code> beside each remote dependency</td></tr>
                   <tr><td>Architecture pattern</td><td class="mono">MVVM</td><td>Best template coverage here — <a href="#architecture" style="color:var(--accent)">05</a></td></tr>
                   <tr><td>Navigation</td><td class="mono">NavigationStack</td><td>Least glue; Coordinator on UIKit</td></tr>
                   <tr><td>Networking</td><td class="mono">URLSession + async/await</td><td>No third-party dependency</td></tr>
@@ -1003,6 +1003,7 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
       <ul class="bullets tight">
         <li><b>Copied in finished</b> — the rules independent of your answers: theming, UI, permissions, coding standards, git conventions.</li>
         <li><b>Rendered by <code>/start</code></b> — the templates ship describing every pattern and tier; the render <b>deletes the ones you didn't choose</b>, so your docs describe one architecture, not five. No placeholder survives it.</li>
+        <li><b>Written by you</b> — <code>docs/product/</code>. The template knows how an app here is built and nothing about what it's for; requirements arrive later, keep changing, and are read fresh each time rather than digested into <code>CLAUDE.md</code>.</li>
         <li><b>Grown as you work</b> — seeded at setup, then appended to by the commands that change what they describe.</li>
       </ul>
 
@@ -1016,6 +1017,7 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
             <tr><th class="mono">docs/ai/modularization.md</th><td>rendered</td><td>Tier, module graph and direction, and which module owns strings, assets and tokens</td></tr>
             <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>as-is</td><td>Colours and fonts only via <code>Theme/</code>; mandatory previews, no raw user-facing strings, never <code>Bundle.main</code> from a framework, real accessibility labels; no permission without a usage string; force-unwrap and <code>// MARK:</code> policy; commit format</td></tr>
             <tr><th class="mono">docs/PROJECT_MAP.md</th><td>seeded, appended</td><td>What convention doesn't cover: modules with kinds and consumers, shipped locales, which combos are templated</td></tr>
+            <tr><th class="mono">docs/product/</th><td>yours</td><td><b>PRD, SRS, API contracts — the one folder nothing here generates, renders or overwrites.</b> Living documents: <code>CLAUDE.md</code> points at them and never summarizes them, and <code>/new-feature</code> re-reads the relevant one per invocation rather than inferring field names and types</td></tr>
             <tr><th class="mono">TODO.md</th><td>seeded, appended</td><td>Base URL, signing team, App Store Connect record, push certs, <code>PrivacyInfo.xcprivacy</code></td></tr>
           </tbody>
         </table>
@@ -1283,6 +1285,18 @@ claude mcp list   <span class="c"># verify</span></pre>
           <h4><code>/start</code>'s conflict handling is judgment</h4>
           Idempotent, refuses structural changes as a re-run side effect, recreates what's missing — but
           it's reasoning about the tree, not a mechanical diff.
+        </div>
+        <div class="limit">
+          <h4>Core Data's per-feature store is a seam, not an implementation</h4>
+          SwiftData is generated end to end — record type, store, schema registration, wiring. Core Data
+          gets the same wiring but leaves its two store methods as <code>TODO(agent)</code>, because the
+          entity lives in a <code>.xcdatamodeld</code> that can't be generated from text. Until it exists,
+          the app behaves like a no-persistence one.
+        </div>
+        <div class="limit">
+          <h4>No auth, deep linking or test tiers beyond unit</h4>
+          Nothing generates token refresh, Keychain storage or 401 retry; nothing maps an incoming URL
+          onto a route; no UI or snapshot test target. Unaddressed so far rather than ruled out.
         </div>
         <div class="limit">
           <h4>Deliberately out of scope</h4>

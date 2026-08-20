@@ -1,0 +1,15 @@
+
+// The SwiftData mirror of __FEATURE__Model. A record type is a data shape, so it
+// lives in Models/ with every other one (§3.2) — never inside Features/.
+// PersistenceController's schema list registers it automatically.
+@Model
+public final class __FEATURE__Record {
+__RECORD_PROPERTIES__
+    public init(from model: __FEATURE__Model) {
+__RECORD_INIT_ASSIGN__
+    }
+
+    public func asModel() -> __FEATURE__Model {
+        __FEATURE__Model(__RECORD_TO_MODEL_ARGS__)
+    }
+}

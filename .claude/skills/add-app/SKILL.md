@@ -25,12 +25,19 @@ hasn't been initialized yet — run `/start` first."*
    `Scripts/new_feature.sh` path `/start` used for the first app's starter
    feature, so the sharing seam is exercised immediately rather than asserted
    in a doc.
-5. **Create the app's own theme override layer** (§3.11) and its own
+5. **Wire the new app's composition root the way `/start` wired the first one.**
+   Render the same combo's `app-shell/` templates, resolving the
+   `__IF_PERSISTENCE__`/`__ELSE_PERSISTENCE__`/`__END_PERSISTENCE__` block markers
+   against the project's recorded Q4 answer — with a persistence stack, the new
+   app needs its own `PersistenceController` property in the composition root, or
+   the factory `new_feature.sh` writes for its starter feature won't compile.
+   `Core/Logging/Log.swift` is already shared; nothing to re-render for it.
+6. **Create the app's own theme override layer** (§3.11) and its own
    `.lproj` set, seeded from the shared module's key list — not copied
    verbatim, seeded (empty values where the new app's copy genuinely differs).
-6. **Add the project to the workspace** and regenerate; re-run
+7. **Add the project to the workspace** and regenerate; re-run
    `Scripts/generate_workspace.sh`.
-7. **Append manual follow-ups to `TODO.md`**: signing, App Store Connect
+8. **Append manual follow-ups to `TODO.md`**: signing, App Store Connect
    record, push certs — per-app, every time.
 
 ## The one rule that matters most here

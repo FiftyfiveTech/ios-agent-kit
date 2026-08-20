@@ -47,6 +47,12 @@ template's `.template` doc files into the new project's real
 `CLAUDE.md`/`docs/ai/architecture.md`/`docs/ai/modularization.md`, with the
 chosen decisions locked in and every placeholder resolved.
 
+Two files land in `Core` on the way through, regardless of the architecture
+combo: `Logging/Log.swift` always (a `Logging` protocol over `OSLog` — the thing
+`docs/CODING_STANDARDS.md`'s no-`print()` rule and SwiftLint's
+`no_print_statements` actually point at), and `Persistence/PersistenceController.swift`
+only when the persistence answer isn't `None`.
+
 `/start` is **idempotent** — re-running it on an already-initialized project
 shows the recorded answers first, never silently regenerates or deletes
 anything already built, and refuses to apply a topology or architecture change
@@ -68,6 +74,54 @@ lookups that fail at runtime rather than build time. See
 `docs/ai/modularization.md`'s rendered module graph for this repo's actual
 shape once `/start` has run — the full cost breakdown lives in the spec this
 template was built from.
+
+## Where your requirements go: `docs/product/`
+
+This template describes **how** the app is built. It says nothing about **what**
+it's for — that's `docs/product/`, and it's the one folder here that nothing
+generates, renders or overwrites.
+
+Put the PRD, SRS, API contracts and anything else domain-specific there as they
+arrive. They're expected to keep changing: a PRD rewritten mid-sprint, an SRS
+that grows a section after sign-off, an endpoint that changes shape twice before
+launch is the normal case, not a problem to fix first. Three rules follow:
+
+- **`CLAUDE.md` points at the folder and never summarizes it.** A digest of a
+  living document is stale within weeks and reads as current.
+- **Agents re-read the file per task**, not from memory. `/new-feature` checks
+  there for the screen's fields, types, states and endpoint before proposing
+  anything, and tells you which document it used — or that it found none.
+- **Incomplete is fine; contradictory gets a question.** Where a needed
+  requirement is missing or self-contradicting, the agent asks rather than
+  inventing one, and the answer belongs back in `docs/product/`.
+
+Traceability stays deliberately light: note the requirement a feature came from
+in its commit message or `docs/PROJECT_MAP.md`. There's no generated
+requirement-to-code matrix, because keeping one accurate by hand is work nobody
+does twice.
+
+## Local persistence: what the Q4 answer actually changes
+
+`None` means every generated feature is remote-only — one dependency, one
+protocol, one fake in its test. That's a complete answer for an app that's a view
+onto a server.
+
+`SwiftData`/`Core Data` means each feature *additionally* gets a
+`<Name>LocalStore` beside its remote dependency, behind a protocol the consuming
+layer owns (Repository for MVVM, Worker for VIP, Service for MVC), plus one
+`PersistenceController` injected from the composition root. SwiftData also gets a
+`@Model` record in `Models/`, registered with the container schema automatically.
+Core Data gets the same wiring but leaves the store's two methods as
+`TODO(agent)` stubs — its entity lives in a `.xcdatamodeld` that can't be
+generated from text, so `/start` writes that follow-up to `TODO.md`.
+
+The generated policy is cache-on-success, read-on-failure, replace-the-whole-list.
+Correct for a whole-list fetch; a feature that pages, syncs deltas or edits
+locally rewrites that one method.
+
+Changing this answer later only affects features generated after the change —
+existing ones keep whatever they were built with, which is why `/start` treats a
+Q4 switch as a conflict to confirm rather than an edit to apply.
 
 ## Where the architecture reference lives
 
@@ -92,6 +146,10 @@ regardless: `xcuserdata/`, `.DS_Store`, build products, `Secrets.xcconfig`.
   (folder/DI/nav/test scaffolding is still deterministic, but layer file
   bodies fall back to the agent writing them from `docs/ai/architecture.md`'s
   description).
+- Core Data's per-feature store is wired and compiling but its two methods are
+  `TODO(agent)` stubs; SwiftData is generated end to end.
+- No auth/session layer (token refresh, Keychain, 401 retry), no deep-link →
+  `Route` mapping, no UI/snapshot test tier — unaddressed so far.
 - No CI pipeline, no hardcoded-string enforcement script, no pagination
   convention — these are documented gaps, not oversights. See the template
   repo's own `README.md` for the full list.

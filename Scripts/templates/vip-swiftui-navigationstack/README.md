@@ -99,6 +99,7 @@ Same tokens as `mvvm-swiftui-navigationstack` — reused exactly:
 | `__MODULE_LOWER__` | lowercase target-module name, for L10n namespacing | `app` |
 | `__MODULE_IMPORTS__` | tier-dependent import lines (empty at T1) | `import Models` |
 | `__APP_NAME__` | the app's type-name-safe display name | `MyApp` |
+| `__IF_PERSISTENCE__` / `__ELSE_PERSISTENCE__` / `__END_PERSISTENCE__` | whole-line block markers: the `__IF_` branch survives when the project's Q4 answer isn't `None`, the `__ELSE_` branch when it is; all three marker lines are always deleted | — |
 | `__TESTABLE_IMPORT__` | the test target's `@testable import` line | `@testable import MyApp` |
 | `__FAKE_MODEL_LIST__` | a fake `[<Feature>Model]` literal for the generated test | `[HomeModel(title: "test")]` |
 
@@ -129,3 +130,15 @@ Same tokens as `mvvm-swiftui-navigationstack` — reused exactly:
   the very first app. `/new-feature` never touches these again except to insert
   a new `Route` case and `navigationDestination` arm at the marked insertion
   points.
+
+## Local persistence
+
+The `feature/` files above are the remote half of the data layer and are rendered
+identically whatever the project's Q4 answer is. When that answer isn't `None`,
+`Scripts/new_feature.sh` additionally renders
+`Scripts/templates/persistence/<swiftdata|coredata>/LocalStore.swift.template`
+into the same feature folder and keeps this combo's `__IF_PERSISTENCE__` blocks —
+which is where the consuming layer declares the local store's protocol and gains
+its second dependency (§3.8). The `app-shell/` composition root holds the one
+`PersistenceController`; `/start` resolves its blocks by hand, since nothing
+renders app-shell files mechanically.

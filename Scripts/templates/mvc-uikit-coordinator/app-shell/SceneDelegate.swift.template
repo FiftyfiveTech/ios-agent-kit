@@ -10,6 +10,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // TODO: point this at the real API base URL — see TODO.md.
     private let requestBuilder = RequestBuilder(baseURL: URL(string: "https://api.example.com")!)
     private let apiClient: APIClient = URLSessionAPIClient()
+__IF_PERSISTENCE__
+
+    // Local persistence (Q4). One container for the whole app, constructed here in
+    // the composition root and threaded into AppCoordinator, which injects it into
+    // each feature's LocalStore. Rendered only when the project chose a
+    // persistence stack (§3.8).
+    private let persistence = PersistenceController.shared
+__END_PERSISTENCE__
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
@@ -18,7 +26,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let coordinator = AppCoordinator(
             navigationController: navigationController,
             requestBuilder: requestBuilder,
+__IF_PERSISTENCE__
+            apiClient: apiClient,
+            persistence: persistence
+__ELSE_PERSISTENCE__
             apiClient: apiClient
+__END_PERSISTENCE__
         )
         coordinator.start()
         self.coordinator = coordinator

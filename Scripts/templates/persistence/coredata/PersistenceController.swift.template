@@ -1,0 +1,44 @@
+import CoreData
+import Foundation
+
+// Local persistence bootstrap (Q4 = Core Data). Rendered by /start ONLY when the
+// project chose a persistence stack.
+//
+// Honest scoping (§10): unlike SwiftData, a Core Data entity lives in a
+// `.xcdatamodeld` bundle that can't be text-templated deterministically, so this
+// file is the whole of what the template generates. The model is loaded from
+// whatever `.xcdatamodeld` the app ships; passing an explicit model (rather than
+// letting `NSPersistentContainer(name:)` look one up and trap when it finds
+// nothing) is what keeps a project that hasn't added its data model yet in a
+// buildable, runnable state. Verify that on the first launch after adding the
+// data model — this path is generated, not exercised by any test here.
+public final class PersistenceController {
+    public static let shared = PersistenceController()
+
+    public let container: NSPersistentContainer
+
+    /// The main-queue context every LocalStore reads and writes through.
+    public var context: NSManagedObjectContext { container.viewContext }
+
+    public init(inMemory: Bool = false) {
+        // TODO: add a `.xcdatamodeld` to the app target (Xcode ▸ File ▸ New ▸ Data
+        // Model) and define this feature's entities in it — see TODO.md. Until
+        // then this merges to an empty model, which loads cleanly and stores
+        // nothing.
+        let model = NSManagedObjectModel.mergedModel(from: nil) ?? NSManagedObjectModel()
+        container = NSPersistentContainer(name: "__APP_NAME__", managedObjectModel: model)
+
+        if inMemory {
+            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+        }
+
+        container.loadPersistentStores { _, error in
+            if let error {
+                // Same reasoning as the SwiftData variant: an unopenable store is
+                // a programmer error, not a recoverable runtime condition.
+                fatalError("Core Data store failed to load: \(error)")
+            }
+        }
+        container.viewContext.automaticallyMergesChangesFromParent = true
+    }
+}

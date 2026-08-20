@@ -70,6 +70,18 @@ FEATURE_LOWER="$(first_lower "$FEATURE_NAME")"
 # Module / topology resolution (§4's topology branch)
 # ---------------------------------------------------------------------------
 TOPOLOGY="$(jq -r '.topology // ""' "$CONFIG")"
+PERSISTENCE="$(jq -r '.persistence // "None"' "$CONFIG")"
+case "$PERSISTENCE" in
+  SwiftData) PERSISTENCE_DIR="Scripts/templates/persistence/swiftdata" ;;
+  CoreData)  PERSISTENCE_DIR="Scripts/templates/persistence/coredata" ;;
+  None|"")   PERSISTENCE="None"; PERSISTENCE_DIR="" ;;
+  *)
+    echo "new_feature.sh: unknown persistence '$PERSISTENCE' in $CONFIG (expected SwiftData|CoreData|None)." >&2
+    exit 1
+    ;;
+esac
+HAS_PERSISTENCE=0
+[ "$PERSISTENCE" != "None" ] && HAS_PERSISTENCE=1
 
 resolve_target_module() {
   if [ -n "$MODULE_ARG" ]; then echo "$MODULE_ARG"; return; fi
@@ -203,6 +215,13 @@ IMPORTS_LOGIC="$(dedup_imports "$IMPORT_MODELS")"
 IMPORTS_SERVICE="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_NETWORKING")"
 IMPORTS_ALL="$(dedup_imports "$IMPORT_MODELS" "$IMPORT_NETWORKING" "$IMPORT_DESIGNSYSTEM")"
 TESTABLE_IMPORT="@testable import $TARGET_MODULE"
+# With a local store in play, the VIP/MVC test files construct the Worker/Service
+# themselves (RequestBuilder + a fake APIClient) to cover the read-through policy,
+# so they need Networking too; without one they don't, and an unused import is
+# noise. MVVM's read-through test fakes the Service protocol instead and needs
+# nothing extra.
+IMPORTS_TESTS="$IMPORTS_LOGIC"
+[ "$HAS_PERSISTENCE" -eq 1 ] && IMPORTS_TESTS="$IMPORTS_SERVICE"
 
 # ---------------------------------------------------------------------------
 # Models collision check (§4.1) — refuse rather than silently overwrite/shadow.
@@ -266,6 +285,11 @@ MODEL_PROPERTIES=""
 MODEL_INIT_PARAMS=""
 MODEL_INIT_BODY=""
 FAKE_ARGS=""
+# The SwiftData mirror of the same field list (§3.2) — only used when
+# persistence != None; a "None" project never renders a record type at all.
+RECORD_PROPERTIES=""
+RECORD_INIT_ASSIGN=""
+RECORD_TO_MODEL_ARGS=""
 
 if [ -n "$FIELDS_RAW" ]; then
   IFS=',' read -r -a FIELD_PAIRS <<< "$FIELDS_RAW"
@@ -279,6 +303,14 @@ if [ -n "$FIELDS_RAW" ]; then
     MODEL_PROPERTIES="${MODEL_PROPERTIES}    public let ${fname}: ${ftype}\n"
     MODEL_INIT_PARAMS="${MODEL_INIT_PARAMS}        ${fname}: ${ftype},\n"
     MODEL_INIT_BODY="${MODEL_INIT_BODY}        self.${fname} = ${fname}\n"
+
+    RECORD_PROPERTIES="${RECORD_PROPERTIES}    public var ${fname}: ${ftype}\n"
+    RECORD_INIT_ASSIGN="${RECORD_INIT_ASSIGN}        self.${fname} = model.${fname}\n"
+    if [ -z "$RECORD_TO_MODEL_ARGS" ]; then
+      RECORD_TO_MODEL_ARGS="${fname}: ${fname}"
+    else
+      RECORD_TO_MODEL_ARGS="${RECORD_TO_MODEL_ARGS}, ${fname}: ${fname}"
+    fi
 
     fake="$(fake_value_for_type "$ftype")"
     if [ "$FIRST" -eq 1 ]; then
@@ -299,6 +331,7 @@ FAKE_MODEL_LIST="[${FEATURE}Model(${FAKE_ARGS})]"
 mkdir -p "$MODELS_DIR"
 {
   echo "import Foundation"
+  [ "$PERSISTENCE" = "SwiftData" ] && echo "import SwiftData"
   echo ""
   echo "// Every model type this feature needs — request/response/entity structs alike —"
   echo "// lives here, never inside Features/${FEATURE}/ (§3.2)."
@@ -338,20 +371,38 @@ fi
 
 mkdir -p "$FEATURE_DIR" "$TEST_DIR"
 
+# Whole-line markers only, matching __MODULE_IMPORTS__'s existing convention:
+#   __IF_PERSISTENCE__ / __ELSE_PERSISTENCE__ / __END_PERSISTENCE__
+# keep or drop a block depending on the project's Q4 answer, so one template file
+# covers both a persistence: None project and one with a local store (§3.8).
 render_template() {
   local src="$1" dest="$2" imports="$3"
   awk -v feature="$FEATURE" -v featureLower="$FEATURE_LOWER" -v moduleLower="$TARGET_MODULE_LOWER" \
       -v appName="$TARGET_MODULE" -v imports="$imports" -v testableImport="$TESTABLE_IMPORT" \
-      -v fakeList="$FAKE_MODEL_LIST" '
+      -v fakeList="$FAKE_MODEL_LIST" -v hasPersistence="$HAS_PERSISTENCE" \
+      -v recordProperties="$RECORD_PROPERTIES" -v recordInitAssign="$RECORD_INIT_ASSIGN" \
+      -v recordToModelArgs="$RECORD_TO_MODEL_ARGS" '
   {
     line = $0
+
+    if (line == "__IF_PERSISTENCE__")   { inBlock = 1; branch = 1; next }
+    if (line == "__ELSE_PERSISTENCE__") { if (inBlock) { branch = 2; next } }
+    if (line == "__END_PERSISTENCE__")  { inBlock = 0; branch = 0; next }
+    if (inBlock) {
+      if (branch == 1 && hasPersistence != "1") next
+      if (branch == 2 && hasPersistence == "1") next
+    }
+
     gsub(/__FEATURE_LOWER__/, featureLower, line)
     gsub(/__FEATURE__/, feature, line)
     gsub(/__MODULE_LOWER__/, moduleLower, line)
     gsub(/__APP_NAME__/, appName, line)
     gsub(/__FAKE_MODEL_LIST__/, fakeList, line)
+    gsub(/__RECORD_TO_MODEL_ARGS__/, recordToModelArgs, line)
     if (line == "__MODULE_IMPORTS__") { if (imports != "") print imports; next }
     if (line == "__TESTABLE_IMPORT__") { if (testableImport != "") print testableImport; next }
+    if (line == "__RECORD_PROPERTIES__") { if (recordProperties != "") printf "%s", recordProperties; next }
+    if (line == "__RECORD_INIT_ASSIGN__") { if (recordInitAssign != "") printf "%s", recordInitAssign; next }
     print line
   }
   ' "$src" > "$dest"
@@ -372,7 +423,20 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
       render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
 
       HAS_ROUTE_NAV=1
-      FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
+      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+        # @MainActor because the local store is (PersistenceController.context is
+        # main-actor-isolated); the composition root already calls this from the
+        # main actor.
+        FACTORY_SNIPPET="    @MainActor private func make${FEATURE}View() -> ${FEATURE}View {\\
+        let repository = ${FEATURE}Repository(\\
+            service: ${FEATURE}Service(requestBuilder: requestBuilder, apiClient: apiClient),\\
+            localStore: ${FEATURE}LocalStore(context: persistence.context)\\
+        )\\
+        return ${FEATURE}View(viewModel: ${FEATURE}ViewModel(repository: repository))\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      else
+        FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
         ${FEATURE}View(\\
             viewModel: ${FEATURE}ViewModel(\\
                 repository: ${FEATURE}Repository(\\
@@ -382,6 +446,7 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
         )\\
     }\\
     \/\/ MARK: new-feature-factory-insertion-point"
+      fi
       ;;
 
     vip-swiftui-navigationstack)
@@ -392,10 +457,25 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
       render_template "$TEMPLATE_DIR/Router.swift.template"      "$FEATURE_DIR/${FEATURE}Router.swift"      ""
       render_template "$TEMPLATE_DIR/Worker.swift.template"      "$FEATURE_DIR/${FEATURE}Worker.swift"      "$IMPORTS_SERVICE"
       TEST_FILE="$TEST_DIR/${FEATURE}InteractorTests.swift"
-      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
 
       HAS_ROUTE_NAV=1
-      FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
+      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+        FACTORY_SNIPPET="    @MainActor private func make${FEATURE}View() -> ${FEATURE}View {\\
+        let presenter = ${FEATURE}Presenter()\\
+        let worker = ${FEATURE}Worker(\\
+            requestBuilder: requestBuilder,\\
+            apiClient: apiClient,\\
+            localStore: ${FEATURE}LocalStore(context: persistence.context)\\
+        )\\
+        let interactor = ${FEATURE}Interactor(presenter: presenter, worker: worker)\\
+        let viewModel = ${FEATURE}ViewModel(interactor: interactor)\\
+        presenter.displayLogic = viewModel\\
+        return ${FEATURE}View(viewModel: viewModel)\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      else
+        FACTORY_SNIPPET="    private func make${FEATURE}View() -> ${FEATURE}View {\\
         let presenter = ${FEATURE}Presenter()\\
         let worker = ${FEATURE}Worker(requestBuilder: requestBuilder, apiClient: apiClient)\\
         let interactor = ${FEATURE}Interactor(presenter: presenter, worker: worker)\\
@@ -404,6 +484,7 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
         return ${FEATURE}View(viewModel: viewModel)\\
     }\\
     \/\/ MARK: new-feature-factory-insertion-point"
+      fi
       ;;
 
     vip-uikit-coordinator)
@@ -413,10 +494,25 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
       render_template "$TEMPLATE_DIR/Router.swift.template"          "$FEATURE_DIR/${FEATURE}Router.swift"          ""
       render_template "$TEMPLATE_DIR/Worker.swift.template"          "$FEATURE_DIR/${FEATURE}Worker.swift"          "$IMPORTS_SERVICE"
       TEST_FILE="$TEST_DIR/${FEATURE}InteractorTests.swift"
-      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
 
       HAS_ROUTE_NAV=0
-      FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+        FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+        let presenter = ${FEATURE}Presenter()\\
+        let worker = ${FEATURE}Worker(\\
+            requestBuilder: requestBuilder,\\
+            apiClient: apiClient,\\
+            localStore: ${FEATURE}LocalStore(context: persistence.context)\\
+        )\\
+        let interactor = ${FEATURE}Interactor(presenter: presenter, worker: worker)\\
+        let viewController = ${FEATURE}ViewController(interactor: interactor)\\
+        presenter.displayLogic = viewController\\
+        return viewController\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      else
+        FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
         let presenter = ${FEATURE}Presenter()\\
         let interactor = ${FEATURE}Interactor(\\
             presenter: presenter,\\
@@ -427,20 +523,33 @@ if [ "$DETERMINISTIC" -eq 1 ]; then
         return viewController\\
     }\\
     \/\/ MARK: new-feature-factory-insertion-point"
+      fi
       ;;
 
     mvc-uikit-coordinator)
       render_template "$TEMPLATE_DIR/ViewController.swift.template" "$FEATURE_DIR/${FEATURE}ViewController.swift" "$IMPORTS_ALL"
       TEST_FILE="$TEST_DIR/${FEATURE}ViewControllerTests.swift"
-      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_LOGIC"
+      render_template "$TEMPLATE_DIR/Tests.swift.template" "$TEST_FILE" "$IMPORTS_TESTS"
 
       HAS_ROUTE_NAV=0
-      FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+      if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+        FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
+        let service = ${FEATURE}Service(\\
+            requestBuilder: requestBuilder,\\
+            apiClient: apiClient,\\
+            localStore: ${FEATURE}LocalStore(context: persistence.context)\\
+        )\\
+        return ${FEATURE}ViewController(service: service)\\
+    }\\
+    \/\/ MARK: new-feature-factory-insertion-point"
+      else
+        FACTORY_SNIPPET="    private func make${FEATURE}ViewController() -> ${FEATURE}ViewController {\\
         ${FEATURE}ViewController(\\
             service: ${FEATURE}Service(requestBuilder: requestBuilder, apiClient: apiClient)\\
         )\\
     }\\
     \/\/ MARK: new-feature-factory-insertion-point"
+      fi
       ;;
   esac
 
@@ -459,6 +568,39 @@ EOF
     render_template "$TEMPLATE_DIR/ModelsExtra.swift.template" "$MODELS_FILE.extra" ""
     cat "$MODELS_FILE.extra" >> "$MODELS_FILE"
     rm -f "$MODELS_FILE.extra"
+  fi
+
+  # ---------------------------------------------------------------------------
+  # Local persistence (§3.8) — the OPTIONAL half of the data layer. The remote
+  # path above is generated identically either way; everything below exists only
+  # when the project answered Q4 with a real persistence stack. A
+  # persistence: None project gets no LocalStore file, no record type, and no
+  # localStore parameter anywhere (the templates' __IF_PERSISTENCE__ blocks are
+  # dropped by render_template).
+  # ---------------------------------------------------------------------------
+  if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+    render_template "$PERSISTENCE_DIR/LocalStore.swift.template" \
+      "$FEATURE_DIR/${FEATURE}LocalStore.swift" "$IMPORTS_LOGIC"
+
+    # The SwiftData record mirroring <Feature>Model — a data shape, so it lands in
+    # Models/ with everything else (§3.2), never in the feature folder. Core Data
+    # has no equivalent: its entity lives in a .xcdatamodeld the template can't
+    # generate (§10).
+    if [ -f "$PERSISTENCE_DIR/ModelsExtra.swift.template" ]; then
+      render_template "$PERSISTENCE_DIR/ModelsExtra.swift.template" "$MODELS_FILE.persist" ""
+      cat "$MODELS_FILE.persist" >> "$MODELS_FILE"
+      rm -f "$MODELS_FILE.persist"
+
+      SCHEMA_FILE="$(grep -rl "new-feature-model-insertion-point" . \
+        --exclude-dir=.git --exclude-dir=Scripts 2>/dev/null | head -n1 || true)"
+      if [ -n "$SCHEMA_FILE" ]; then
+        sed -i.bak "s/            \/\/ MARK: new-feature-model-insertion-point/            ${FEATURE}Record.self,\\
+            \/\/ MARK: new-feature-model-insertion-point/" "$SCHEMA_FILE"
+        rm -f "${SCHEMA_FILE}.bak"
+      else
+        echo "new_feature.sh: no SwiftData schema marker found — register ${FEATURE}Record with the ModelContainer manually." >&2
+      fi
+    fi
   fi
 
   # Composition registration — insert at the marker left in the app-shell files by
@@ -496,6 +638,9 @@ EOF
 else
   echo "new_feature.sh: architecture='$ARCHITECTURE' ui='$UI_FRAMEWORK' nav='$NAVIGATION' is not the fully-templated combo (§1.4)."
   echo "new_feature.sh: generating folder skeleton + Models + test scaffold; layer BODIES are TODO stubs for the agent to write from docs/ai/architecture.md."
+  if [ "$HAS_PERSISTENCE" -eq 1 ]; then
+    echo "new_feature.sh: persistence='$PERSISTENCE' — also give this feature's data layer a <Feature>LocalStoreProtocol dependency alongside its remote one, following Scripts/templates/persistence/ (§3.8)."
+  fi
 
   # One stub file per layer name for the CHOSEN architecture (§3.3) — the folder
   # skeleton is deterministic regardless of pattern; only the bodies fall back.

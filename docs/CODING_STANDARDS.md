@@ -9,8 +9,11 @@ SwiftLint enforces from what's convention-only.
   thresholds.
 - No `try!` (`custom_rules.no_force_try`) — handle or propagate the error
   explicitly.
-- No `print()` outside test targets (`custom_rules.no_print_statements`) — use
-  the Logging module (§8.6).
+- No `print()` outside test targets (`custom_rules.no_print_statements`) — log
+  through `Core/Logging/Log.swift`'s `Logging` protocol, rendered into every
+  project by `/start` (§8.6). Inject it where a type is testable; use the
+  `log` default directly only from composition roots and top-level error paths.
+  Never log a token, credential or personal data.
 - No raw string literal directly inside `Text(...)` in a `*View.swift` file
   (`custom_rules.no_hardcoded_localized_string_literal`) — route through
   `L10n.<key>` instead.
@@ -72,6 +75,26 @@ composition root only** — it should never leak into `Features/`, where
 constructor injection stays the rule regardless of what wires it at the top.
 This is a project opting in later, not something `/start`/`/add-module`
 generate.
+
+## Local persistence, when the project has it (§3.8)
+
+Only relevant if the project's Q4 answer isn't `None` — otherwise every feature
+is remote-only and none of this applies.
+
+- **The local store is a dependency like any other:** a protocol declared by the
+  layer that consumes it (Repository for MVVM, Worker for VIP/VIPER, Service for
+  MVC), a concrete `<Feature>LocalStore` implementing it, and injection from the
+  composition root. Nothing below the composition root reaches for
+  `PersistenceController.shared`.
+- **A record type is a model.** SwiftData's `@Model` `<Feature>Record` lives in
+  `Models/` beside the struct it mirrors — never in the feature folder, and never
+  in place of that struct. The record is the storage shape, the struct is the
+  domain shape, and the store maps between them. Nothing outside the store
+  should traffic in records.
+- **The generated read-through policy is a starting point.** Cache on success,
+  read the cache only when the remote call failed, rethrow when the cache is
+  empty. Rewrite that one method when a feature pages, syncs deltas or edits
+  locally — don't add a second call path around it.
 
 ## Force-unwrap and fatal error markers
 

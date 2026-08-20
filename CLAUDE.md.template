@@ -18,7 +18,6 @@ and **{{TOPOLOGY_TIER}}** modularization.
 |---|---|
 | Language | {{LANGUAGE}} |
 | UI framework | {{UI_FRAMEWORK}} |
-| Persistence | {{PERSISTENCE}} |
 | Architecture | {{ARCHITECTURE_PATTERN}} |
 | Navigation | {{NAVIGATION_APPROACH}} |
 | Networking | {{NETWORKING_STACK}} |
@@ -26,6 +25,15 @@ and **{{TOPOLOGY_TIER}}** modularization.
 | Testing | {{TESTING_FRAMEWORK}} |
 | Project generation | {{TOOLING}} |
 | Min iOS version | {{MIN_IOS_VERSION}} |
+| Local persistence | {{PERSISTENCE}} — {{PERSISTENCE_NOTE}} |
+<!--
+PERSISTENCE_NOTE is one line naming what the answer means for generated code:
+  SwiftData/Core Data → "every feature's Repository/Worker/Service takes a
+    <Feature>LocalStore alongside its remote dependency; remote is the source of
+    truth, the cache is the fallback (docs/ai/architecture.md)"
+  None → "features are remote-only — no local store is generated, and adding one
+    later is a Q4 change, not a per-feature decision"
+-->
 
 ## Topology: {{TOPOLOGY_TIER}}
 
@@ -42,8 +50,18 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
   blocks a commit that violates this.
 - **Never hardcode a user-facing string.** Route through the owning module's
   `L10n.<key>` — see `docs/ai/ui_rules.md`.
+- **Never `print()`.** Log through `Log.swift`'s `Logging` protocol (in the
+  `Core` module, or `Logging` if this project extracted it) — SwiftLint's
+  `no_print_statements` blocks the alternative. Never log a token, credential or
+  personal data.
 - **A protocol is owned by its consumer, not its implementer** — see
   `docs/CODING_STANDARDS.md`'s protocol-boundary section (§8.2).
+- **Requirements live in `docs/product/`, and they change.** Before implementing
+  a feature, read the PRD/SRS/API document that describes it — at the start of
+  that task, from the file itself. This file deliberately carries a pointer and
+  never a summary: a digest of a living document goes stale as fast as the
+  document changes. If the requirement you need isn't there or contradicts
+  itself, ask — don't invent one.
 - **Use the Skills for routine work** — `/new-feature`, `/add-module`,
   `/add-permission`, etc. (`.claude/skills/`) — rather than hand-rolling folder
   structure or navigation wiring; they encode this project's locked-in decisions
@@ -53,6 +71,7 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
 
 | Topic | File |
 |---|---|
+| Product context — PRD, SRS, API contracts | `docs/product/` (living documents, re-read per task) |
 | Architecture layer shapes | `docs/ai/architecture.md` |
 | Module graph & ownership | `docs/ai/modularization.md` |
 | Theming | `docs/ai/theming_rules.md` |

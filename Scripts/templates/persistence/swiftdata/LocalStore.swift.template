@@ -1,0 +1,36 @@
+import Foundation
+import SwiftData
+__MODULE_IMPORTS__
+
+// The local half of this feature's data layer (Q4 = SwiftData). Generated only
+// when the project chose a persistence stack — the remote path (Service/Worker)
+// is generated either way and never changes shape (§3.8).
+//
+// __FEATURE__LocalStoreProtocol is declared by its CONSUMER, alongside the remote
+// protocol it sits next to (§8.2) — this file is only the implementation.
+// `context` is injected from the composition root; nothing here reaches for
+// PersistenceController.shared.
+@MainActor
+struct __FEATURE__LocalStore: __FEATURE__LocalStoreProtocol {
+    private let context: ModelContext
+
+    init(context: ModelContext) {
+        self.context = context
+    }
+
+    func loadCached__FEATURE__List() async throws -> [__FEATURE__Model] {
+        try context.fetch(FetchDescriptor<__FEATURE__Record>()).map { $0.asModel() }
+    }
+
+    func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws {
+        // Replace-all is the deliberate starting policy: it is correct for a
+        // whole-list fetch and needs no identity column. A feature that pages,
+        // merges or syncs deltas replaces this with a real upsert keyed on the
+        // record's own identifier — see docs/ai/architecture.md.
+        try context.delete(model: __FEATURE__Record.self)
+        for item in items {
+            context.insert(__FEATURE__Record(from: item))
+        }
+        try context.save()
+    }
+}

@@ -1,0 +1,40 @@
+import Foundation
+import SwiftData
+
+// Local persistence bootstrap (Q4 = SwiftData). Rendered by /start ONLY when the
+// project chose a persistence stack — a "None" project never gets this file, and
+// no generated feature references a local store (§3.8).
+//
+// This is the one place a ModelContainer is created. Every feature's
+// <Feature>LocalStore takes `context` by initializer injection from the
+// composition root — nothing else reaches for `.shared`.
+public final class PersistenceController {
+    public static let shared = PersistenceController()
+
+    public let container: ModelContainer
+
+    /// The main-actor context every LocalStore reads and writes through.
+    @MainActor
+    public var context: ModelContext { container.mainContext }
+
+    public init(inMemory: Bool = false) {
+        // One @Model record type per feature, inserted by Scripts/new_feature.sh
+        // at the marker below — never edited by hand. The list is momentarily
+        // empty between /start rendering this file and /start running
+        // new_feature.sh for the starter feature; the app is never launched in
+        // that window.
+        let schema = Schema([
+            // MARK: new-feature-model-insertion-point
+        ])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
+        do {
+            container = try ModelContainer(for: schema, configurations: configuration)
+        } catch {
+            // A container that can't open is a programmer error (a bad schema, or
+            // a migration that was never written), not a runtime condition to
+            // recover from — fail loudly at launch rather than silently running
+            // without persistence.
+            fatalError("SwiftData ModelContainer failed to load: \(error)")
+        }
+    }
+}

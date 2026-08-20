@@ -85,6 +85,11 @@ Then follow the same steps below, but:
   note the gap in `TODO.md`, and ask the developer how to reconcile it
   manually. `docs/ai/architecture.md`/`modularization.md` are still safe to
   render fresh, since an adopted repo never had them before.
+- An adopted repo may already keep product documentation (a PRD, an SRS, API
+  contracts) somewhere. Never move, rewrite or absorb it. Either point
+  `docs/product/README.md` at where it already lives, or leave it alone entirely
+  and note the location in `docs/PROJECT_MAP.md` — §1.9's product-docs step is
+  create-if-missing, never overwrite.
 - Write a `TODO.md` entry naming each existing project not yet described by a
   spec file.
 
@@ -102,6 +107,7 @@ rest.
 | 2 | Language | Swift only — fixed, not asked (Objective-C interop was considered and dropped; nothing here scaffolds it) | Swift-only |
 | 3 | UI framework | SwiftUI / UIKit / Hybrid | SwiftUI |
 | 4 | Persistence | SwiftData / Core Data / None | SwiftData |
+
 | 5 | Architecture pattern | MVVM / MVC / VIP (Clean Swift) / VIPER / MV (SwiftUI-native) | MVVM |
 | 6 | Navigation | `UINavigationController` + Coordinator / SwiftUI `NavigationStack` + Router | Coordinator if any UIKit; either for SwiftUI-only |
 | 7 | Networking & concurrency | URLSession+async/await / URLSession+Combine / Alamofire | URLSession+async/await |
@@ -110,6 +116,13 @@ rest.
 | 10 | Testing framework | XCTest / Swift Testing | XCTest |
 | 11 | Project generation tooling | XcodeGen / Tuist | XcodeGen at T1/T2; Tuist at T3 if the team will adopt it |
 | 12 | Per-app identity | display name, bundle ID, org/team ID (T3 multi-app: ask once per app, plus the shared bundle-ID prefix) | no default — must ask |
+
+Q4 is not a note in the config — it changes generated code. `None` gives every
+feature a remote-only data layer, exactly as before. `SwiftData`/`Core Data`
+additionally gives each feature a `<Feature>LocalStore` alongside its remote
+dependency and renders one `PersistenceController` for the app (§1.7a). Say this
+when asking, because it's the one answer that's cheap now and a per-feature edit
+later.
 
 Answer Q1 **honestly, not aspirationally** — "one app, but we might extract an
 SDK someday" is T2. Choosing T3 for one app with nothing concrete on the
@@ -167,6 +180,7 @@ template reads — keep it exactly this shape:
     { "name": "Networking", "kind": "package|framework", "path": "Packages/Networking", "role": "networking" },
     { "name": "DesignSystem", "kind": "package|framework", "path": "Packages/DesignSystem", "role": "designsystem" },
     { "name": "Core", "kind": "package|framework", "path": "Packages/Core", "role": "core" }
+
   ]
 }
 ```
@@ -181,6 +195,10 @@ template reads — keep it exactly this shape:
   module entry, `Scripts/new_feature.sh` and `Scripts/generate_strings.sh` fall
   back to `sharedModuleName`'s `Sources/<Role>` — this is a documented
   best-effort at T3 for the default combo (§1.4/§10 of the build spec).
+- `"role": "logging"` is legal but unused at first run: `/start` puts `Log.swift`
+  in `Core` at every tier (§1.7b). It matters once a team runs
+  `/add-module Logging` and moves the file — `resolve_role` then finds it there
+  instead, with nothing else to change.
 - `defaultModule` is required whenever there's more than one app/module
   candidate — every Skill refuses to guess without it (§4's topology branch).
 
@@ -221,12 +239,22 @@ For each app (usually one), render that combo's `app-shell/*.template` files
 into `<app.path>/` (or `<app.path>/Sources/App/` at T3), substituting:
 
 - `__APP_NAME__` → the app's real name (from Q12/`apps[].name`).
+- **`__IF_PERSISTENCE__` / `__ELSE_PERSISTENCE__` / `__END_PERSISTENCE__`** →
+  whole-line block markers, exactly like the ones `Scripts/new_feature.sh`
+  resolves in the feature templates — but nothing resolves them here, so **you**
+  must. Q4 = SwiftData/Core Data → keep the `__IF_` branch, drop the `__ELSE_`
+  branch. Q4 = None → the reverse. Delete all three marker lines either way. A
+  rendered app-shell file containing a literal `__IF_PERSISTENCE__` is a broken
+  run — grep for `PERSISTENCE__` across the app before moving on.
 - `__MODULE_IMPORTS__` → empty at T1; the resolved `import Models` /
   `import Networking` / `import DesignSystem` lines at T2/T3, per the same
   role-resolution logic `Scripts/new_feature.sh` uses (only the composition-root
   file — `App.swift.template` for the SwiftUI combos, `SceneDelegate.swift.template`
   for the UIKit combos — needs `import Networking` for `RequestBuilder`/
-  `APIClient`; the rest of the app-shell files are self-contained).
+  `APIClient`; the rest of the app-shell files are self-contained). At T2/T3 the
+  composition root also needs `import Core` once §1.7a/§1.7b have put
+  `PersistenceController` and `Log` there — and at T3 with UIKit, so does
+  `AppCoordinator.swift`, since it holds the `PersistenceController` itself.
 
 This is the **only** time these files are rendered from scratch — after this,
 the insertion-point markers (`Route.swift`/`App.swift` for the SwiftUI combos;
@@ -237,6 +265,47 @@ Seed each localization-owning module's `Localizable.strings` with at least the
 module's namespace placeholder, then run `Scripts/generate_strings.sh` with no
 argument to regenerate every module's `L10n.swift` — never leave the
 localization layer unwired, even before the first feature exists.
+
+### 1.7a Render the persistence bootstrap — only when Q4 isn't `None`
+
+Skip this whole step for a `persistence: None` project: it gets no
+`PersistenceController`, no `LocalStore` in any feature, and no local-store
+parameter in any composition root. That is a complete, supported answer, not a
+degraded one.
+
+Otherwise render `Scripts/templates/persistence/<swiftdata|coredata>/PersistenceController.swift.template`
+into **Core**, at the tier-correct path:
+
+| Tier | Destination |
+|---|---|
+| T1 | `<app.path>/Core/Persistence/PersistenceController.swift` |
+| T2 | `Packages/Core/Sources/Core/Persistence/PersistenceController.swift` |
+| T3 | the `role: "core"` module's `Sources/<Name>/Persistence/`, or `sharedModuleName`'s `Sources/Core/Persistence/` if no core module is declared |
+
+- Substitute `__APP_NAME__`. Substitute nothing else.
+- **Leave `// MARK: new-feature-model-insertion-point` exactly as it is** (SwiftData
+  only) — `Scripts/new_feature.sh` owns that marker and registers one
+  `<Feature>Record` per feature there. The schema list is legitimately empty
+  between this step and §1.8; the app is never launched in that window.
+- Core Data additionally needs two `TODO.md` entries, because a `.xcdatamodeld`
+  can't be generated from text (§10): add the data model to the app target, and
+  define one entity per feature before that feature's `LocalStore` can do
+  anything. Until then the app builds, runs, and behaves exactly like a
+  `persistence: None` project — the local reads simply return nothing.
+
+### 1.7b Render the logging module — always, at every tier
+
+Render `Scripts/templates/logging/Log.swift.template` into Core the same way
+(`.../Core/Logging/Log.swift`), substituting `__APP_NAME__`.
+
+This is not optional and has no questionnaire answer behind it:
+`docs/CODING_STANDARDS.md` forbids `print()` and points at "the Logging module",
+and `.swiftlint.yml`'s `no_print_statements` enforces it. Skipping this step
+leaves both pointing at nothing on day one. It lives in Core rather than its own
+project even at T3 — one file doesn't justify a spec, a workspace entry and a
+scheme; a team that later wants independent versioning runs
+`/add-module Logging` and moves it, which is why the config schema already
+reserves the `logging` role.
 
 ### 1.8 Scaffold the starter feature
 
@@ -296,7 +365,9 @@ day-one content and a one-line note on what appends to it later: any
 file/folder not covered by the feature-first convention, the module list with
 each module's kind and consumers (empty at T1 — say so rather than omitting the
 section), and which architecture combos are template-backed vs. agent-assisted
-for the chosen pattern. `/add-module` and `/translate` append to this file, so
+for the chosen pattern — and, if Q4 chose Core Data, that its per-feature
+`LocalStore` is a wired seam with `TODO(agent)` bodies while SwiftData's is
+generated end to end (§10). `/add-module` and `/translate` append to this file, so
 it must be a real seeded document, not a stub they create on first use.
 
 Also write a fresh `docs/ONBOARDING.md` and `README.md` for **this project**
@@ -306,11 +377,28 @@ template (which described the template system itself, not this app). On Path
 3 (§1.1), skip this overwrite for any of the three that already existed with
 real content before this run — see §1.1's carve-out.
 
+Finally, make sure `docs/product/` exists with the template's own
+`docs/product/README.md` in it — the slot every PRD, SRS and API contract lands
+in later. Three rules, and they are the opposite of everything else in this
+step:
+
+- **Nothing here is rendered.** No `.template`, no placeholder substitution, no
+  generated content. Create the folder and the README, stop.
+- **Create-if-missing, never overwrite** — on a fresh run, a re-run, and
+  especially on Path 3, where the developer may already have product docs.
+- **Never summarize its contents into `CLAUDE.md`.** `CLAUDE.md.template` carries
+  a pointer row on purpose: these documents change constantly, and a digest of a
+  living document is wrong within weeks.
+
+Tell the developer, in your closing message, that requirements go in
+`docs/product/` and that `/new-feature` reads them.
+
 ### 1.10 Report what's left
 
 Write `TODO.md` with what can't be automated: the real API base URL (already
 flagged inline in `App.swift`/`SceneDelegate.swift`), opening the project once in Xcode, per-app
-signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`. Not
+signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`, plus
+§1.7a's Core Data entries if that was the Q4 answer. Not
 just a message that scrolls off-screen — a durable checklist.
 
 Add one **optional** entry, phrased as an offer rather than a completed step —
@@ -338,12 +426,24 @@ If `ios-skeleton.config.json` already exists:
 1. Print the currently recorded answers first, before asking anything.
 2. For each of §1.5–§1.9's steps: skip whatever's already present and correct;
    recreate anything missing (e.g. a docs file someone deleted by accident).
+   **`docs/product/` is exempt from "correct":** its contents are hand-authored,
+   perpetually incomplete by design, and never regenerated — create the folder
+   and `README.md` only if they're missing entirely, and never touch anything
+   else in there.
 3. If a new answer would change an already-locked decision (e.g. switching
    architecture after real features exist under `Features/`) — **stop and warn
    explicitly**: name what's at risk (existing features won't be retroactively
    migrated), and require explicit confirmation before applying the change.
    Never apply a conflicting change silently.
-4. **Changing topology (`topology` in the config) is a migration, not an answer
+4. **Changing persistence (Q4) after features exist is the same class of conflict
+   as changing architecture** — warn the same way. Switching `None` →
+   SwiftData/Core Data does not retrofit a `LocalStore` onto features that
+   already exist; it only affects features generated from that point on, and the
+   existing ones need the local half added by hand (protocol, store, factory
+   argument). Switching the other way leaves orphaned stores and record types
+   behind. Name that explicitly and require confirmation; if the developer
+   confirms, also render §1.7a's bootstrap if it isn't there yet.
+5. **Changing topology (`topology` in the config) is a migration, not an answer
    edit**, and bigger than an architecture change — it moves files between
    targets, rewrites every affected `import`, relocates strings and
    `Package.resolved`, and invalidates existing schemes. Refuse to do it as a
@@ -352,5 +452,5 @@ If `ios-skeleton.config.json` already exists:
    for *this* repo, and tell the developer to run it as a deliberate, reviewable
    change — ideally its own branch, with `/add-module`/`/add-app` doing the
    additive parts.
-5. If nothing has changed and nothing is missing, report **"already configured,
+6. If nothing has changed and nothing is missing, report **"already configured,
    nothing to do"** rather than re-touching files.

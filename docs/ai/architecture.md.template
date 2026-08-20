@@ -118,6 +118,49 @@ Each tab owns its own navigation stack — never a single shared one. Pushing a
 detail screen from one tab never affects another tab's back stack (§3.5).
 {{/if}}
 
+## Local persistence: {{PERSISTENCE}}
+
+<!-- /start keeps only the block matching Q4's answer. -->
+
+### None
+Every feature is remote-only: one data-layer dependency, one protocol, one fake
+in its test. There is no `PersistenceController` and no `<Feature>LocalStore`
+anywhere in this project, by decision. Adding local persistence later is a Q4
+change (`/start` re-run, confirmed as a conflict) plus a per-feature edit for
+every screen that already exists — it is not retroactive.
+
+### SwiftData / Core Data
+Each feature's data layer has two halves. The remote half is unchanged from a
+`None` project. The local half is a `<Feature>LocalStore`, injected alongside it:
+
+```
+Consumer  →  <Feature>Repository / Worker / Service
+                 ├── remote:  Service/Worker → RequestBuilder + APIClient
+                 └── local:   <Feature>LocalStore → PersistenceController.context
+```
+
+- **Which layer holds the store** follows the pattern: MVVM's Repository,
+  VIP/VIPER's Worker, MVC's Service — whichever type the screen actually depends
+  on. That type declares *both* protocols, because it consumes both (§8.2).
+- **The policy is cache-on-success, read-on-failure.** Remote is the source of
+  truth; the cache is written when a fetch succeeds and read only when one fails;
+  an empty cache rethrows the remote error rather than showing an empty screen as
+  success. A feature that pages, syncs deltas or edits locally replaces that one
+  method — and says so here.
+- **One container per app**, created in the composition root and injected
+  downward. Nothing below it touches `PersistenceController.shared`.
+- **Tests use `PersistenceController(inMemory: true)`**, never `.shared` — that
+  initializer exists for exactly this. The generated read-through tests don't
+  need it (they fake the store's protocol rather than opening a container); a
+  test that exercises the real store against real storage does.
+- **SwiftData:** `<Feature>Record` (`@Model`) lives in `Models/` beside the struct
+  it mirrors and is registered with the container schema automatically. The rest
+  of the app never sees a record — the store maps records to models at the
+  boundary.
+- **Core Data:** the store is wired and compiles, but its two methods are
+  `TODO(agent)` until the entity exists in the app's `.xcdatamodeld` (see
+  `TODO.md`). Until then this project behaves like a `None` one at runtime.
+
 ## Shared states
 
 Every list/detail screen consumes `LoadingView`, `ErrorView` (message + optional

@@ -39,6 +39,12 @@ never hand-edited (§3.9's tooling note).
 | DesignSystem | package | {{AppName}} | base theme tokens, shared states |
 -->
 
+`Core` additionally owns two files `/start` renders regardless of the chosen
+architecture: `Logging/Log.swift` (always — it's what the no-`print()` rule points
+at) and, only when this project has a persistence stack,
+`Persistence/PersistenceController.swift`. Neither is its own module: extracting
+logging is a deliberate `/add-module Logging`, not a default.
+
 **Dependency direction:** apps → shared frameworks/packages → leaf modules. Never
 the reverse, never framework → app, never app → app (§3.9). Enforced by
 `/add-module`'s hard refusal on a cycle.
