@@ -20,6 +20,14 @@ hasn't been initialized yet — run `/start` first."*
    shape as Q12 in `/start`'s questionnaire).
 3. **Create the app project**: spec file, shared scheme, `Info.plist`,
    `.entitlements`, and an asset catalog with a placeholder icon.
+   **Wire configuration into it the way `/start` §1.5a did for app one** —
+   configuration files are per app target, so the new spec needs its own
+   `configFiles:` entry pointing at the repo-root `Secrets.xcconfig`, and its own
+   `Info.plist` needs `APIBaseURL` = `$(API_BASE_URL)`. Skip this and the new
+   app's composition root `preconditionFailure`s on first launch. If the app
+   needs a *different* base URL from app one, that's the point a per-app key
+   (`APP_TWO_API_BASE_URL`) or a real `AppEnvironment` type earns its place —
+   add the key to `Secrets.xcconfig.example` in the same change.
 4. **Declare dependencies on the existing shared modules**, and generate the
    app shell **by extending the shared base views** — run the same
    `Scripts/new_feature.sh` path `/start` used for the first app's starter

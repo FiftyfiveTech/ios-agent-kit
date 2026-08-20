@@ -18,8 +18,8 @@ resolved from an optional `path` argument instead of requiring a manual
   already copied in by hand) — go straight to the config check below.
 - **`path` given** — resolve it relative to the current directory, creating
   the directory if it doesn't exist yet. Then copy this template's `.claude/`,
-  `Scripts/`, `docs/`, `.swiftlint.yml`, `.githooks/`, `CLAUDE.md.template`,
-  and `README.md` into it.
+  `Scripts/`, `docs/`, `.swiftlint.yml`, `.githooks/`, `.gitignore`,
+  `CLAUDE.md.template`, and `README.md` into it.
   - **This copy is a merge, never an overwrite.** Walk it file-by-file, not
     folder-by-folder: copy a file only if the destination doesn't already have
     one at that path; if it does, leave it untouched. This is what makes it
@@ -211,6 +211,37 @@ template reads — keep it exactly this shape:
   workspace-generation flag; this template owns that file.
 - **No manual Xcode step at any point.**
 
+### 1.5a Wire configuration and secrets — always
+
+Two files, at the resolved repo root:
+
+- **Make the ignore rule true before creating anything ignorable.** §0's copy is
+  skipped when the destination already has a `.gitignore` — which an adopted repo
+  (Path 3) always does, and it won't mention `Secrets.xcconfig`. So: if a
+  `.gitignore` exists at the target, **append** any missing entries from the
+  build spec's §8.8 list (`xcuserdata/`, `.DS_Store`, build products,
+  `Secrets.xcconfig`, compiled tool binaries) to it — appending is safe where a
+  whole-file copy isn't. Say what you appended in §1.10's report.
+- Copy `Scripts/templates/config/Secrets.xcconfig.example` to
+  `Secrets.xcconfig.example` unconditionally — it's committed by design. Copy it
+  to `Secrets.xcconfig` **only after** the ignore entry above is in place, and
+  only if that file doesn't already exist. Creating a live secrets file in a repo
+  that doesn't ignore it means the first developer to fill it in commits a
+  secret; that ordering is the whole point of this step.
+- In the spec file(s) from §1.5, point **each app target's** configurations at it
+  (`configFiles:` in `project.yml`, `settings(configurations:)` in Tuist) and
+  surface only what the app actually reads — `API_BASE_URL` into `Info.plist` as
+  `APIBaseURL` via `$(API_BASE_URL)`. This is not optional: the rendered
+  composition root (`App.swift`/`SceneDelegate.swift`) reads `APIBaseURL` from
+  `Bundle.main` and `preconditionFailure`s without it, so a missing plist entry
+  is a launch crash, not a silent fallback. No `Service` ever holds a literal
+  URL (§3.7).
+
+Do not invent an `AppEnvironment` type on a one-environment project — the
+`Info.plist` key plus `RequestBuilder`'s injected `baseURL` already is the seam.
+Add `AppEnvironment` when a second configuration appears, and say so in
+`TODO.md` rather than generating it now (`docs/CODING_STANDARDS.md`).
+
 ### 1.6 Git
 
 - `git init` if `.git` doesn't exist.
@@ -395,9 +426,11 @@ Tell the developer, in your closing message, that requirements go in
 
 ### 1.10 Report what's left
 
-Write `TODO.md` with what can't be automated: the real API base URL (already
-flagged inline in `App.swift`/`SceneDelegate.swift`), opening the project once in Xcode, per-app
-signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`, plus
+Write `TODO.md` with what can't be automated: the real API base URL — set
+`API_BASE_URL` in the gitignored `Secrets.xcconfig` created in §1.5a, not in
+Swift; the composition root crashes at launch until it resolves — plus any
+`.gitignore` entries you appended in §1.5a, opening the project once in Xcode,
+per-app signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`, plus
 §1.7a's Core Data entries if that was the Q4 answer. Not
 just a message that scrolls off-screen — a durable checklist.
 

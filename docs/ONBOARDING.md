@@ -130,13 +130,32 @@ does not describe a real app yet. `/start` renders it into a real
 `docs/ai/architecture.md` that shows **only** the one pattern your project
 chose; until then, this file intentionally shows all of them.
 
+## Configuration and secrets
+
+**On a fresh clone, copy `Secrets.xcconfig.example` to `Secrets.xcconfig` and
+fill it in before the first build** — the file is gitignored, so it isn't in
+your clone, and the app deliberately crashes at launch with a message saying so
+rather than falling back to a wrong URL.
+
+`Secrets.xcconfig` (gitignored) holds anything that varies by environment or
+must not be committed; `Secrets.xcconfig.example` (committed) is the record of
+which keys exist, and adding a key to one without the other is what breaks CI
+and new machines. The app target's build configurations include the former, and
+`API_BASE_URL` reaches the app through `Info.plist` — the composition root
+reads it and passes the `URL` into `RequestBuilder`. A `Service` never holds a
+literal URL. Anything compiled into the binary is extractable from the IPA, so
+genuinely sensitive material stays server-side. Full rules, plus where data
+belongs (`UserDefaults` vs. the local store vs. Keychain), concurrency, ARC and
+struct-vs-class: `docs/CODING_STANDARDS.md`.
+
 ## Generated `.xcodeproj`s are committed
 
 `/start`, `/add-module`, and `/add-app` regenerate `.xcodeproj`/`.xcworkspace`
 files in place, and they're committed to the repo — not gitignored. That
 keeps a fresh clone openable without requiring XcodeGen/Tuist just to get to a
 build, at the cost of a pbxproj diff on every regenerate. Always gitignored
-regardless: `xcuserdata/`, `.DS_Store`, build products, `Secrets.xcconfig`.
+regardless: `xcuserdata/`, `.DS_Store`, build products, `Secrets.xcconfig` —
+see `.gitignore`, which `/start` copies in with those entries already present.
 
 ## Known limitations (carried over honestly, not hidden)
 

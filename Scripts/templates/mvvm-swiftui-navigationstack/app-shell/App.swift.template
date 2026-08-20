@@ -15,8 +15,10 @@ __MODULE_IMPORTS__
 struct __APP_NAME__App: App {
     @State private var router = Router()
 
-    // TODO: point this at the real API base URL — see TODO.md.
-    private let requestBuilder = RequestBuilder(baseURL: URL(string: "https://api.example.com")!)
+    // Base URL comes from Secrets.xcconfig via Info.plist's APIBaseURL key (§8.3) —
+    // never a literal here, and never inside a Service. Set the real value in
+    // Secrets.xcconfig (gitignored); Secrets.xcconfig.example records the keys.
+    private let requestBuilder = RequestBuilder(baseURL: __APP_NAME__App.apiBaseURL)
     private let apiClient: APIClient = URLSessionAPIClient()
 __IF_PERSISTENCE__
 
@@ -47,5 +49,20 @@ __END_PERSISTENCE__
         switch route {
         // MARK: new-feature-destination-insertion-point
         }
+    }
+
+    // Crashing at launch is the correct behavior here: a missing or malformed base
+    // URL means every request in the app is misconfigured, and failing loudly at
+    // startup beats a screen of empty states. This is the sanctioned exception to
+    // the force-unwrap policy in docs/CODING_STANDARDS.md.
+    private static var apiBaseURL: URL {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String,
+              let url = URL(string: raw) else {
+            preconditionFailure(
+                "APIBaseURL missing from Info.plist — copy Secrets.xcconfig.example "
+                + "to Secrets.xcconfig and set API_BASE_URL."
+            )
+        }
+        return url
     }
 }
