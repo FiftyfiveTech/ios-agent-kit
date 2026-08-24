@@ -58,6 +58,10 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
   `Secrets.xcconfig` (gitignored) → the app target's `Info.plist` → the
   composition root, which injects the resolved `URL` into `RequestBuilder`. A
   `Service` never builds a URL from a literal — see `docs/CODING_STANDARDS.md`.
+  A blank key is not a default: `$(KEY)` expands to empty and the app stops at
+  launch. Never "fix" that by adding a fallback URL — run
+  `Scripts/check_secrets.sh`, which also catches the `//`-comment truncation that
+  turns an unescaped `https://host` into `https:`.
   (Not applicable if this project's `networking` is `none`: there is no
   `RequestBuilder` and no `APIBaseURL` key. Don't add either to "fix" a build —
   adding a network call to an offline app is a decision for the developer.)

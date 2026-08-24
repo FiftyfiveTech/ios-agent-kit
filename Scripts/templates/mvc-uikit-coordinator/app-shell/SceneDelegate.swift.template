@@ -56,13 +56,39 @@ __IF_NETWORKING__
     // has no RequestBuilder to feed, so there is nothing to resolve and nothing to
     // crash about. The rule is "don't render the reader", never "make the read
     // tolerant": a networked app that silently falls back to a default URL is the
-    // failure this guard exists to prevent.
+    // failure this guard exists to prevent — which is why the checks below get
+    // stricter, never softer.
+    //
+    // Three separate failures, three separate messages, because each one sends you
+    // to a different file. The scheme and host checks are load-bearing rather than
+    // belt-and-braces: `//` starts a comment in xcconfig, so pasting `https://host`
+    // unescaped truncates the value to `https:`, which URL(string:) parses happily
+    // with a nil host — and a scheme-less `host.example.com` parses as a relative
+    // URL. Both would otherwise reach RequestBuilder and break every request.
     private static var apiBaseURL: URL {
-        guard let raw = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String,
-              let url = URL(string: raw) else {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String else {
             preconditionFailure(
-                "APIBaseURL missing from Info.plist — copy Secrets.xcconfig.example "
-                + "to Secrets.xcconfig and set API_BASE_URL."
+                "APIBaseURL is missing from this target's Info.plist. Add "
+                + "APIBaseURL = $(API_BASE_URL) to it — see docs/CODING_STANDARDS.md."
+            )
+        }
+
+        // A blank key and an absent key are indistinguishable here: $(API_BASE_URL)
+        // expands to an empty string either way, so don't claim which one it was.
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            preconditionFailure(
+                "APIBaseURL resolved to an empty string. Set API_BASE_URL in "
+                + "Secrets.xcconfig — it is either blank there or missing entirely. "
+                + "Secrets.xcconfig.example records every key the build expects."
+            )
+        }
+
+        guard let url = URL(string: trimmed), url.scheme != nil, url.host != nil else {
+            preconditionFailure(
+                "APIBaseURL is not an absolute URL — got \"\(trimmed)\". It needs both "
+                + "a scheme and a host. If that value looks truncated, remember `//` "
+                + "starts a comment in xcconfig: write https:/$()/host, not https://host."
             )
         }
         return url

@@ -139,6 +139,27 @@ message saying so, rather than falling back to a wrong URL. An offline project
 (`networking: none` in the config) has no `API_BASE_URL` and no such check — its
 composition root never had a `RequestBuilder` rendered into it.
 
+Filling it in "somehow" isn't enough, and two mistakes are common enough to name:
+
+- **Leaving a key blank.** `$(API_BASE_URL)` expands to an empty string, so a
+  blank key and a missing key are the same thing by the time Swift sees it. The
+  app stops at launch and tells you which file to edit.
+- **Writing `https://host` unescaped.** `//` starts a comment in xcconfig, so
+  that value truncates to `https:` — which is a *parseable* URL with no host.
+  Write `https:/$()/host`. The launch check tests for a scheme and a host
+  precisely so this fails loudly instead of breaking every request at runtime.
+- **Trying to quote your way out of it.** xcconfig has no string literals and no
+  escape character, so `"https://host"` truncates identically and leaves a stray
+  quote behind. `$()` (or `${}`) is the only thing that works, and it works by
+  slipping between xcconfig's parse and expand passes rather than by escaping
+  anything — `docs/CODING_STANDARDS.md` has the mechanism and a table of what
+  every candidate form actually resolves to.
+
+Run `Scripts/check_secrets.sh` to catch both at commit time rather than in the
+simulator. It passes silently when there is no `Secrets.xcconfig` yet (the normal
+state of a fresh clone, and of CI jobs that inject configuration from the
+environment) and when there is no `API_BASE_URL` to check (an offline project).
+
 `Secrets.xcconfig` (gitignored) holds anything that varies by environment or
 must not be committed; `Secrets.xcconfig.example` (committed) is the record of
 which keys exist, and adding a key to one without the other is what breaks CI

@@ -88,6 +88,14 @@ generate.
 - **`Secrets.xcconfig` is never committed.** `/start` copies a `.gitignore` that
   already excludes it. If you add a key, add it to `.example` in the same commit
   — a key that exists only on your machine breaks CI and every new hire.
+  `Scripts/check_secrets.sh` enforces that parity in both directions, and treats
+  a key the example carries *commented out* as permitted but not required.
+- **A blank value is a hard failure, not a default.** `$(KEY)` expands to an
+  empty string, so an unset key reaches Swift indistinguishably from a missing
+  one. Nothing in this template papers over that with a fallback: on a networked
+  project the composition root stops the app at launch. Run
+  `Scripts/check_secrets.sh` to catch an empty — or `//`-truncated — value before
+  you build.
 - **Treat "in the binary" as "public".** An `Info.plist` value or a compiled-in
   string is extractable from the IPA. Client-side keys go in `Secrets.xcconfig`
   only when the vendor's threat model allows a public key; anything genuinely
@@ -97,6 +105,52 @@ generate.
   `RequestBuilder`'s injected `baseURL` is already the seam, and a wrapper type
   adds indirection without a second case to justify it (same threshold as the
   protocol rule in §8.2).
+
+### Writing a URL in xcconfig — how the `$()` escape works
+
+`//` starts a comment in an xcconfig file, and there is **no way to escape it**,
+because xcconfig has no escape character and no string literals. A value is raw
+text from `=` to end-of-line with everything after the first `//` discarded. That
+is the whole grammar. So `API_BASE_URL = https://host` gives you `https:`.
+
+`$()` is not an escape sequence — nothing in xcconfig escapes anything. It works
+because the file is processed in **two passes**, and it slips between them:
+
+1. **Parse.** The line is split into key and value and the comment is stripped.
+   The scanner is looking for the literal two characters `//`. In
+   `https:/$()/host` the slashes are separated by three other characters, so
+   there is no comment to find and the whole value survives.
+2. **Expand.** `$(NAME)` substitutes the build setting `NAME`. Here the name is
+   *empty*, so it substitutes nothing and disappears, leaving `https://host`.
+
+The `//` is therefore never adjacent at the moment anything is looking for it,
+and is fully formed by the time anything uses it. `${}` is the same trick with
+the brace form of substitution and works identically. Both are verified below.
+
+**This means quoting cannot help, and neither can backslashes.** Quotes are
+ordinary characters to xcconfig — there is no string type for them to delimit —
+so they neither hide the `//` from pass 1 nor get removed in pass 2. Each row
+here is what `xcodebuild -showBuildSettings` actually resolved:
+
+| Written in `Secrets.xcconfig` | Resolves to | |
+| --- | --- | --- |
+| `https:/$()/api.example.com` | `https://api.example.com` | correct |
+| `https:/${}/api.example.com` | `https://api.example.com` | correct |
+| `https://api.example.com` | `https:` | truncated at the comment |
+| `"https://api.example.com"` | `"https:` | truncated, plus a stray quote |
+| `'https://api.example.com'` | `'https:` | same — quotes are not syntax |
+| `https:\/\/api.example.com` | `https:\/\/api.example.com` | literal backslashes in the value |
+| `https://api.example.com // note` | `https:` | the first `//` wins — the one *inside* the URL |
+
+Two things to take from the table. The backslash row is the dangerous one: it is
+the only broken form that doesn't *look* truncated, so it survives a glance at
+the file and fails later as a bad host. And the last row means you cannot put a
+trailing comment on a line holding a URL at all — put the comment on its own line
+above it. Every failing row is rejected by both `Scripts/check_secrets.sh` and
+the composition root's launch guard.
+
+Escaping is only a problem for values that contain `//` — which in practice means
+URLs. A key, token or host without a scheme needs none of this.
 
 ## Choosing where data goes
 
@@ -234,6 +288,31 @@ networking layer at all**: a missing or malformed base URL misconfigures every
 request in the app, so `preconditionFailure` at launch is correct where a
 fallback URL or a silently broken screen is not. This is the "a crash on failure
 genuinely is the correct behavior" clause of the force-unwrap policy above.
+
+**Three failure modes, three distinct messages**, because each one sends you to a
+different file — the read is deliberately stricter than a plain optional check:
+
+| What went wrong | What the message tells you to fix |
+| --- | --- |
+| The `APIBaseURL` key is absent from the target's `Info.plist` | the `/start`/`/add-app` wiring never happened for this target — add `APIBaseURL = $(API_BASE_URL)` |
+| The value resolves to an empty string | `API_BASE_URL` in `Secrets.xcconfig`, which is either blank or absent — `$(API_BASE_URL)` expands to empty either way, so the message never claims which |
+| The value parses but isn't an absolute URL | the value itself, with the offending text echoed and the xcconfig escape spelled out |
+
+That third check tests `scheme` **and** `host`, not just that `URL(string:)`
+returned something, and both halves are load-bearing. `//` starts a comment in
+xcconfig, so an unescaped `https://host` arrives as the truncated `https:` —
+which parses fine with a `nil` host. A scheme-less `host.example.com` parses as a
+*relative* URL. Before those checks existed, both sailed through the guard and
+broke every request at runtime instead, which is the exact silent failure the
+crash is here to prevent.
+
+`Scripts/check_secrets.sh` applies the same rules to `Secrets.xcconfig` at commit
+time — including the comment-stripping the build does, so it sees what Swift will
+see. Prefer finding this at commit rather than at launch.
+
+The commonest way to trip the third check is xcconfig's comment syntax eating
+your URL — see "Writing a URL in xcconfig" above for the mechanism and the full
+table of what resolves to what.
 
 Two limits on it. It is not a licence to extend the pattern to other
 configuration reads — an absent optional feature flag has a default; a base URL

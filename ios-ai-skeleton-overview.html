@@ -997,6 +997,81 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
               message telling you to fill it in — deliberate, because a fallback URL is a
               staging build silently talking to the wrong server. Every fresh clone repeats this step.
             </p>
+            <p style="margin-top:10px">
+              The check tests for a <b>scheme and a host</b>, not merely that the string parsed.
+              That is what catches the mistake the <code>$()</code> escape above exists for:
+              <code>https://host</code> written unescaped truncates at the comment marker to
+              <code>https:</code>, which is a perfectly parseable URL with no host — and a
+              scheme-less <code>host.example.com</code> parses as a <em>relative</em> URL. Either
+              one would otherwise reach <code>RequestBuilder</code> and break every request at
+              runtime, which is the failure the crash exists to convert into a message. Absent key,
+              empty value and unparseable value each get their own wording, because each sends you
+              to a different file.
+            </p>
+            <p style="margin-top:10px">
+              <code>Scripts/check_secrets.sh</code> applies the same rules to
+              <code>Secrets.xcconfig</code> at commit time — including the comment-stripping the
+              build itself does — so a blank or truncated value fails your commit instead of your
+              launch. It passes quietly when the file doesn't exist yet, and on offline projects
+              that have no <code>API_BASE_URL</code> at all.
+            </p>
+
+            <h3 style="margin-top:22px">How the <code>$()</code> escape actually works</h3>
+            <p>
+              Worth understanding rather than copying, because the wrong fixes are the intuitive
+              ones. <code>//</code> starts a comment in xcconfig and <b>there is no way to escape
+              it</b> — the format has no escape character and no string literals. A value is raw
+              text from <code>=</code> to end-of-line with everything after the first
+              <code>//</code> discarded. That is the entire grammar.
+            </p>
+            <p style="margin-top:10px">
+              So <code>$()</code> is not an escape sequence. It works because an xcconfig file is
+              processed in <b>two passes</b>, and it slips between them:
+            </p>
+            <ul class="bullets" style="margin-top:10px">
+              <li>
+                <b>Pass 1, parse</b> — the line is split at <code>=</code> and the comment is stripped. The
+                scanner is looking for the two literal characters <code>//</code>. In
+                <code>https:/$()/host</code> the slashes are three characters apart, so there is no
+                comment to find and the value survives whole.
+              </li>
+              <li>
+                <b>Pass 2, expand</b> — <code>$(NAME)</code> substitutes the build setting
+                <code>NAME</code>. Here the name is <em>empty</em>, so it substitutes nothing and
+                vanishes, leaving <code>https://host</code>.
+              </li>
+            </ul>
+            <p style="margin-top:10px">
+              The <code>//</code> is never adjacent while anything is looking for it, and is fully
+              formed by the time anything uses it. <code>${}</code> is the same trick with the brace
+              form of substitution and behaves identically.
+            </p>
+            <p style="margin-top:10px">
+              That two-pass mechanism is also why <b>quoting cannot help</b>. Quotes are ordinary
+              characters here — there is no string type for them to delimit — so they neither hide
+              the <code>//</code> from pass 1 nor get removed in pass 2. Every row below is what
+              <code>xcodebuild -showBuildSettings</code> actually resolved:
+            </p>
+            <table style="margin-top:12px">
+              <thead><tr><th>Written in <code>Secrets.xcconfig</code></th><th>Resolves to</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="mono">https:/$()/api.example.com</td><td class="mono">https://api.example.com</td><td>correct</td></tr>
+                <tr><td class="mono">https:/${}/api.example.com</td><td class="mono">https://api.example.com</td><td>correct</td></tr>
+                <tr><td class="mono">https://api.example.com</td><td class="mono">https:</td><td>truncated at the comment</td></tr>
+                <tr><td class="mono">"https://api.example.com"</td><td class="mono">"https:</td><td>truncated, plus a stray quote</td></tr>
+                <tr><td class="mono">'https://api.example.com'</td><td class="mono">'https:</td><td>same — quotes are not syntax</td></tr>
+                <tr><td class="mono">https:\/\/api.example.com</td><td class="mono">https:\/\/api.example.com</td><td>literal backslashes left in the value</td></tr>
+                <tr><td class="mono">https://api.example.com // note</td><td class="mono">https:</td><td>the first <code>//</code> wins — the one <em>inside</em> the URL</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:12px; font-size:15px; color:var(--ink-soft)">
+              The backslash row is the one to watch: it is the only broken form that doesn't
+              <em>look</em> truncated, so it survives a glance at the file and fails later as a bad
+              host. And the last row means you cannot put a trailing comment on a line holding a URL
+              — put it on its own line above. Every failing row is rejected by both
+              <code>check_secrets.sh</code> and the launch guard. None of this applies to values
+              without a <code>//</code> in them: a key, token or bare host needs no escaping.
+            </p>
             <p style="margin-top:10px; font-size:15px; color:var(--ink-soft)">
               Answer <b>None</b> to the networking question and this step doesn't exist: an offline
               app renders no <code>RequestBuilder</code>, no <code>APIBaseURL</code> key and no reader,
