@@ -25,11 +25,15 @@ hasn't been initialized yet — run `/start` first."*
    `configFiles:` entry pointing at the repo-root `Secrets.xcconfig`. On a
    networked project its `Info.plist` also needs `APIBaseURL` = `$(API_BASE_URL)`;
    skip that and the new app's composition root `preconditionFailure`s on first
-   launch. On a `networking: none` project, neither the key nor the reader
+   launch with the "missing from this target's `Info.plist`" message — which is
+   worded for exactly this mistake, since app one works and only the new target
+   is unwired. On a `networking: none` project, neither the key nor the reader
    exists — don't add either. If the app
    needs a *different* base URL from app one, that's the point a per-app key
    (`APP_TWO_API_BASE_URL`) or a real `AppEnvironment` type earns its place —
-   add the key to `Secrets.xcconfig.example` in the same change.
+   add the key to `Secrets.xcconfig.example` in the same change — `check_secrets.sh`
+   fails on a key that exists in one file and not the other, and a per-app URL
+   still needs a scheme and a host to clear the launch guard.
 4. **Declare dependencies on the existing shared modules**, and generate the
    app shell **by extending the shared base views** — run the same
    `Scripts/new_feature.sh` path `/start` used for the first app's starter

@@ -72,8 +72,8 @@ Then follow the same steps below, but:
   this confirmation — don't let it surface for the first time only when
   `/new-feature` falls back mid-run.
 - Before wiring `.githooks/pre-commit`/`commit-msg` (§1.6), run
-  `Scripts/lint.sh`, `check_hardcoded_colors.sh`, and `check_strings.sh` once
-  against the adopted codebase as a dry run. If any fail, report the failures
+  `Scripts/lint.sh`, `check_hardcoded_colors.sh`, `check_strings.sh`, and
+  `check_secrets.sh` once against the adopted codebase as a dry run. If any fail, report the failures
   and ask whether to fix them first or wire the hooks in report-only mode
   instead — an adopted codebase has never been checked against these
   conventions, and a hard-blocking hook can lock the developer out of their
@@ -249,6 +249,15 @@ Two files, at the resolved repo root:
   drops out entirely (see §1.7), so there's no `RequestBuilder` to feed. Strip
   `API_BASE_URL` from the rendered `Secrets.xcconfig`/`.example` too, rather than
   leaving a key nothing reads.
+
+After both files exist, **run `Scripts/check_secrets.sh` once** and report the
+result in §1.10. It is the commit-time counterpart to the composition root's
+launch-time guard: it fails on an empty value, on key drift between
+`Secrets.xcconfig` and `.example`, and on an `API_BASE_URL` without a scheme and
+host — the last of which catches the `//`-comment truncation the `$()` escape
+exists for. On a fresh `/start` it passes, because the file was just copied from
+the example; a failure here means something else in this step went wrong. It also
+passes by design on an offline project, where `API_BASE_URL` was stripped.
 
 Do not invent an `AppEnvironment` type on a one-environment project — the
 `Info.plist` key plus `RequestBuilder`'s injected `baseURL` already is the seam.
@@ -465,7 +474,11 @@ Tell the developer, in your closing message, that requirements go in
 Write `TODO.md` with what can't be automated. On a networked project that
 starts with the real API base URL — set `API_BASE_URL` in the gitignored
 `Secrets.xcconfig` created in §1.5a, not in Swift; the composition root crashes
-at launch until it resolves. On a `networking: none` project there is no base
+at launch until it resolves, and leaving the key blank fails the same way a
+missing key does rather than falling back to anything. Tell the developer to run
+`Scripts/check_secrets.sh` after editing it, and to write the URL as
+`https:/$()/host` — `//` starts a comment in xcconfig, so the unescaped form
+truncates to `https:` and fails the launch guard's host check. On a `networking: none` project there is no base
 URL, and the first two entries are instead **the starter feature's data-layer
 `TODO(agent)` body and its failing placeholder test** (§1.8) — state that
 `xcodebuild test` fails until both are done, so nobody reads the red suite as a

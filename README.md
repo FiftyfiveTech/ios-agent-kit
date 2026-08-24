@@ -38,7 +38,7 @@ Full walkthrough: [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 ```
 .claude/skills/    — /start plus 9 routine-work Skills (new-feature, add-module,
                       translate, ...)
-Scripts/           — lint, string/color enforcement, codegen, four fully-authored
+Scripts/           — lint, string/color/secrets enforcement, codegen, four fully-authored
                       file-template sets (see Architecture below), plus the
                       persistence/, logging/ and config/ templates /start renders
                       into a real project
@@ -129,6 +129,11 @@ Carried over honestly rather than hidden:
 - Per-module localization and the base/app theme split are correctness
   requirements with no compile-time guard — `check_strings.sh` catches key
   parity, nothing catches a wrong-bundle lookup at runtime.
+- `check_secrets.sh` does not follow xcconfig `#include` directives, so a value
+  inherited from an included file reads as absent to it. A missing key is
+  therefore never an error on its own — only an *empty* one, or key drift against
+  the committed `.example`. A multi-config project layering xcconfigs is where
+  this gap shows up; the composition root's launch-time guard still catches it.
 - Generated `.xcodeproj`/`.xcworkspace` files are **committed**, not
   gitignored (see `docs/ONBOARDING.md`).
 - Xcode's own localization agent writes String Catalogs (`.xcstrings`);
