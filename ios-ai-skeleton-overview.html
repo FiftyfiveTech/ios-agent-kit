@@ -738,6 +738,43 @@ figcaption { margin-top: 9px; font-size: 13px; color: var(--ink-faint); line-hei
 .limit.resolved { border-left-color: var(--det); }
 .limit h4 { margin: 0 0 5px; color: var(--ink); font-family: var(--font-body); font-size: 14px; letter-spacing: 0; text-transform: none; font-weight: 640; }
 
+/* ─── do's and don'ts ───────────────────────────────────────────────────── */
+.dd-lede { font-size: 15px; color: var(--ink-soft); max-width: var(--measure); margin: 0 0 16px; }
+.dd-lede b { color: var(--ink); font-weight: 600; }
+.dd { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin: 16px 0 4px; }
+.dd-card {
+  border: 1px solid var(--line);
+  border-left: 2.5px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  background: var(--surface);
+  padding: 13px 15px;
+  box-shadow: var(--shadow);
+}
+.dd-card > .dd-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 7px;
+}
+.dd-card h4 {
+  margin: 0 0 5px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 640;
+  line-height: 1.4;
+}
+.dd-card p { font-size: 14px; line-height: 1.55; color: var(--ink-soft); max-width: none; margin: 0; }
+.dd-card code { font-size: .93em; }
+.dd-card.no { border-left-color: var(--stop); }
+.dd-card.no > .dd-label { color: var(--stop); }
+
 /* ─── footer ────────────────────────────────────────────────────────────── */
 .colophon {
   grid-column: 1 / -1;
@@ -792,7 +829,7 @@ html { scroll-behavior: smooth; }
   .sec-head { margin-bottom: 10pt; padding-bottom: 6pt; }
   .sec-title { font-size: 14pt; }
   h3 { margin-top: 12pt !important; }
-  table, .note, .plain, .limit, .step, figure, .panel { break-inside: avoid; }
+  table, .note, .plain, .limit, .dd-card, .step, figure, .panel { break-inside: avoid; }
   tr, li { break-inside: avoid; }
   a { text-decoration: none; }
   .stats { box-shadow: none; }
@@ -1026,6 +1063,39 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
         Don't add or move files in Xcode's navigator — the next regenerate overwrites it. Edit
         <code>project.yml</code>, or use the commands.
       </div>
+
+      <h3>Do's and don'ts</h3>
+      <p class="dd-lede">
+        Everything <code>/start</code> writes is downstream of your eleven answers, so the session that
+        produces them is the one worth getting right.
+      </p>
+      <div class="dd">
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Answer the eleven as a set</h4>
+          <p>They're validated as a set, not one at a time. <b>"Use the recommended defaults"</b> is a
+          complete answer; a guessed one propagates into every command that reads the config
+          afterwards.</p>
+        </div>
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Re-run <code>/start</code> when something's missing</h4>
+          <p>It's idempotent: it recreates what's absent and refuses structural changes as a re-run side
+          effect. Reaching for it a second time is safe, and cheaper than reconstructing a file by hand.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Copy the template files in by hand</h4>
+          <p><code>/start</code> walks them file-by-file and never overwrites something already there,
+          which is exactly what makes that re-run safe. A manual <code>cp -r</code> loses both.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Point <code>/start</code> at a hand-maintained Xcode project</h4>
+          <p>It never regenerates or overwrites one. Adopting an existing codebase is a different path
+          from scaffolding a greenfield, and it will tell you so rather than scaffolding over the top.</p>
+        </div>
+      </div>
     </section>
 
     <!-- ══ 03 KNOWLEDGE BASE ═══════════════════════════════════════════ -->
@@ -1103,6 +1173,54 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
         the assistant wrong for months. The commands append rather than leaving it to discipline, and
         <code>/status</code> reports drift between what's recorded and what's on disk.
       </div>
+
+      <h3>Do's and don'ts</h3>
+      <p class="dd-lede">
+        These files exist so a session doesn't start by re-establishing what the last one already knew.
+        Using them well is mostly a matter of where you put a sentence.
+      </p>
+      <div class="dd">
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Write the answer down, not just into the chat</h4>
+          <p>The assistant has no memory between sessions. A constraint you explain in conversation is
+          gone tomorrow; the same sentence in <code>docs/product/</code> or <code>PROJECT_MAP.md</code>
+          loads every time, unprompted.</p>
+        </div>
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Point at the file rather than pasting its contents</h4>
+          <p>"Read <code>docs/product/api-contracts.md</code> before building this service" costs a
+          fraction of pasting the document, and stays correct after the document changes.</p>
+        </div>
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Let the commands do the appending</h4>
+          <p><code>PROJECT_MAP.md</code>, <code>PERMISSIONS.md</code> and <code>TODO.md</code> are seeded
+          at setup and then written to by the commands that change what they describe — grown as you
+          work, rather than maintained by discipline.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Re-state your stack, tier and pattern each session</h4>
+          <p><code>CLAUDE.md</code> is loaded automatically before your first message is read. Restating
+          it spends context on what's already there, and a restatement that drifts from the file is worse
+          than silence.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Summarize <code>docs/product/</code> into <code>CLAUDE.md</code></h4>
+          <p>Requirements keep changing, and a digest goes stale without failing. <code>CLAUDE.md</code>
+          points at them and never summarizes them; <code>/new-feature</code> re-reads the relevant one
+          per invocation.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Keep the patterns you didn't choose "for reference"</h4>
+          <p>The render deletes them on purpose, so your docs describe one architecture rather than five.
+          A pattern left in the file is a pattern the assistant may decide is on the menu.</p>
+        </div>
+      </div>
     </section>
 
     <!-- ══ 04 TOPOLOGY ═════════════════════════════════════════════════ -->
@@ -1124,7 +1242,7 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
             <tr><th>Shape</th><td>one <code>.xcodeproj</code>, one app target</td><td>+ local Swift packages under <code>Packages/</code></td><td><code>.xcworkspace</code> over N projects: app + dynamic framework targets</td></tr>
             <tr><th>Swift modules</th><td>one — all <code>internal</code></td><td>one per package; crossing needs <code>public</code> plus an explicit <code>public init</code></td><td>one per framework, each with a shared scheme, independently buildable</td></tr>
             <tr><th>Spec files</th><td>one <code>project.yml</code></td><td>+ a <code>Package.swift</code> per package</td><td>one <b>per project</b>, plus a generated <code>contents.xcworkspacedata</code></td></tr>
-            <tr><th><code>Package.resolved</code></th><td colspan="2">inside <code>App.xcodeproj/…/swiftpm/</code></td><td>moves to <code>xcshareddata/swiftpm/</code></td></tr>
+            <tr><th>Lock file</th><td colspan="2"><code>Package.resolved</code> inside <code>App.xcodeproj/…/swiftpm/</code></td><td>moves to <code>xcshareddata/swiftpm/</code></td></tr>
             <tr><th>Good for</th><td>prototypes, &lt;10 screens</td><td>one shipping app, any size</td><td>two apps sharing a spine, or a shipped framework</td></tr>
           </tbody>
         </table>
@@ -1151,6 +1269,38 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
         <li><b>Theme is base plus per-app override</b>, not one file.</li>
         <li><b><code>Info.plist</code>, entitlements, asset catalog, icon and signing are app-target-only.</b></li>
       </ul>
+
+      <h3>Do's and don'ts</h3>
+      <p class="dd-lede">
+        Once there's more than one module, every command has to resolve a destination before it can do
+        anything. Most of the friction here is that question, asked repeatedly.
+      </p>
+      <div class="dd">
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Record a <code>defaultModule</code> once there's more than one candidate</h4>
+          <p>Every command refuses to guess a destination without it, so you'll be answering "which
+          module?" on each invocation until it's in the config. One line, answered once.</p>
+        </div>
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Pass <code>--ui</code> when the module will own views</h4>
+          <p>It's what wires in that module's localization and asset catalog at creation. Adding them to
+          a module that was created without the flag is manual work the command won't redo for you.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Expect <code>/add-module</code> to work at T1</h4>
+          <p>It refuses, with the reason: adding a module <em>is</em> the T1→T2 migration. Make that move
+          deliberately rather than as a side effect of wanting one more folder.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Ask for a second app by copying the first</h4>
+          <p><code>/add-app</code> extends the shared base views and refuses to copy features across. A
+          copied screen is two screens from the day it lands, and they diverge on the first bug fix.</p>
+        </div>
+      </div>
     </section>
 
     <!-- ══ 05 ARCHITECTURE ═════════════════════════════════════════════ -->
@@ -1194,6 +1344,39 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
         registration and a test scaffold, but the layer bodies are written by the assistant from your
         rendered <code>architecture.md</code>. If you didn't take the defaults, review before trusting.
       </div>
+
+      <h3>Do's and don'ts</h3>
+      <p class="dd-lede">
+        Six files arrive at once. Knowing which of them proves the other five are wired up is most of
+        reviewing a generated feature.
+      </p>
+      <div class="dd">
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Run the generated test first</h4>
+          <p>It ships passing, against a fake conformance, with no network — so it runs in milliseconds
+          and it fails for exactly one reason: the wiring between the layers is wrong. Cheaper than
+          reading six files.</p>
+        </div>
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Treat a refusal on an existing folder as the guard working</h4>
+          <p><code>/new-feature</code> stops rather than merging into a half-built feature. Rename or
+          remove first — talking it into proceeding is how you get two sets of layer files interleaved.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Let the pattern drift feature to feature</h4>
+          <p>Nothing detects a feature built a different way — no hook, no lint rule, no check. Protocol
+          and layer discipline is review here, and it's the failure that compounds most quietly.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Plan to move a feature into the right module afterwards</h4>
+          <p>Generated into the wrong one, its models, DI registration, navigation entry and strings all
+          land in the wrong place — and moving them is hand work. Answer the module question instead.</p>
+        </div>
+      </div>
     </section>
 
     <!-- ══ 06 COMMANDS ═════════════════════════════════════════════════ -->
@@ -1231,6 +1414,40 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
         and which module — then echoes the resolved command. Fully specified invocations skip the
         questions. The value of the command form is the checklist behind it: hoist the models, register
         the route, add strings to the owning module, generate a test that runs.
+      </div>
+
+      <h3>Do's and don'ts</h3>
+      <p class="dd-lede">
+        Each command is a checklist with a script behind it. The failure modes are answering its questions
+        badly, and doing by hand the part it was going to do in four places at once.
+      </p>
+      <div class="dd">
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Answer the three questions <code>/new-feature</code> batch-asks</h4>
+          <p>Module, grouping, and the field list with Swift types. It never infers a type from an English
+          noun, and a feature generated into the wrong module has to be moved by hand.</p>
+        </div>
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Review what <code>/translate</code> writes</h4>
+          <p>Draft entries for every existing key in the target locales, marked for review. Drafts, not
+          shippable strings.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Hand-edit one of the files a command owns</h4>
+          <p><code>/add-secret</code> touches four places at once — the xcconfig, the committed example,
+          each app's <code>Info.plist</code> and the typed accessor. Editing one by hand leaves the other
+          three behind, and nothing tells you.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Paste a live API key, token or password into the chat</h4>
+          <p><code>/add-secret</code> writes an obvious placeholder for credential-shaped values and never
+          echoes a held-back one — into <code>TODO.md</code> or anywhere else. The real value goes into
+          the gitignored file by hand.</p>
+        </div>
       </div>
     </section>
 
@@ -1276,6 +1493,40 @@ claude mcp list   <span class="c"># verify</span></pre>
         the terminal is the surface it's designed around. Whether the in-Xcode agent also picks up this
         repo's <code>.claude/skills/</code> isn't something Apple documents — treat it as worth testing
         on your setup, not as given.
+      </div>
+
+      <h3>Do's and don'ts</h3>
+      <p class="dd-lede">
+        Two agents on the same repo is fine. Two agents with different ideas about where the source of
+        truth lives is not.
+      </p>
+      <div class="dd">
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Audit <b>Intelligence ▸ Agents ▸ Permissions</b> periodically</h4>
+          <p>Anything you approved once in a transcript lands in <b>Allowed Commands</b> and applies to
+          every project on that Mac — including repos you hadn't thought about when you approved it.</p>
+        </div>
+        <div class="dd-card">
+          <span class="dd-label">Do</span>
+          <h4>Verify the bridge once, then watch for the notification</h4>
+          <p><code>claude mcp add</code> is a one-time registration — confirm it with
+          <code>claude mcp list</code>. Xcode then tells you when an external agent connects and while
+          it's active, which is how you know the terminal session is going through it.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Close the project once the bridge is registered</h4>
+          <p>Keep it open in Xcode. That's what lets the agent build and test through Xcode itself rather
+          than reconstructing an <code>xcodebuild</code> invocation.</p>
+        </div>
+        <div class="dd-card no">
+          <span class="dd-label">Don't</span>
+          <h4>Run both localization toolchains</h4>
+          <p>Xcode's translation agent writes String Catalogs; <code>/translate</code> and the parity
+          check operate on per-module <code>.strings</code>. Pick one — running both splits the source of
+          truth, and the check won't see the half it doesn't own.</p>
+        </div>
       </div>
     </section>
 
