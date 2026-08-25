@@ -1,6 +1,7 @@
 ---
 name: translate
 description: Draft target-locale Localizable.strings entries from a module's base locale, marked for human review. Use for "/translate <locale-code> [locale-code...]" or "add Spanish/French/... strings".
+model: inherit
 ---
 
 # /translate `[--module <M>] <locale-code> [locale-code...]`

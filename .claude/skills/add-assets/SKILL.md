@@ -1,6 +1,7 @@
 ---
 name: add-assets
 description: Add an image asset to the correct module's Asset Catalog with validated @1x/2x/3x scales (or vector source) and a typed accessor. Use for "/add-assets <name>" or "add this icon/image to the app".
+model: inherit
 ---
 
 # /add-assets `[--module <M>] <name>`

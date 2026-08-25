@@ -1,6 +1,7 @@
 ---
 name: update-app-icon
 description: Replace an app's icon from a single 1024x1024 PNG (no alpha), or regenerate every legacy icon size via sips. Use for "/update-app-icon <path-to-1024-png>" or "update the app icon".
+model: inherit
 ---
 
 # /update-app-icon `[--app <A>] <path-to-1024-png>`

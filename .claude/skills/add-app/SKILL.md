@@ -1,6 +1,8 @@
 ---
 name: add-app
 description: Add a second (or Nth) app to a T3 workspace, reusing existing shared modules by extending their base views — never by copying screens. Use for "/add-app <name>" or "we need a second app sharing this codebase".
+model: opus
+effort: high
 ---
 
 # /add-app `<name>`

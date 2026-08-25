@@ -1,6 +1,7 @@
 ---
 name: add-permission
 description: Add an Info.plist usage-description entry for a plain-language permission (camera, location, etc.), flag Capability/entitlement requirements, and log it to docs/PERMISSIONS.md. Use for "/add-permission <permission>" or "this feature needs camera access".
+model: inherit
 ---
 
 # /add-permission `[--app <A>] <permission>`

@@ -1,6 +1,7 @@
 ---
 name: status
 description: Report this project's topology, module graph, lint health, and open follow-ups — computed fresh every call, no cached summary. Use for "/status" or "what's the state of this project".
+model: inherit
 ---
 
 # /status

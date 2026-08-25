@@ -1,6 +1,8 @@
 ---
 name: add-module
 description: Create a new shared package/framework and wire it into every consumer that needs it — the additive half of the T1→T2/T2→T3 migration path. Use for "/add-module <name>" or "extract this into a shared module".
+model: opus
+effort: high
 ---
 
 # /add-module `<name> [--kind framework|package] [--deps A,B]`

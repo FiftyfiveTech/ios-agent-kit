@@ -1,6 +1,8 @@
 ---
 name: start
 description: First-run setup for a new iOS project from this template — asks the architecture questionnaire, validates the answers, and scaffolds a real, compiling app via XcodeGen/Tuist. Takes an optional target path and copies the template's own files into it automatically (merge-only, never overwriting anything already there) — no manual `cp -r` step. Idempotent on re-run. This is the ONLY Skill that runs without ios-skeleton.config.json already present.
+model: opus
+effort: high
 ---
 
 # /start `[path]`
