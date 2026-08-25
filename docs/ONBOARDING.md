@@ -167,7 +167,19 @@ and new machines. The app target's build configurations include the former, and
 `API_BASE_URL` reaches the app through `Info.plist` — the composition root
 reads it and passes the `URL` into `RequestBuilder`. A `Service` never holds a
 literal URL. Anything compiled into the binary is extractable from the IPA, so
-genuinely sensitive material stays server-side. Full rules, plus where data
+genuinely sensitive material stays server-side.
+
+Add further keys with **`/add-secret KEY=value`** rather than by hand: it writes
+both files, adds the `$(KEY)` entry to each app target's `Info.plist` (without
+which Swift cannot see the value at all), and exposes it as a typed accessor on
+`AppEnvironment` in the shared module — the one place the app reads
+configuration. **Do not paste a real credential into the prompt.** The Skill is
+driven by an AI agent, so the value would live in that transcript and its logs
+long after you rotate the key; `Scripts/add_secret.sh` detects credential-shaped
+values, declares the key commented out in both files, and leaves you to paste
+the value into the gitignored `Secrets.xcconfig` yourself.
+
+Full rules, plus where data
 belongs (`UserDefaults` vs. the local store vs. Keychain), concurrency, ARC and
 struct-vs-class: `docs/CODING_STANDARDS.md`.
 

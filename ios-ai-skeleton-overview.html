@@ -1217,6 +1217,7 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
             <tr><td class="cmd">/translate es fr</td><td>Draft entries for every existing key in the target locales, marked for review</td></tr>
             <tr><td class="cmd">/add-module Shared --kind framework</td><td>Folders, spec, test target, localization and assets if <code>--ui</code>, wired into consumers; cycles refused</td></tr>
             <tr><td class="cmd">/add-app Companion</td><td>A second app target extending the shared base views rather than copying screens</td></tr>
+            <tr><td class="cmd">/add-secret ANALYTICS_HOST=…</td><td>Key in <code>Secrets.xcconfig</code> + the committed example, a <code>$(KEY)</code> entry in each app's <code>Info.plist</code>, and a typed <code>AppEnvironment</code> accessor. Credential-shaped values are held back for you to paste in by hand — never through the agent</td></tr>
             <tr><td class="cmd">/status</td><td>Tier, module graph, orphaned modules, lint state, outstanding TODOs</td></tr>
           </tbody>
         </table>

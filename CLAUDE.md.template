@@ -78,8 +78,14 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
   never a summary: a digest of a living document goes stale as fast as the
   document changes. If the requirement you need isn't there or contradicts
   itself, ask — don't invent one.
+- **Nothing that varies by environment is a literal in Swift.** Add the key with
+  `/add-secret` — it writes `Secrets.xcconfig`, the committed example, each app
+  target's `Info.plist` entry and the `AppEnvironment` accessor together, which
+  is the only combination that actually works. **Never put a real credential in
+  a prompt**: paste it into the gitignored `Secrets.xcconfig` by hand
+  (`docs/CODING_STANDARDS.md`).
 - **Use the Skills for routine work** — `/new-feature`, `/add-module`,
-  `/add-permission`, etc. (`.claude/skills/`) — rather than hand-rolling folder
+  `/add-permission`, `/add-secret`, etc. (`.claude/skills/`) — rather than hand-rolling folder
   structure or navigation wiring; they encode this project's locked-in decisions
   so you don't have to re-derive them.
 
