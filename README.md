@@ -37,7 +37,8 @@ Full walkthrough: [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 
 ```
 .claude/skills/    — /start plus 10 routine-work Skills (new-feature, add-module,
-                      add-secret, translate, ...)
+                      add-secret, translate, ...), each pinning its own model
+                      tier in frontmatter (see Model tiers below)
 Scripts/           — lint, string/color/secrets enforcement, codegen, four fully-authored
                       file-template sets (see Architecture below), plus the
                       persistence/, logging/ and config/ templates /start renders
@@ -50,6 +51,29 @@ docs/product/      — the domain slot: your PRD/SRS/API contracts land here lat
                       by /start so the secrets rule has something enforcing it
 CLAUDE.md.template  — renders into a real project's CLAUDE.md
 ```
+
+## Model tiers
+
+Every Skill declares its model in frontmatter, so the tier follows the work
+rather than whatever model the session happens to be on:
+
+| | `model: opus` + `effort: high` | `model: inherit` |
+|---|---|---|
+| Skills | `/start`, `/new-feature`, `/add-module`, `/add-app` | `/add-assets`, `/update-app-icon`, `/add-permission`, `/update-theme`, `/status`, `/translate`, `/add-secret` |
+| Why | Irreversible or cross-cutting: `/start` writes the config every other Skill reads and owns the adoption branch; `/new-feature` falls back to agent-assisted generation outside the four authored combos; the two module/app Skills rewire every consumer. Pinned rather than inherited — these must not silently run on a cheaper session model. | Bounded, single-destination edits over an already-decided architecture, each backed by a script that refuses an ambiguous destination. Nothing to pin, so they follow your session. |
+
+**Overriding per run.** A pinned `model:` *replaces* the session model while the
+Skill runs — `/model sonnet` then `/status` gets you Sonnet, but `/model sonnet`
+then `/start` still gets you Opus. That asymmetry is the point: the four pinned
+Skills are the ones a cheap model shouldn't quietly handle. To change one
+anyway, edit the key in your project's own `.claude/skills/<name>/SKILL.md`
+(`inherit` hands it back to `/model`); there is no per-invocation flag.
+
+Aliases, not pinned model IDs — these files get copied into projects that
+outlive any one model generation. `/start` copies `.claude/` into the target,
+so the tiers travel with every project scaffolded from here. The copy is
+merge-only, so a project that already has its own `.claude/skills/` keeps it
+untouched — pick the tiers up there by editing its frontmatter directly.
 
 ## Topology tiers
 
@@ -150,7 +174,7 @@ exists so the no-`print()` rule has a referent, Objective-C support dropped enti
 `/translate` Skill added, commit-msg format now hook-enforced, DI-container
 upgrade path documented, secrets handling now ships a real `Secrets.xcconfig`
 seam and `.gitignore` rather than only a doc line about one, `docs/PROJECT_MAP.md` now seeded by `/start` instead of
-first appearing when another Skill appends to it) — see the build spec's §10 for
+first appearing when another Skill appends to it, every Skill now declares its own model tier in frontmatter) — see the build spec's §10 for
 the full history.
 
 Full list: `docs/ONBOARDING.md` and the build spec this template was generated

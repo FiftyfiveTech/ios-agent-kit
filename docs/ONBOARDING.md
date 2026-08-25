@@ -36,6 +36,26 @@ copying — there's no manual `cp -r` step:
   file already at the destination (so an adopted project's own `CLAUDE.md`,
   `README.md`, and `docs/` are safe).
 
+## Which model runs which Skill
+
+Each `SKILL.md` declares its model in frontmatter, so you don't have to remember
+to switch:
+
+- **Pinned to `model: opus`, `effort: high`** — `/start`, `/new-feature`,
+  `/add-module`, `/add-app`. Irreversible or cross-cutting work; `/start` in
+  particular writes the config every other Skill reads. A pinned model replaces
+  your session model for that run, so `/model sonnet` then `/start` still runs
+  on Opus. That's deliberate.
+- **`model: inherit`** — `/add-assets`, `/update-app-icon`, `/add-permission`,
+  `/update-theme`, `/status`, `/translate`, `/add-secret`. These follow whatever
+  `/model` is set to, so you pick per session.
+
+To change either group, edit the frontmatter in your project's own
+`.claude/skills/<name>/SKILL.md` — `/start` copied those files in, and nothing
+else reads the keys. There is no per-invocation flag. A project scaffolded
+before these keys existed won't gain them on a `/start` re-run: the copy is
+merge-only and leaves an existing `SKILL.md` alone, so add them by hand.
+
 ## What `/start` actually does
 
 Asks a one-time, batched Setup Questionnaire (topology, language, UI framework,

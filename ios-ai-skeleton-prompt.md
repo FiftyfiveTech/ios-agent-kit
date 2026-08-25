@@ -514,6 +514,19 @@ One more, which the config makes mechanical rather than a matter of taste: **`/n
 
 Each checks §1.3's precondition first, then reads `ios-skeleton.config.json` to know which architecture/UI framework/navigation style **and topology** is in force — never asks the developer to re-specify it per invocation.
 
+**Model tier, declared in each Skill's frontmatter.** Every `SKILL.md` — `/start` included — declares its model, so the tier is a property of the work the Skill does, not of whatever model the developer's session happens to be on. The alias form (`opus`) is used deliberately over a pinned model ID: these files are copied into projects that outlive any one model generation.
+
+| Tier | Skills | Why |
+|---|---|---|
+| `model: opus`, `effort: high` | `/start` (§2), `/new-feature` (§4.1), `/add-module` (§4.7), `/add-app` (§4.8) | Irreversible or cross-cutting. `/start` writes the config every other Skill reads and owns the Path 3 adoption branch (infer topology from an existing project, read the real deployment target, detect the feature-folder convention, dry-run the checks, decide per-file what may be overwritten) — a wrong answer here propagates into every feature generated afterward. `/new-feature` is deterministic only for §1.4's four authored combos and falls back to agent-assisted generation otherwise. `/add-module` and `/add-app` rewire every consumer and the tier's whole spec/scheme set. These four are pinned precisely so they cannot quietly run on a cheaper session model. |
+| `model: inherit` | `/add-assets`, `/update-app-icon`, `/add-permission`, `/update-theme`, `/status`, `/translate`, `/add-secret` | Bounded, single-destination edits over an already-decided architecture, each backed by a script that refuses an ambiguous destination. Nothing here justifies overriding the developer's own `/model` choice, so they inherit it. |
+
+A pinned `model:` **replaces** the session model for that Skill's run — there is no per-invocation override flag, and `/model` cannot lower a pinned Skill. The escape hatch is editing the frontmatter in the project's own copy (`inherit` hands the choice back to `/model`). Any Skill added later declares one of the two tiers explicitly; an absent `model:` key is a defect, not a third tier.
+
+Two known edges, both accepted rather than worked around. A bare `opus` alias is not the same selectable model as *Opus (1M context)*, so a developer running a 1M-context session may drop to the standard window for the duration of a pinned Skill — accepted, because a pinned model ID carrying the `1m` tag is exactly the staleness this alias choice avoids, and standard-window Opus at high effort still beats an inherited cheaper model for this work. And where an org restricts models (`availableModels`), a pinned alias that isn't on the allowlist is discarded and the session model is kept — the Skill still runs, just not necessarily at its declared tier.
+
+Because `/start` §0 copies `.claude/` into the target project, these tiers propagate into every project scaffolded from this template — that is the intent, not a side effect. The copy is merge-only, so a project that already carries its own `.claude/skills/` (an adopted repo, or one scaffolded before this key existed) keeps it untouched and does not gain the keys on a re-run.
+
 **Topology branch, applied by every Skill below.** At T1 there is one destination and no question to ask. At T2/T3 the config lists modules and apps; each Skill resolves its destination in this order: an explicit `--module`/`--app` argument → the config's declared default → **stop and ask**. No Skill may guess a destination when the config declares more than one candidate, and none may write into a module whose kind forbids it (a framework can't own an `Info.plist` permission; a leaf logic package can't own an asset catalog).
 
 ### 4.1 `/new-feature [--module <M>] <name> "field:Type,..."`
@@ -806,6 +819,7 @@ These four are the questions a developer actually asks on day one, and none of t
 - [ ] `ios-ai-skeleton/` repo per §1.1 — no `App/`, `Features/`, `project.yml`, `.xcworkspace`, or `ios-skeleton.config.json`
 - [ ] `.claude/skills/start/SKILL.md` implementing all of §2, including the topology branch and the Path 3 adoption flow
 - [ ] `.claude/skills/{new-feature,add-assets,update-app-icon,add-permission,update-theme,status,add-module,add-app,translate,add-secret}/`, each gated by §1.3 and each implementing §4's destination-resolution rule
+- [ ] Every `SKILL.md` — `/start` and all ten — declares §4's tier in frontmatter: `model: opus` + `effort: high` on the four cross-cutting Skills, `model: inherit` on the other seven (alias form, never a pinned model ID)
 - [ ] `Scripts/templates/{mvvm-swiftui-navigationstack,vip-swiftui-navigationstack,vip-uikit-coordinator,mvc-uikit-coordinator}/` fully authored (§1.4); other combinations left template-assisted
 - [ ] `Scripts/templates/persistence/{swiftdata,coredata}/` (§3.8) and `Scripts/templates/logging/` (§8.6)
 - [ ] `Scripts/check_secrets.sh` (§8.3) — empty-value, parity and URL-shape checks, passing on both a missing file and an offline project

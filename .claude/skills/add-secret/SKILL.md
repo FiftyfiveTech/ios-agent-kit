@@ -1,6 +1,7 @@
 ---
 name: add-secret
 description: Add configuration key/value pairs to Secrets.xcconfig, surface them in each app target's Info.plist, and expose them through the shared AppEnvironment util so any layer can read them. Use for "/add-secret KEY=value" or "the app needs an analytics host URL". Refuses to write a live credential — those you paste in by hand.
+model: inherit
 ---
 
 # /add-secret `[--app <A>] [KEY=value ...]`

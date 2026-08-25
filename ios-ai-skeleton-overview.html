@@ -1388,20 +1388,32 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
 
       <p>Each already knows your recorded answers, so you never restate them.</p>
 
+      <p>Each declares its model in <code>SKILL.md</code> frontmatter, so the tier follows the work rather
+      than whatever model your session is on. Four are pinned to <b>opus at high effort</b> — the ones that
+      are irreversible or cross-cutting: <code>/start</code>, which writes the config every other command
+      reads, plus the three that rewire feature, module or app wiring. The rest declare
+      <code>model: inherit</code> and follow your <code>/model</code> choice, because a bounded,
+      single-destination edit over an already-decided architecture has no business overriding it.</p>
+
+      <p>A pinned model <i>replaces</i> the session model for that run: <code>/model sonnet</code> then
+      <code>/status</code> gives you Sonnet, but <code>/model sonnet</code> then <code>/start</code> still
+      gives you Opus. That asymmetry is the point. There's no per-invocation flag — to change one anyway,
+      edit the frontmatter in your project's own <code>.claude/skills/&lt;name&gt;/SKILL.md</code>.</p>
+
       <div class="tw">
         <table>
-          <thead><tr><th>Command</th><th>Produces</th></tr></thead>
+          <thead><tr><th>Command</th><th>Model</th><th>Produces</th></tr></thead>
           <tbody>
-            <tr><td class="cmd">/new-feature Profile "name:String"</td><td>Layer files for the chosen pattern, models in the shared package, DI and navigation registration, a passing test</td></tr>
-            <tr><td class="cmd">/add-assets logo</td><td>Image set at 1×/2×/3×, plus a generated typed accessor</td></tr>
-            <tr><td class="cmd">/update-app-icon icon.png</td><td>Icon regenerated after checking 1024², sRGB and no alpha</td></tr>
-            <tr><td class="cmd">/add-permission camera</td><td>The <code>Info.plist</code> usage key with a real string, plus a <code>PERMISSIONS.md</code> entry</td></tr>
-            <tr><td class="cmd">/update-theme</td><td>Token updated in the correct layer — shared base, or this app's override</td></tr>
-            <tr><td class="cmd">/translate es fr</td><td>Draft entries for every existing key in the target locales, marked for review</td></tr>
-            <tr><td class="cmd">/add-module Shared --kind framework</td><td>Folders, spec, test target, localization and assets if <code>--ui</code>, wired into consumers; cycles refused</td></tr>
-            <tr><td class="cmd">/add-app Companion</td><td>A second app target extending the shared base views rather than copying screens</td></tr>
-            <tr><td class="cmd">/add-secret ANALYTICS_HOST=…</td><td>Key in <code>Secrets.xcconfig</code> + the committed example, a <code>$(KEY)</code> entry in each app's <code>Info.plist</code>, and a typed <code>AppEnvironment</code> accessor. Credential-shaped values are held back for you to paste in by hand — never through the agent</td></tr>
-            <tr><td class="cmd">/status</td><td>Tier, module graph, orphaned modules, lint state, outstanding TODOs</td></tr>
+            <tr><td class="cmd">/new-feature Profile "name:String"</td><td class="mono">opus · high</td><td>Layer files for the chosen pattern, models in the shared package, DI and navigation registration, a passing test</td></tr>
+            <tr><td class="cmd">/add-assets logo</td><td class="mono">inherit</td><td>Image set at 1×/2×/3×, plus a generated typed accessor</td></tr>
+            <tr><td class="cmd">/update-app-icon icon.png</td><td class="mono">inherit</td><td>Icon regenerated after checking 1024², sRGB and no alpha</td></tr>
+            <tr><td class="cmd">/add-permission camera</td><td class="mono">inherit</td><td>The <code>Info.plist</code> usage key with a real string, plus a <code>PERMISSIONS.md</code> entry</td></tr>
+            <tr><td class="cmd">/update-theme</td><td class="mono">inherit</td><td>Token updated in the correct layer — shared base, or this app's override</td></tr>
+            <tr><td class="cmd">/translate es fr</td><td class="mono">inherit</td><td>Draft entries for every existing key in the target locales, marked for review</td></tr>
+            <tr><td class="cmd">/add-module Shared --kind framework</td><td class="mono">opus · high</td><td>Folders, spec, test target, localization and assets if <code>--ui</code>, wired into consumers; cycles refused</td></tr>
+            <tr><td class="cmd">/add-app Companion</td><td class="mono">opus · high</td><td>A second app target extending the shared base views rather than copying screens</td></tr>
+            <tr><td class="cmd">/add-secret ANALYTICS_HOST=…</td><td class="mono">inherit</td><td>Key in <code>Secrets.xcconfig</code> + the committed example, a <code>$(KEY)</code> entry in each app's <code>Info.plist</code>, and a typed <code>AppEnvironment</code> accessor. Credential-shaped values are held back for you to paste in by hand — never through the agent</td></tr>
+            <tr><td class="cmd">/status</td><td class="mono">inherit</td><td>Tier, module graph, orphaned modules, lint state, outstanding TODOs</td></tr>
           </tbody>
         </table>
       </div>

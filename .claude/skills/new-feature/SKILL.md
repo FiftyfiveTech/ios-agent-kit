@@ -1,6 +1,8 @@
 ---
 name: new-feature
 description: Generate a new feature end to end — layer files, shared Models entry, navigation registration, and a real passing unit test against a fake dependency. Use for "/new-feature <Name> [field:Type,...]" or plain English like "add a screen for X". Confirms field types, folder grouping and target module with the developer before generating anything, rather than inferring them.
+model: opus
+effort: high
 ---
 
 # /new-feature `[--module <M>] <Name>[/<Group/Path>] ["field:Type,field2:Type2,..."]`

@@ -1,6 +1,7 @@
 ---
 name: update-theme
 description: Add or edit a color/typography token in the correct Theme/ layer (shared base vs. per-app override) — never Assets.xcassets. Use for "/update-theme" or "change the primary color" / "add a new theme token".
+model: inherit
 ---
 
 # /update-theme `[--layer base|app --app <A>]`
