@@ -1,0 +1,137 @@
+import Foundation
+
+/// The one place Swift reads configuration that arrived from `Secrets.xcconfig`
+/// (§8.3). Rendered into Core by `/add-secret` the first time a project adds a key
+/// beyond the base URL — not by `/start`, because a single key does not need a
+/// wrapper and generating one before there is anything to wrap is the speculation
+/// `docs/CODING_STANDARDS.md` §8.2 warns about.
+///
+/// The path a value travels is fixed and has four segments, all of which must exist
+/// or the key is unreadable: `Secrets.xcconfig` → the app target's build settings →
+/// the app target's `Info.plist` as `$(KEY)` → an accessor below. `/add-secret`
+/// writes all four; nothing else in the app calls `Bundle.main.object(forInfoDictionaryKey:)`.
+///
+/// **`API_BASE_URL` deliberately does not live here.** It keeps its existing path
+/// through the composition root's own reader into `RequestBuilder`'s `baseURL`
+/// (§3.7). Two readers for one key, with two different failure messages, is worse
+/// than one reader in a slightly less tidy place; folding it in is a named
+/// follow-up, not a thing to do halfway.
+public struct AppEnvironment: Sendable {
+    /// The instance the app uses. A `let`, not a mutable global: tests construct
+    /// their own with a stub lookup rather than mutating shared state.
+    public static let current = AppEnvironment()
+
+    private let lookup: @Sendable (String) -> Any?
+
+    /// - Parameter lookup: how a plist key resolves. The default reads the **main
+    ///   bundle**, which is the app bundle even when this type is compiled into a
+    ///   package or framework — that is what makes one shared `AppEnvironment` work
+    ///   at T2 and T3. It is also why the seam exists: a package's test bundle has
+    ///   no `APIBaseURL` in its own `Info.plist`, so a test that wants a value
+    ///   injects one instead of trying to fake `Bundle.main`.
+    public init(lookup: @escaping @Sendable (String) -> Any? = { Bundle.main.object(forInfoDictionaryKey: $0) }) {
+        self.lookup = lookup
+    }
+
+    // MARK: - Values
+    //
+    // One accessor per key, written by /add-secret. Keep them typed — a caller that
+    // has to parse a String at the call site defeats the point of having this file.
+    // Each passes both key names, e.g.:
+    //
+    //     /// `ANALYTICS_HOST` — Secrets.xcconfig → Info.plist `AnalyticsHost`.
+    //     public var analyticsHost: URL { url("AnalyticsHost", xcconfig: "ANALYTICS_HOST") }
+
+    // MARK: add-secret-insertion-point
+
+    // MARK: - Readers
+    //
+    // These fail loudly and specifically, in the same three-condition shape the
+    // composition root's base-URL reader uses, because each condition sends the
+    // developer to a different file: the key is absent (the Info.plist wiring never
+    // happened), it resolved to empty (blank or missing in Secrets.xcconfig —
+    // `$(KEY)` expands to an empty string either way, so the message must not claim
+    // which), or it did not parse as the requested type. A configuration value that
+    // silently falls back to a default is how an app ends up talking to the wrong
+    // server for a week.
+
+    /// A required string value. Traps if absent or empty.
+    ///
+    /// - Parameters:
+    ///   - plistKey: the `Info.plist` key.
+    ///   - xcconfigKey: the `Secrets.xcconfig` key feeding it. It exists purely so
+    ///     the failure messages can name both halves of the wiring — a message that
+    ///     says "add the plist entry" without naming the build setting to point it
+    ///     at sends the developer to the right file and leaves them guessing there.
+    public func string(_ plistKey: String, xcconfig xcconfigKey: String) -> String {
+        guard let raw = lookup(plistKey) else {
+            preconditionFailure(
+                "\(plistKey) is missing from this target's Info.plist. Add "
+                + "\(plistKey) = $(\(xcconfigKey)) to it — see docs/CODING_STANDARDS.md."
+            )
+        }
+        let trimmed = String(describing: raw).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            preconditionFailure(
+                "\(plistKey) resolved to an empty string. Set \(xcconfigKey) in "
+                + "Secrets.xcconfig — it is either blank there or missing entirely. "
+                + "Secrets.xcconfig.example records every key the build expects."
+            )
+        }
+        return trimmed
+    }
+
+    /// An optional string value — for a key a build may legitimately omit. Prefer
+    /// `string(_:)`: an optional here means every call site has to decide what
+    /// absence means, and they will not all decide the same way.
+    public func optionalString(_ plistKey: String) -> String? {
+        guard let raw = lookup(plistKey) else { return nil }
+        let trimmed = String(describing: raw).trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// A required absolute URL. Checks `scheme` **and** `host`, not just that
+    /// `URL(string:)` returned something: `//` opens a comment in xcconfig, so an
+    /// un-escaped `https://host` arrives truncated to `https:` and parses happily
+    /// with a nil host, and a scheme-less `host.example.com` parses as a relative
+    /// URL. Both would otherwise reach a request and fail every call.
+    public func url(_ plistKey: String, xcconfig xcconfigKey: String) -> URL {
+        let value = string(plistKey, xcconfig: xcconfigKey)
+        guard let url = URL(string: value), url.scheme != nil, url.host != nil else {
+            preconditionFailure(
+                "\(plistKey) is not an absolute URL — got \"\(value)\". It needs both "
+                + "a scheme and a host. If that value looks truncated, remember `//` "
+                + "starts a comment in xcconfig: write https:/$()/host, not https://host."
+            )
+        }
+        return url
+    }
+
+    /// A required boolean. Accepts the spellings a human writes in an xcconfig —
+    /// everything else traps rather than quietly reading as `false`, which is the
+    /// bug this method exists to prevent.
+    public func bool(_ plistKey: String, xcconfig xcconfigKey: String) -> Bool {
+        let value = string(plistKey, xcconfig: xcconfigKey).lowercased()
+        switch value {
+        case "1", "true", "yes": return true
+        case "0", "false", "no": return false
+        default:
+            preconditionFailure(
+                "\(plistKey) is not a boolean — got \"\(value)\". Write one of "
+                + "1/0, true/false or yes/no for \(xcconfigKey) in Secrets.xcconfig."
+            )
+        }
+    }
+
+    /// A required integer.
+    public func int(_ plistKey: String, xcconfig xcconfigKey: String) -> Int {
+        let value = string(plistKey, xcconfig: xcconfigKey)
+        guard let number = Int(value) else {
+            preconditionFailure(
+                "\(plistKey) is not an integer — got \"\(value)\". Fix "
+                + "\(xcconfigKey) in Secrets.xcconfig."
+            )
+        }
+        return number
+    }
+}

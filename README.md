@@ -36,8 +36,8 @@ Full walkthrough: [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 ## What's in here
 
 ```
-.claude/skills/    — /start plus 9 routine-work Skills (new-feature, add-module,
-                      translate, ...)
+.claude/skills/    — /start plus 10 routine-work Skills (new-feature, add-module,
+                      add-secret, translate, ...)
 Scripts/           — lint, string/color/secrets enforcement, codegen, four fully-authored
                       file-template sets (see Architecture below), plus the
                       persistence/, logging/ and config/ templates /start renders

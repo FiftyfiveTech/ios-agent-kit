@@ -259,10 +259,12 @@ exists for. On a fresh `/start` it passes, because the file was just copied from
 the example; a failure here means something else in this step went wrong. It also
 passes by design on an offline project, where `API_BASE_URL` was stripped.
 
-Do not invent an `AppEnvironment` type on a one-environment project — the
-`Info.plist` key plus `RequestBuilder`'s injected `baseURL` already is the seam.
-Add `AppEnvironment` when a second configuration appears, and say so in
-`TODO.md` rather than generating it now (`docs/CODING_STANDARDS.md`).
+Do not generate an `AppEnvironment` type here, and do not leave a `TODO.md`
+entry asking for one. On a project with one key the `Info.plist` entry plus
+`RequestBuilder`'s injected `baseURL` already is the seam. The moment a second
+key appears, `/add-secret` renders `AppEnvironment` into Core itself — on first
+use, the way `docs/PERMISSIONS.md` appears on the first `/add-permission`. Point
+the developer at that Skill in §1.10's report instead of at a TODO.
 
 ### 1.6 Git
 

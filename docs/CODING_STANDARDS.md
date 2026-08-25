@@ -100,11 +100,35 @@ generate.
   string is extractable from the IPA. Client-side keys go in `Secrets.xcconfig`
   only when the vendor's threat model allows a public key; anything genuinely
   sensitive stays server-side behind an endpoint you control.
-- One `AppEnvironment` type resolving base URL and endpoints is the right shape
-  **once a second configuration exists**. Before that, the `Info.plist` key plus
-  `RequestBuilder`'s injected `baseURL` is already the seam, and a wrapper type
-  adds indirection without a second case to justify it (same threshold as the
-  protocol rule in §8.2).
+- **Add a key with `/add-secret`, never by hand.** A configuration value is only
+  reachable when four things exist, and the Skill is what keeps them together:
+  the value in `Secrets.xcconfig`, the key in `Secrets.xcconfig.example`, a
+  `$(KEY)` entry in **each** app target's `Info.plist`, and a typed accessor on
+  `AppEnvironment`. An xcconfig assignment is a build setting — without the
+  plist entry, Swift cannot see it at all.
+- **`AppEnvironment` is the one reader.** `/add-secret` renders it into Core
+  (shared module, not the app — so a feature in any module can read config
+  without the app threading it down) the first time a project adds a key beyond
+  the base URL. Once it exists, nothing else calls
+  `Bundle.main.object(forInfoDictionaryKey:)`. `API_BASE_URL` is the standing
+  exception: it keeps its composition-root path into `RequestBuilder`'s
+  `baseURL`, because two readers for one key with two different failure
+  messages is worse than one reader in a less tidy place.
+- **Never paste a real credential into a prompt.** `/add-secret` is normally
+  driven by an AI agent, and a value typed into a prompt lives in that
+  transcript, in the model's context, and in every log along the way — long
+  after you rotate it. `Scripts/add_secret.sh` refuses to write a
+  credential-shaped value — a vendor-prefixed token, a high-entropy blob, or any
+  key whose name contains `KEY`, `SECRET`, `TOKEN`, `PASSWORD`, `PASSWD`,
+  `CREDENTIAL(S)`, `PRIVATE`, `CERT`, `SIGNING`, `DSN`, `AUTH`, `APIKEY` or
+  `PAT` carrying anything other than a placeholder. It declares such a key
+  *commented out* in both files, does the rest of the wiring, and leaves you to
+  uncomment the line in the gitignored `Secrets.xcconfig` and paste the value in
+  yourself, out of band. The name half of that list is intentionally over-broad
+  — `AUTH_BASE_URL` is held back too; rename the key or uncomment it yourself.
+  Use the Skill freely for hosts, endpoints and flags; do the last step by hand
+  for anything that authenticates. "It's only staging" is not an exemption —
+  staging credentials are credentials.
 
 ### Writing a URL in xcconfig — how the `$()` escape works
 
