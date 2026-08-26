@@ -207,14 +207,14 @@ while IFS= read -r pair; do
     # required state check_secrets.sh already understands; in Secrets.xcconfig it
     # keeps the two in parity while the value is still missing, so the commit that
     # adds the key does not fail on an empty value.
-    printf '\n// %s — added by /add-secret. Uncomment and paste the real value here;\n// this file is gitignored. Never paste a live credential through an AI agent.\n// %s =\n' \
+    printf '\n// %s — paste the real value here yourself and uncomment. Gitignored.\n// Never through an AI agent: the prompt outlives the key.\n// %s =\n' \
       "$key" "$key" >> "$SECRETS"
-    printf '\n// %s — required. Uncomment it in your own Secrets.xcconfig and fill it in;\n// the real value is never recorded in this committed file.\n// %s =\n' \
+    printf '\n// %s — required. Uncomment and fill in in your own Secrets.xcconfig.\n// %s =\n' \
       "$key" "$key" >> "$EXAMPLE"
     HELD_BACK="$HELD_BACK $key"
   else
-    printf '\n// %s — added by /add-secret.\n%s = %s\n' "$key" "$key" "$escaped" >> "$SECRETS"
-    printf '\n// %s — added by /add-secret. Placeholder: the committed file records which\n// keys exist, never their values.\n%s = %s\n' "$key" "$key" "$PLACEHOLDER" >> "$EXAMPLE"
+    printf '\n%s = %s\n' "$key" "$escaped" >> "$SECRETS"
+    printf '\n%s = %s\n' "$key" "$PLACEHOLDER" >> "$EXAMPLE"
     echo "add_secret.sh: $key written to $SECRETS, placeholder recorded in $EXAMPLE."
   fi
   WROTE=$((WROTE + 1))
