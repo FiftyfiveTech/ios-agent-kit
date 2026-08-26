@@ -1,20 +1,14 @@
 import UIKit
 __MODULE_IMPORTS__
 
-// Composition root AND navigation owner (§3.4) — the ONE navigation mechanism for
-// the whole app. /new-feature registers each new screen's composition as a
-// make<Feature>ViewController() factory at the marker below — never touch it by
-// hand. If the app grows a tab bar, each tab gets its OWN Coordinator/
-// UINavigationController — never a single shared one (§3.5).
-//
-// /start renders this file with no feature baked in, then runs
-// `Scripts/new_feature.sh <StarterFeature>` (the same path /new-feature takes) to
-// populate the factory, and finally replaces the placeholder root screen below
-// with `make<StarterFeature>ViewController()` — the one substitution that isn't
-// marker-driven, because there is exactly one root screen, ever.
-// @MainActor because it owns a UINavigationController and constructs screens —
-// true regardless of Q4, and what lets a feature factory below touch a
-// main-actor-isolated persistence context without further annotation.
+/// Owns the app's navigation stack and composes each screen's dependencies.
+///
+/// This is the app's one navigation mechanism. `/new-feature` registers each new
+/// screen as a `make<Feature>ViewController()` factory at the marker below; don't
+/// edit that by hand. If the app grows a tab bar, each tab gets its own
+/// `AppCoordinator` and `UINavigationController` — never one shared instance.
+///
+/// `@MainActor` because it owns a `UINavigationController` and builds screens.
 @MainActor
 public final class AppCoordinator {
     private let navigationController: UINavigationController
@@ -42,6 +36,7 @@ __IF_PERSISTENCE__
 __END_PERSISTENCE__
     }
 
+    /// Installs the root screen. Called once, from the composition root.
     public func start() {
         // MARK: starter-feature-root-screen-insertion-point
         navigationController.setViewControllers(
@@ -50,10 +45,12 @@ __END_PERSISTENCE__
         )
     }
 
+    /// Pushes `viewController` onto the stack.
     public func push(_ viewController: UIViewController) {
         navigationController.pushViewController(viewController, animated: true)
     }
 
+    /// Pops the top screen.
     public func pop() {
         navigationController.popViewController(animated: true)
     }
@@ -61,5 +58,5 @@ __END_PERSISTENCE__
     // MARK: new-feature-factory-insertion-point
 }
 
-// Replace with the starter feature's root screen — see /start.
+/// Placeholder root screen, replaced by the starter feature during setup.
 private final class PlaceholderRootViewController: UIViewController {}

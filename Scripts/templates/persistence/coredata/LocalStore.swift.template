@@ -2,16 +2,13 @@ import CoreData
 import Foundation
 __MODULE_IMPORTS__
 
-// The local half of this feature's data layer (Q4 = Core Data). Generated only
-// when the project chose a persistence stack — the remote path (Service/Worker)
-// is generated either way and never changes shape (§3.8).
-//
-// Honest scoping (§10): the SwiftData variant of this file is fully generated,
-// this one is a compiling seam with its two operations left to write. A Core Data
-// entity lives in a `.xcdatamodeld` that can't be text-templated, so the entity
-// must exist before this store can do anything. Until it does, `loadCached...`
-// returns nothing and the Repository/Worker simply falls back to rethrowing the
-// remote error — the app behaves exactly like a persistence: None project.
+/// Core Data-backed cache for the __FEATURE__ list.
+///
+/// Both operations are unimplemented until the app's `.xcdatamodeld` defines a
+/// `__FEATURE__Entity` — a Core Data entity can't be generated from text. Until
+/// then `loadCached__FEATURE__List()` returns nothing and the layer above falls
+/// back to rethrowing the remote error, so the app behaves as if it had no local
+/// store at all.
 @MainActor
 struct __FEATURE__LocalStore: __FEATURE__LocalStoreProtocol {
     private let context: NSManagedObjectContext
@@ -20,12 +17,14 @@ struct __FEATURE__LocalStore: __FEATURE__LocalStoreProtocol {
         self.context = context
     }
 
+    /// Returns every cached item, or an empty array when nothing is cached.
     func loadCached__FEATURE__List() async throws -> [__FEATURE__Model] {
         // TODO(agent): define a `__FEATURE__Entity` in the app's `.xcdatamodeld`,
         // then fetch it here and map each managed object to __FEATURE__Model.
         []
     }
 
+    /// Replaces the whole cached list with `items`.
     func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws {
         // TODO(agent): map each __FEATURE__Model onto `__FEATURE__Entity`, then
         // `try context.save()`. Match the SwiftData variant's replace-all policy

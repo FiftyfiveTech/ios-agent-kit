@@ -1,9 +1,13 @@
 import SwiftUI
 
-// Base type-scale tokens (§6). Same base/override split as ThemeColor (§3.11).
+/// The app's type scale. Every font in the app comes from here.
 public enum ThemeFont {
+    /// Screen and section titles.
     public static let title = Font.system(.title2, design: .rounded).weight(.semibold)
+    /// Emphasised text within a screen.
     public static let headline = Font.system(.headline)
+    /// Default body text.
     public static let body = Font.system(.body)
+    /// Secondary and supporting text.
     public static let caption = Font.system(.caption)
 }

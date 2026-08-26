@@ -1,21 +1,17 @@
 import Foundation
 
-/// The one place Swift reads configuration that arrived from `Secrets.xcconfig`
-/// (§8.3). Rendered into Core by `/add-secret` the first time a project adds a key
-/// beyond the base URL — not by `/start`, because a single key does not need a
-/// wrapper and generating one before there is anything to wrap is the speculation
-/// `docs/CODING_STANDARDS.md` §8.2 warns about.
+/// The one place Swift reads configuration that arrived from `Secrets.xcconfig`.
 ///
-/// The path a value travels is fixed and has four segments, all of which must exist
-/// or the key is unreadable: `Secrets.xcconfig` → the app target's build settings →
-/// the app target's `Info.plist` as `$(KEY)` → an accessor below. `/add-secret`
-/// writes all four; nothing else in the app calls `Bundle.main.object(forInfoDictionaryKey:)`.
+/// The path a value travels is fixed and has four segments, all of which must
+/// exist or the key is unreadable: `Secrets.xcconfig` → the app target's build
+/// settings → the app target's `Info.plist` as `$(KEY)` → an accessor below.
+/// `/add-secret` writes all four; nothing else in the app calls
+/// `Bundle.main.object(forInfoDictionaryKey:)`.
 ///
-/// **`API_BASE_URL` deliberately does not live here.** It keeps its existing path
-/// through the composition root's own reader into `RequestBuilder`'s `baseURL`
-/// (§3.7). Two readers for one key, with two different failure messages, is worse
-/// than one reader in a slightly less tidy place; folding it in is a named
-/// follow-up, not a thing to do halfway.
+/// **`API_BASE_URL` deliberately does not live here.** It keeps its own path
+/// through the composition root's reader into `RequestBuilder`'s `baseURL` — two
+/// readers for one key, with two different failure messages, would be worse than
+/// one reader in a slightly less tidy place.
 public struct AppEnvironment: Sendable {
     /// The instance the app uses. A `let`, not a mutable global: tests construct
     /// their own with a stub lookup rather than mutating shared state.

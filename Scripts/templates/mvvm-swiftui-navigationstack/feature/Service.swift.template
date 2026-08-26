@@ -1,10 +1,7 @@
 import Foundation
 __MODULE_IMPORTS__
 
-// Wired to the chosen networking stack via RequestBuilder + APIClient — never a
-// second networking path (§4.1). __FEATURE__ServiceProtocol (declared in
-// Repository.swift) is what Repository actually depends on; this is its
-// implementation.
+/// Remote data source for __FEATURE__, over the app's shared networking stack.
 struct __FEATURE__Service: __FEATURE__ServiceProtocol {
     private let requestBuilder: RequestBuilder
     private let apiClient: APIClient
@@ -14,6 +11,7 @@ struct __FEATURE__Service: __FEATURE__ServiceProtocol {
         self.apiClient = apiClient
     }
 
+    /// Fetches the __FEATURE__ list from the API.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         let request = requestBuilder.request(path: "__FEATURE_LOWER__")
         return try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)

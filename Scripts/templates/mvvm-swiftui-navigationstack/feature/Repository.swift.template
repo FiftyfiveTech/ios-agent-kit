@@ -1,23 +1,26 @@
 import Foundation
 __MODULE_IMPORTS__
 
-// __FEATURE__ServiceProtocol lives here, not in Service.swift — Repository is its
-// consumer (§8.2).
+/// The remote data source this feature's repository depends on.
+///
+/// Declared here rather than beside its implementation because a protocol is
+/// owned by its consumer.
 protocol __FEATURE__ServiceProtocol {
+    /// Fetches the __FEATURE__ list from the API.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
 }
 __IF_PERSISTENCE__
 
-// Same rule for the local half of the data layer: the Repository consumes it, so
-// the Repository declares it. This exists only because the project answered Q4
-// with a persistence stack — a `persistence: None` project's Repository is
-// remote-only, with no second dependency to construct or fake (§3.8).
+/// The local cache this feature's repository depends on.
 protocol __FEATURE__LocalStoreProtocol {
+    /// Returns the cached items, or an empty array when nothing is cached.
     func loadCached__FEATURE__List() async throws -> [__FEATURE__Model]
+    /// Replaces the cached items with `items`.
     func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws
 }
 __END_PERSISTENCE__
 
+/// Supplies __FEATURE__ data to the ViewModel, hiding where it came from.
 struct __FEATURE__Repository: __FEATURE__RepositoryProtocol {
     private let service: __FEATURE__ServiceProtocol
 __IF_PERSISTENCE__
@@ -28,9 +31,11 @@ __IF_PERSISTENCE__
         self.localStore = localStore
     }
 
-    // Remote is the source of truth; the cache is a fallback consulted only when
-    // the network call actually failed. An empty cache rethrows that error rather
-    // than reporting an empty screen as a success.
+    /// Fetches from the network and caches the result, falling back to the cache
+    /// only when the request failed.
+    ///
+    /// - Throws: the network error when the request fails and the cache is empty —
+    ///   an empty screen is not reported as a success.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         do {
             let items = try await service.fetch__FEATURE__List()
@@ -48,6 +53,7 @@ __ELSE_PERSISTENCE__
         self.service = service
     }
 
+    /// Fetches the __FEATURE__ list from the remote service.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         try await service.fetch__FEATURE__List()
     }

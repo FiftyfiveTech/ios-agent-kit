@@ -1,29 +1,24 @@
 import Foundation
 
-// No __MODULE_IMPORTS__ token here, deliberately: this file only references
-// `Route`/`Router`, which live in app-shell — the same module as this feature
-// at every tier (§3.9) — unlike Presenter.swift/Interactor.swift, which need
-// Models.
-//
-// This is VIP's own per-scene Router — NOT the app-wide navigation Router
-// (already defined in app-shell/Router.swift.template, which owns the
-// NavigationPath for the whole app — §3.4/§1.4). This file decides WHERE this
-// scene should go next; it never owns navigation state itself, and it hands
-// the actual push off to whichever app-wide mechanism §3.4 selected.
-//
-// A narrow capability protocol, rather than importing the concrete app-wide
-// `Router` type by name, keeps this file (and anything that tests it) from
-// needing to construct the whole app's navigation stack just to exercise a
-// scene's routing decision. The app-wide `Router` (app-shell) already has a
-// matching `push(_ route: Route)` method, so it conforms to this protocol for
-// free via the empty extension below — no second navigation path is
-// introduced (§3.4).
+// This file needs no module imports: it references only `Route` and `Router`,
+// which live in the same module as this feature at every tier.
+/// The narrow slice of navigation this scene needs.
+///
+/// Depending on a capability rather than the concrete app-wide `Router` means a
+/// test can exercise this scene's routing without building the whole navigation
+/// stack. The app-wide `Router` already has a matching method, so it conforms for
+/// free below — no second navigation path is introduced.
 protocol __FEATURE__Pushing {
+    /// Navigates to `route`.
     func push(_ route: Route)
 }
 
 extension Router: __FEATURE__Pushing {}
 
+/// Decides where the __FEATURE__ scene goes next.
+///
+/// It owns navigation *decisions* for one scene, never navigation state — the
+/// app-wide `Router` owns that.
 struct __FEATURE__Router {
     private let pushing: __FEATURE__Pushing
 
@@ -31,9 +26,8 @@ struct __FEATURE__Router {
         self.pushing = pushing
     }
 
-    // TODO(agent): route to the next screen once this feature has one to
-    // push — the starter feature ships with zero Route cases, the same honest
-    // starting state as the MVVM combo (§1.4). e.g.:
+    // TODO(agent): route to the next screen once this feature has one to push.
+    // There are no Route cases yet. e.g.:
     //   func showDetail(id: String) {
     //       pushing.push(.__FEATURE_LOWER__Detail)
     //   }

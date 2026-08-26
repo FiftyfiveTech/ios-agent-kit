@@ -1,13 +1,9 @@
-// The nested Request/Response/ViewState namespace for classic VIP's unidirectional
-// flow (§3.3). new_feature.sh already writes the flat entity struct
-// (__FEATURE__Model) to Models/__FEATURE__Models.swift from the field:Type args —
-// this file supplies only the wrapping namespace, appended alongside it into that
-// SAME file. No `import` here on purpose: the entity-struct file already opens
-// with `import Foundation`, so a second import here would duplicate it at T1, and
-// `__MODULE_IMPORTS__` would render `import Models` from *inside* the Models
-// module itself at T2/T3 — a self-import. Nothing in this namespace needs an
-// import beyond what the entity struct already brought in.
+// No import here on purpose: this namespace is appended to the same file as the
+// entity struct, which already imports what it needs.
+
+/// Namespace for the structs that carry data between this feature's layers.
 public enum __FEATURE__ {
+    /// The load use case: what's asked for, what came back, what's shown.
     public enum Load {
         public struct Request {
             public init() {}

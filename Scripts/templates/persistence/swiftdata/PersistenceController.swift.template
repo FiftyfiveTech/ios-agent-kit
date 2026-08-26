@@ -1,28 +1,26 @@
 import Foundation
 import SwiftData
 
-// Local persistence bootstrap (Q4 = SwiftData). Rendered by /start ONLY when the
-// project chose a persistence stack — a "None" project never gets this file, and
-// no generated feature references a local store (§3.8).
-//
-// This is the one place a ModelContainer is created. Every feature's
-// <Feature>LocalStore takes `context` by initializer injection from the
-// composition root — nothing else reaches for `.shared`.
+/// The app's SwiftData stack.
+///
+/// The one place a `ModelContainer` is created. Every feature's local store takes
+/// `context` by initializer injection from the composition root — nothing below
+/// that root reaches for `.shared`.
 public final class PersistenceController {
+    /// The app-wide instance, constructed at the composition root.
     public static let shared = PersistenceController()
 
+    /// The container backing every local store.
     public let container: ModelContainer
 
     /// The main-actor context every LocalStore reads and writes through.
     @MainActor
     public var context: ModelContext { container.mainContext }
 
+    /// - Parameter inMemory: use a throwaway store, for tests and previews.
     public init(inMemory: Bool = false) {
-        // One @Model record type per feature, inserted by Scripts/new_feature.sh
-        // at the marker below — never edited by hand. The list is momentarily
-        // empty between /start rendering this file and /start running
-        // new_feature.sh for the starter feature; the app is never launched in
-        // that window.
+        // One @Model record type per feature. /new-feature inserts each one at the
+        // marker below — don't edit the list by hand.
         let schema = Schema([
             // MARK: new-feature-model-insertion-point
         ])

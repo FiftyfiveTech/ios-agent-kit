@@ -1,33 +1,25 @@
 import SwiftUI
 __MODULE_IMPORTS__
 
-// Composition root. Manual initializer injection (Q9 default) — dependencies are
-// constructed here and threaded down, no container. /new-feature registers each
-// new screen's composition as a make<Feature>View() factory and a case in
-// destination(for:) at the markers below — never touch either by hand.
-//
-// /start renders this file with no feature baked in, then runs
-// `Scripts/new_feature.sh <StarterFeature>` (the same path /new-feature takes) to
-// populate both markers, and finally replaces the placeholder root view below with
-// make<StarterFeature>View() — the one substitution that isn't marker-driven,
-// because there is exactly one root view, ever.
+/// The app's entry point and composition root.
+///
+/// Dependencies are constructed here and passed down by initializer — there is no
+/// container. `/new-feature` registers each new screen as a `make<Feature>View()`
+/// factory and a `destination(for:)` case at the markers below; don't edit those
+/// by hand.
 @main
 struct __APP_NAME__App: App {
     @State private var router = Router()
 
 __IF_NETWORKING__
-    // Base URL comes from Secrets.xcconfig via Info.plist's APIBaseURL key (§8.3) —
-    // never a literal here, and never inside a Service. Set the real value in
-    // Secrets.xcconfig (gitignored); Secrets.xcconfig.example records the keys.
+    /// Builds every request in the app, using the base URL resolved below.
     private let requestBuilder = RequestBuilder(baseURL: __APP_NAME__App.apiBaseURL)
     private let apiClient: APIClient = URLSessionAPIClient()
 __END_NETWORKING__
 __IF_PERSISTENCE__
 
-    // Local persistence (Q4). One container for the whole app, constructed here in
-    // the composition root and injected into each feature's LocalStore — nothing
-    // below this file reaches for PersistenceController.shared. Rendered only when
-    // the project chose a persistence stack (§3.8).
+    /// The app's single persistence container, injected into each feature's local
+    /// store. Nothing below this file reaches for `PersistenceController.shared`.
     private let persistence = PersistenceController.shared
 __END_PERSISTENCE__
 
@@ -54,24 +46,18 @@ __END_PERSISTENCE__
     }
 __IF_NETWORKING__
 
-    // Crashing at launch is the correct behavior here: a missing or malformed base
-    // URL means every request in the app is misconfigured, and failing loudly at
-    // startup beats a screen of empty states. This is the sanctioned exception to
-    // the force-unwrap policy in docs/CODING_STANDARDS.md.
-    //
-    // This whole block is absent on a `networking: none` project — an offline app
-    // has no RequestBuilder to feed, so there is nothing to resolve and nothing to
-    // crash about. The rule is "don't render the reader", never "make the read
-    // tolerant": a networked app that silently falls back to a default URL is the
-    // failure this guard exists to prevent — which is why the checks below get
-    // stricter, never softer.
-    //
-    // Three separate failures, three separate messages, because each one sends you
-    // to a different file. The scheme and host checks are load-bearing rather than
-    // belt-and-braces: `//` starts a comment in xcconfig, so pasting `https://host`
-    // unescaped truncates the value to `https:`, which URL(string:) parses happily
-    // with a nil host — and a scheme-less `host.example.com` parses as a relative
-    // URL. Both would otherwise reach RequestBuilder and break every request.
+    /// The API base URL, read from this target's `Info.plist`.
+    ///
+    /// Crashes at launch if it is missing, blank, or not an absolute URL. That is
+    /// deliberate: a misconfigured base URL breaks every request in the app, and
+    /// failing loudly at startup beats a screen of empty states. Never add a
+    /// fallback URL here.
+    ///
+    /// The scheme and host checks are load-bearing, not belt-and-braces: `//`
+    /// starts a comment in xcconfig, so an unescaped `https://host` arrives
+    /// truncated to `https:`, which parses fine with a nil host — and a
+    /// scheme-less `host.example.com` parses as a relative URL. Each of the three
+    /// failures gets its own message because each sends you to a different file.
     private static var apiBaseURL: URL {
         guard let raw = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String else {
             preconditionFailure(

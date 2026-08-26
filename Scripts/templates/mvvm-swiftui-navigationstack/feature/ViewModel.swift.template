@@ -2,23 +2,32 @@ import Foundation
 import Observation
 __MODULE_IMPORTS__
 
-// __FEATURE__RepositoryProtocol is declared here, not in Repository.swift — a
-// protocol is owned by the module that CONSUMES it, never the one that
-// implements it (§8.2). ViewModel is the Repository's only consumer for this
-// feature, so there is no separate business-logic layer in between.
+/// The data source this feature's ViewModel depends on.
+///
+/// Declared here rather than beside its implementation because a protocol is
+/// owned by its consumer. The ViewModel talks to it directly — there is no
+/// separate business-logic layer in between.
 protocol __FEATURE__RepositoryProtocol {
+    /// Returns every __FEATURE__ item to display.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
 }
 
+/// View state for the __FEATURE__ screen.
 @Observable
 final class __FEATURE__ViewModel {
+    /// What the screen should currently render.
     enum State {
+        /// Nothing requested yet.
         case idle
+        /// A load is in flight.
         case loading
+        /// A load succeeded, with the items it returned.
         case loaded([__FEATURE__Model])
+        /// A load failed, with a message to show the user.
         case error(String)
     }
 
+    /// The current state. The View renders exactly this.
     private(set) var state: State = .idle
 
     private let repository: __FEATURE__RepositoryProtocol
@@ -27,6 +36,7 @@ final class __FEATURE__ViewModel {
         self.repository = repository
     }
 
+    /// Loads the list, moving through `.loading` to `.loaded` or `.error`.
     func load() async {
         state = .loading
         do {

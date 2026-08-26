@@ -2,14 +2,11 @@ import XCTest
 __MODULE_IMPORTS__
 __TESTABLE_IMPORT__
 
-// A real, passing unit test against a fake dependency (§4.1) — the fake is a
-// second conformance to __FEATURE__ServiceProtocol, not a mocking framework
-// (§8.2). `state` is a plain property here (no @Observable/Combine — this is
-// UIKit/MVC), so the test constructs the ViewController directly, awaits
-// load(), and asserts on state via guard case. @MainActor because
-// UIViewController (and therefore __FEATURE__ViewController's init/state) is
-// main-actor-isolated — without this the test won't compile under the Swift 6
-// language mode.
+/// Covers the ViewController's load path against a fake service.
+///
+/// `state` is a plain property, so the test constructs the ViewController
+/// directly, awaits `load()`, and asserts on the resulting state. `@MainActor` is
+/// required: `UIViewController` is main-actor-isolated.
 @MainActor
 final class __FEATURE__ViewControllerTests: XCTestCase {
     func test_load_setsStateToLoadedWithServiceResults() async {
@@ -57,12 +54,12 @@ private final class Fake__FEATURE__Service: __FEATURE__ServiceProtocol {
 
 __IF_PERSISTENCE__
 
-// The read-through policy is the densest logic /new-feature generates, so it
-// carries its own coverage (§3.8): remote wins when it succeeds and is cached,
-// the cache answers when the remote call fails, and an empty cache rethrows the
-// remote error rather than reporting an empty screen as success. Both fakes are
-// second conformances, not mocks (§8.2). Delete these tests only if you replace
-// the policy — a feature that pages or syncs deltas needs its own.
+/// Covers the read-through cache policy: remote wins when it succeeds and is
+/// cached, the cache answers when the remote call fails, and an empty cache
+/// rethrows the remote error rather than reporting an empty screen as success.
+///
+/// Delete these only if you replace the policy — a feature that pages or syncs
+/// deltas needs its own.
 final class __FEATURE__ServiceReadThroughTests: XCTestCase {
     private let requestBuilder = RequestBuilder(baseURL: URL(string: "https://example.test")!)
 

@@ -1,10 +1,10 @@
 import Foundation
 
-// One Route case per screen the Router can push. SwiftUI `NavigationStack` + Router
-// (§3.4) — the ONE navigation mechanism for the whole app (§3.4). /new-feature
-// inserts a new case directly above the marker; it never introduces a second
-// navigation path. Shipped with zero cases — /start populates the first one by
-// running new_feature.sh for the starter feature, same as every /new-feature call.
+/// Every screen the app can navigate to — one case per destination.
+///
+/// This is the app's single navigation vocabulary. `/new-feature` inserts a case
+/// at the marker below; don't add one by hand and don't introduce a second
+/// navigation mechanism alongside it.
 public enum Route: Hashable {
     // MARK: new-feature-route-insertion-point
 }

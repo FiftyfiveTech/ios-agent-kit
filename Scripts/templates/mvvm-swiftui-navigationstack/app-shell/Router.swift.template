@@ -1,23 +1,30 @@
 import Foundation
 import Observation
 
-// Holds the NavigationPath for the whole app. If the app grows a tab bar, each tab
-// gets its OWN Router/NavigationStack instance — never a single shared one (§3.5).
+/// Owns the navigation stack for one flow.
+///
+/// If the app grows a tab bar, each tab gets its own `Router` and its own
+/// `NavigationStack` — never one shared instance across tabs, which is what makes
+/// per-tab back stacks behave independently.
 @Observable
 public final class Router {
+    /// The screens currently on the stack, root last-pushed.
     public var path: [Route] = []
 
     public init() {}
 
+    /// Pushes `route` onto the stack.
     public func push(_ route: Route) {
         path.append(route)
     }
 
+    /// Pops the top screen, or does nothing when already at the root.
     public func pop() {
         guard !path.isEmpty else { return }
         path.removeLast()
     }
 
+    /// Returns to the root screen.
     public func popToRoot() {
         path.removeAll()
     }

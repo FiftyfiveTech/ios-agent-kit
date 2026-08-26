@@ -1,41 +1,37 @@
 import Foundation
 __MODULE_IMPORTS__
 
-// Presenter imports Foundation (plus Models, for __FEATURE__.Load.Response/
-// ViewState) — no SwiftUI, no UIKit, no Color/Image in its output (mirrors
-// production evidence in the spec's §8 baseline).
+// This layer deals only in Foundation types — no SwiftUI, no UIKit, no colours or
+// images in its output.
 //
-// __FEATURE__DisplayLogic is declared here, not in ViewModel.swift — the
-// Presenter is its only consumer (§8.2); __FEATURE__ViewModel conforms below.
-//
-// Why two methods instead of classic VIP's single `display(viewState:)`:
-// __FEATURE__BusinessLogic.load(request:) is `async` with no `throws` (see
-// Interactor.swift), so the Interactor catches its own errors itself and
-// reports them via `present(error:)` rather than throwing them at the
-// ViewModel. That failure path still has to reach the display layer somehow,
-// and folding it into __FEATURE__.Load.ViewState (e.g. an `error: String?`
-// field alongside `items`) would make every success case carry a dead field
-// and blur what a ViewState actually represents. A second, symmetric display
-// method — `display(errorMessage:)` — keeps each Presenter method doing
-// exactly one job and keeps the flow honestly one-way: the View only ever
-// reads ViewModel.state, the ViewModel only ever calls the Interactor, and the
-// Presenter never calls back into the Interactor.
+// Two display methods rather than one: `load(request:)` is `async` and does not
+// throw, so the Interactor catches its own errors and reports them here. Folding
+// that into the ViewState would make every success case carry a dead error field.
+
+/// Receives display-ready output for this feature's screen.
 protocol __FEATURE__DisplayLogic: AnyObject {
+    /// Renders a successful load.
     func display(viewState: __FEATURE__.Load.ViewState)
+    /// Renders a failure.
     func display(errorMessage: String)
 }
 
+/// Turns this feature's results into display-ready view state.
 final class __FEATURE__Presenter: __FEATURE__PresentationLogic {
-    // weak because a SwiftUI View can't hold this directly (§1.4) — the
-    // __FEATURE__ViewModel bridge is the reference-type target instead, wired
-    // up by whoever composes this scene (see the app-shell composition root).
+    /// The display layer, wired up after both objects exist.
+    ///
+    /// Weak, and it must stay weak: the ViewModel owns the Interactor, which owns
+    /// this Presenter, so a strong reference back closes the cycle and leaks the
+    /// whole scene.
     weak var displayLogic: __FEATURE__DisplayLogic?
 
+    /// Formats `response` and hands it to the display layer.
     func present(response: __FEATURE__.Load.Response) {
         let viewState = __FEATURE__.Load.ViewState(items: response.items)
         displayLogic?.display(viewState: viewState)
     }
 
+    /// Formats `error` as a user-facing message.
     func present(error: Error) {
         displayLogic?.display(errorMessage: error.localizedDescription)
     }

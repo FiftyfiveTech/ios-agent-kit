@@ -1,9 +1,9 @@
 import SwiftUI
 __MODULE_IMPORTS__
 
-// Presentation layer — binds to the ViewModel bridge only, never reads the
-// Interactor/Presenter/Worker directly (§1.4). Flat in Features/__FEATURE__/,
-// no Presentation/Domain/Data subfolders (§3.2).
+/// The __FEATURE__ screen.
+///
+/// Reads only its ViewModel's state — never the Interactor, Presenter or Worker.
 struct __FEATURE__View: View {
     @State private var viewModel: __FEATURE__ViewModel
 
@@ -17,6 +17,7 @@ struct __FEATURE__View: View {
             .navigationTitle(L10n.__MODULE_LOWER__.__FEATURE_LOWER__.title)
     }
 
+    /// One branch per ViewModel state, using the shared state views.
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
@@ -42,14 +43,10 @@ struct __FEATURE__View: View {
     }
 }
 
-// A minimal fake conforming to __FEATURE__BusinessLogic (§8.2's "second
-// conformance") — mirrors the MVVM View's preview-fake pattern exactly. Unlike
-// MVVM's Repository fake, this one never calls back into the ViewModel's
-// display(viewState:)/display(errorMessage:) — a real, wired Interactor
-// always reaches the Presenter and therefore the ViewModel, one-way (§1.4),
-// but faking that round trip here would mean also faking a Presenter just for
-// the preview canvas. The trade-off is the preview renders the .loading
-// state; that's an acceptable, honest limitation for a #Preview fake.
+/// Stub interactor so the preview never touches the network.
+///
+/// It doesn't call back into the ViewModel — doing so would mean faking a
+/// Presenter too — so the preview renders the loading state.
 private final class Preview__FEATURE__Interactor: __FEATURE__BusinessLogic {
     func load(request: __FEATURE__.Load.Request) async {}
 }
