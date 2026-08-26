@@ -925,13 +925,15 @@ html { scroll-behavior: smooth; }
 
       <h3>Where the defaults come from</h3>
       <p>
-        Not taste — one long-lived production workspace: two apps on a shared framework spine, ~20
-        feature flows each, 18 localizations, several years of history.
+        Not taste. These were read out of the <b>NIBE iOS project</b> — two shipping apps
+        (Consumer and Pro) on one shared framework spine, about 20 feature flows each,
+        18 languages, seven years of commits. We read the code and the history, then wrote
+        down what actually held up.
       </p>
       <ul class="evidence">
-        <li><span class="lab obs">observed</span><span>Shared code vends <b>base view controllers and flows each app configures</b>, never finished screens. App-specific behaviour arrives injected — never <code>if app == .x</code> inside a shared module.</span></li>
-        <li><span class="lab obs">observed</span><span><b>18 locales maintained per module</b> — a bundle-resolution consequence, not a preference.</span></li>
-        <li><span class="lab rec">recommended</span><span><b>Don't abstract on speculation.</b> The threshold for a protocol is a <b>second real conformance</b> — a test fake counts, a future backend doesn't.</span></li>
+        <li><span class="lab obs">observed</span><span><b>Shared code ships the pieces, each app assembles them.</b> The shared framework holds the coordinators and screens; each app decides which ones to show and how. Where shared code instead asks <i>"am I the Pro app?"</i> and branches, that spot became the hard one to change — so the template keeps app-specific choices in the app.</span></li>
+        <li><span class="lab obs">observed</span><span><b>Every module with visible text needs all 18 languages.</b> iOS looks up a string in the framework that owns the screen, not in the app — so each such module keeps its own full set. Not a preference; that's just how the lookup works.</span></li>
+        <li><span class="lab rec">recommended</span><span><b>Write a protocol when you have a second thing that uses it</b> — a fake for tests counts, a backend you might build one day doesn't.</span></li>
       </ul>
     </section>
 
