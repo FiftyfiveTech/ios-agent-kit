@@ -93,7 +93,7 @@ there is no ViewModel in this combo to test.
 through `L10n.__MODULE_LOWER__.__FEATURE_LOWER__.title`/`.empty` — the two keys
 `new_feature.sh` writes for every combo. Generic chrome — the loading label and
 the retry button — comes from `L10n.__MODULE_LOWER__.common.loading`/`.retry`,
-seeded by `/start` into the module that owns `SharedViews/`. No literal strings in
+seeded by `/start` into the module that owns `DesignSystem/Views/`. No literal strings in
 any of them. Error text is still the Worker/Presenter's
 `error.localizedDescription`.
 
@@ -139,7 +139,7 @@ script or Skill renders it:
   app: `AppDelegate`/`SceneDelegate` (no Storyboard), `AppCoordinator` (composition
   root + navigation owner), base theme tokens, the two Networking primitives, and
   the three shared state views. `LoadingView`/`ErrorView`/`EmptyStateView` here are
-  `UIView` subclasses — same names and same `DesignSystem/SharedViews/`
+  `UIView` subclasses — same names and same `DesignSystem/Views/`
   destination as the SwiftUI combos', different concrete type. Every
   `ViewController` adds them as subviews rather than building its own spinner and
   error label, which is the same no-per-feature-reimplementation rule the SwiftUI

@@ -12,8 +12,11 @@ struct __APP_NAME__App: App {
     @State private var router = Router()
 
 __IF_NETWORKING__
-    /// Builds every request in the app, using the base URL resolved below.
-    private let requestBuilder = RequestBuilder(baseURL: __APP_NAME__App.apiBaseURL)
+    /// Builds every request in the app. The base URL comes from
+    /// `AppEnvironment` — the single reader for everything that arrives via
+    /// `Secrets.xcconfig`, which traps at launch if the key is unset. This file
+    /// deliberately has no reader of its own.
+    private let requestBuilder = RequestBuilder(baseURL: AppEnvironment.current.apiBaseURL)
     private let apiClient: APIClient = URLSessionAPIClient()
 __END_NETWORKING__
 __IF_PERSISTENCE__
@@ -44,47 +47,4 @@ __END_PERSISTENCE__
         // MARK: new-feature-destination-insertion-point
         }
     }
-__IF_NETWORKING__
-
-    /// The API base URL, read from this target's `Info.plist`.
-    ///
-    /// Crashes at launch if it is missing, blank, or not an absolute URL. That is
-    /// deliberate: a misconfigured base URL breaks every request in the app, and
-    /// failing loudly at startup beats a screen of empty states. Never add a
-    /// fallback URL here.
-    ///
-    /// The scheme and host checks are load-bearing, not belt-and-braces: `//`
-    /// starts a comment in xcconfig, so an unescaped `https://host` arrives
-    /// truncated to `https:`, which parses fine with a nil host — and a
-    /// scheme-less `host.example.com` parses as a relative URL. Each of the three
-    /// failures gets its own message because each sends you to a different file.
-    private static var apiBaseURL: URL {
-        guard let raw = Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String else {
-            preconditionFailure(
-                "APIBaseURL is missing from this target's Info.plist. Add "
-                + "APIBaseURL = $(API_BASE_URL) to it — see docs/CODING_STANDARDS.md."
-            )
-        }
-
-        // A blank key and an absent key are indistinguishable here: $(API_BASE_URL)
-        // expands to an empty string either way, so don't claim which one it was.
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            preconditionFailure(
-                "APIBaseURL resolved to an empty string. Set API_BASE_URL in "
-                + "Secrets.xcconfig — it is either blank there or missing entirely. "
-                + "Secrets.xcconfig.example records every key the build expects."
-            )
-        }
-
-        guard let url = URL(string: trimmed), url.scheme != nil, url.host != nil else {
-            preconditionFailure(
-                "APIBaseURL is not an absolute URL — got \"\(trimmed)\". It needs both "
-                + "a scheme and a host. If that value looks truncated, remember `//` "
-                + "starts a comment in xcconfig: write https:/$()/host, not https://host."
-            )
-        }
-        return url
-    }
-__END_NETWORKING__
 }

@@ -269,30 +269,23 @@ Two files, at the resolved repo root:
   aren't only URLs — so this half is unconditional.
 - **`APIBaseURL` only when Q7 isn't `None`.** On a networked project, surface
   `API_BASE_URL` into each app target's `Info.plist` as `APIBaseURL` via
-  `$(API_BASE_URL)`; this is not optional, because the rendered composition root
-  reads that key from `Bundle.main` and `preconditionFailure`s without it — a
-  missing entry is a launch crash, not a silent fallback, and no `Service` ever
-  holds a literal URL (§3.7). On a `networking: none` project, **don't add the
-  key and don't render the reader**: the app shell's `__IF_NETWORKING__` block
-  drops out entirely (see §1.7), so there's no `RequestBuilder` to feed. Strip
+  `$(API_BASE_URL)`; this is not optional, because `AppEnvironment` (§1.7c) reads
+  that key from `Bundle.main` and `preconditionFailure`s without it — a missing
+  entry is a launch crash, not a silent fallback, and no `Service` ever holds a
+  literal URL (§3.7). On a `networking: none` project, **don't add the key, and
+  skip §1.7c**: the app shell's `__IF_NETWORKING__` block drops out entirely (see
+  §1.7), so there's no `RequestBuilder` to feed. Strip
   `API_BASE_URL` from the rendered `Secrets.xcconfig`/`.example` too, rather than
   leaving a key nothing reads.
 
 After both files exist, **run `Scripts/check_secrets.sh` once** and report the
-result in §1.10. It is the commit-time counterpart to the composition root's
+result in §1.10. It is the commit-time counterpart to `AppEnvironment`'s
 launch-time guard: it fails on an empty value, on key drift between
 `Secrets.xcconfig` and `.example`, and on an `API_BASE_URL` without a scheme and
 host — the last of which catches the `//`-comment truncation the `$()` escape
 exists for. On a fresh `/start` it passes, because the file was just copied from
 the example; a failure here means something else in this step went wrong. It also
 passes by design on an offline project, where `API_BASE_URL` was stripped.
-
-Do not generate an `AppEnvironment` type here, and do not leave a `TODO.md`
-entry asking for one. On a project with one key the `Info.plist` entry plus
-`RequestBuilder`'s injected `baseURL` already is the seam. The moment a second
-key appears, `/add-secret` renders `AppEnvironment` into Core itself — on first
-use, the way `docs/PERMISSIONS.md` appears on the first `/add-permission`. Point
-the developer at that Skill in §1.10's report instead of at a TODO.
 
 ### 1.6 Git
 
@@ -327,7 +320,7 @@ by role, and the destination is the folder that role owns:
 | `App.swift` / `AppDelegate.swift` + `SceneDelegate.swift` | `<app.path>/` (or `<app.path>/Sources/App/` at T3) |
 | `Route.swift`, `Router.swift`, `AppCoordinator.swift` | `<app.path>/Navigation/` |
 | `ColorTokens.swift`, `Typography.swift` | `DesignSystem/Theme/` |
-| `LoadingView.swift`, `ErrorView.swift`, `EmptyStateView.swift` | `DesignSystem/SharedViews/` |
+| `LoadingView.swift`, `ErrorView.swift`, `EmptyStateView.swift` | `DesignSystem/Views/` |
 | `RequestBuilder.swift`, `APIClient.swift` | `Networking/` |
 | `Debouncer.swift` | `Core/Utilities/` |
 
@@ -338,7 +331,7 @@ Substitute, in every file rendered above:
 
 - `__APP_NAME__` → the app's real name (from Q12/`apps[].name`).
 - `__MODULE_LOWER__` → the lowercased key namespace of the module that owns
-  `SharedViews/` (the app's own namespace at T1, the shared DesignSystem
+  `DesignSystem/Views/` (the app's own namespace at T1, the shared DesignSystem
   module's from T2 onward). The three shared state view templates use it to
   reach `L10n.<module>.common.loading`/`.retry`; leaving it unresolved is a
   build failure, so grep for `__MODULE_LOWER__` across the rendered app before
@@ -353,8 +346,11 @@ Substitute, in every file rendered above:
 - **`__IF_NETWORKING__` / `__END_NETWORKING__`** → the same treatment for Q7.
   Not `None` → keep the block's contents. `None` → **delete the block and its
   contents**, which is what removes the `RequestBuilder`/`APIClient` properties
-  and the `apiBaseURL` reader from an offline app's composition root. Delete the
-  marker lines either way and grep for `NETWORKING__` too. This family has no
+  from an offline app's composition root, and the `apiBaseURL` accessor from
+  §1.7c's `AppEnvironment` (which an offline project doesn't get at all). Delete
+  the marker lines either way and grep for `NETWORKING__` too — across
+  `Core/Configuration/` as well as the app, since `AppEnvironment.swift.template`
+  carries this family too. This family has no
   `__ELSE_` branch on purpose: an offline app's composition root needs *nothing*
   in place of the networking properties, and inventing a stub there would be the
   dead code this gate exists to avoid.
@@ -369,8 +365,9 @@ Substitute, in every file rendered above:
   file — `App.swift.template` for the SwiftUI combos, `SceneDelegate.swift.template`
   for the UIKit combos — needs `import Networking` for `RequestBuilder`/
   `APIClient`; the rest of the app-shell files are self-contained). At T2/T3 the
-  composition root also needs `import Core` once §1.7a/§1.7b have put
-  `PersistenceController` and `Log` there — and at T3 with UIKit, so does
+  composition root also needs `import Core` — §1.7a/§1.7b/§1.7c put
+  `PersistenceController`, `Log` and `AppEnvironment` there, and the last of
+  those is present on every networked project regardless of Q4 — and at T3 with UIKit, so does
   `AppCoordinator.swift`, since it holds the `PersistenceController` itself.
 
 This is the **only** time these files are rendered from scratch — after this,
@@ -412,7 +409,7 @@ A String Catalog is JSON; write a minimal valid one rather than an empty file:
 
 The two `common.*` keys are **required**, not decoration: the shared state views
 reference `L10n.<module>.common.loading` and `.common.retry`, so the project
-doesn't compile without them. Seed the module that owns `SharedViews/` — the app
+doesn't compile without them. Seed the module that owns `DesignSystem/Views/` — the app
 at T1, the shared DesignSystem module from T2 onward.
 
 One catalog per resource-owning module, holding every locale for that module —
@@ -423,12 +420,12 @@ every localization script goes through; use `python3 Scripts/lib/xcstrings.py se
 adding entries beyond the seed.
 
 **Also render the shared state views for the project's UI framework** into
-`DesignSystem/SharedViews/` — `LoadingView`, `ErrorView` (message + retry) and
+`DesignSystem/Views/` — `LoadingView`, `ErrorView` (message + retry) and
 `EmptyStateView`. The SwiftUI combos take them from the combo's `app-shell/`
 templates; the UIKit combos take the `UIView` subclasses from
 `Scripts/templates/<combo>/app-shell/`. Both UI frameworks get all three, in the
 same folder, and the starter feature consumes them rather than building its own
-spinner (build spec §3.6). A generated project with an empty `SharedViews/` is a
+spinner (build spec §3.6). A generated project with an empty `DesignSystem/Views/` is a
 failed run.
 
 ### 1.7a Render the persistence bootstrap — only when Q4 isn't `None`
@@ -471,6 +468,37 @@ project even at T3 — one file doesn't justify a spec, a workspace entry and a
 scheme; a team that later wants independent versioning runs
 `/add-module Logging` and moves it, which is why the config schema already
 reserves the `logging` role.
+
+### 1.7c Render `AppEnvironment` — the single reader for every key
+
+On any project that has a key — i.e. every `networking` project, where
+`API_BASE_URL` exists from day one — render
+`Scripts/templates/config/AppEnvironment.swift.template` into **Core**, at the
+tier-correct path (the same table §1.7a uses for `PersistenceController`):
+
+| Tier | Destination |
+|---|---|
+| T1 | `<app.path>/Core/Configuration/AppEnvironment.swift` |
+| T2 | `Packages/Core/Sources/Core/Configuration/AppEnvironment.swift` |
+| T3 | the `role: "core"` module's `Sources/<Name>/Configuration/`, or `sharedModuleName`'s `Sources/Core/Configuration/` if no core module is declared |
+
+Resolve its `__IF_NETWORKING__` block the way you resolve the app shell's: keep
+the `apiBaseURL` accessor on a networked project. On a `networking: none`
+project — no keys at all — **skip this step entirely** and let `/add-secret`
+render the file on the first key, the way `docs/PERMISSIONS.md` appears on the
+first `/add-permission`. Say which of the two happened in §1.10's report.
+
+It goes in the shared module, not the app, so a feature in any module can read
+configuration without the app threading it down: `Bundle.main` resolves to the
+app bundle even from inside a package or framework. That same fact is why the
+type takes an injectable lookup — a package's test bundle has no `APIBaseURL` of
+its own.
+
+**Nothing else in the app reads a configuration key.** The composition root
+rendered in §1.7 uses `AppEnvironment.current.apiBaseURL` and carries no reader
+of its own; `Bundle.main.object(forInfoDictionaryKey:)` appears in this one file
+and nowhere else. If you find yourself writing a second reader, the accessor
+belongs here instead.
 
 ### 1.8 Scaffold the starter feature
 
@@ -594,7 +622,7 @@ Tell the developer, in your closing message, that requirements go in
 
 Write `TODO.md` with what can't be automated. On a networked project that
 starts with the real API base URL — set `API_BASE_URL` in the gitignored
-`Secrets.xcconfig` created in §1.5a, not in Swift; the composition root crashes
+`Secrets.xcconfig` created in §1.5a, not in Swift; `AppEnvironment` (§1.7c) traps
 at launch until it resolves, and leaving the key blank fails the same way a
 missing key does rather than falling back to anything. Tell the developer to run
 `Scripts/check_secrets.sh` after editing it, and to write the URL as
@@ -607,6 +635,13 @@ broken scaffold. Either way, also list any `.gitignore` entries you appended in
 §1.5a, opening the project once in Xcode, per-app signing, App Store Connect record, push certs, `PrivacyInfo.xcprivacy`, plus
 §1.7a's Core Data entries if that was the Q4 answer. Not
 just a message that scrolls off-screen — a durable checklist.
+
+In the closing message (not `TODO.md` — it isn't a follow-up, it's how the
+project works), point the developer at `/add-secret` for every key after
+`API_BASE_URL`: it appends the key to `Secrets.xcconfig` and the committed
+example, adds the `$(KEY)` entry to each app's `Info.plist`, and writes the typed
+accessor into the `AppEnvironment` §1.7c rendered — so no other file ever reads
+`Bundle.main` for configuration.
 
 Add one **optional** entry, phrased as an offer rather than a completed step —
 it changes machine-level configuration outside this repo, so never run it as

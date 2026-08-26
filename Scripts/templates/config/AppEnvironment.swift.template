@@ -5,13 +5,15 @@ import Foundation
 /// The path a value travels is fixed and has four segments, all of which must
 /// exist or the key is unreadable: `Secrets.xcconfig` → the app target's build
 /// settings → the app target's `Info.plist` as `$(KEY)` → an accessor below.
-/// `/add-secret` writes all four; nothing else in the app calls
+/// `/start` writes those four segments for `API_BASE_URL` and `/add-secret` for
+/// every key after it; nothing else in the app calls
 /// `Bundle.main.object(forInfoDictionaryKey:)`.
 ///
-/// **`API_BASE_URL` deliberately does not live here.** It keeps its own path
-/// through the composition root's reader into `RequestBuilder`'s `baseURL` — two
-/// readers for one key, with two different failure messages, would be worse than
-/// one reader in a slightly less tidy place.
+/// **Every key comes through here, `API_BASE_URL` included.** The composition
+/// root reads `AppEnvironment.current.apiBaseURL` and hands it to
+/// `RequestBuilder`; it does not carry a reader of its own. One reader per key,
+/// in one file, is the point — a second copy of this parsing in `App.swift` is
+/// how two call sites end up disagreeing about what a blank value means.
 public struct AppEnvironment: Sendable {
     /// The instance the app uses. A `let`, not a mutable global: tests construct
     /// their own with a stub lookup rather than mutating shared state.
@@ -38,6 +40,18 @@ public struct AppEnvironment: Sendable {
     //     /// `ANALYTICS_HOST` — Secrets.xcconfig → Info.plist `AnalyticsHost`.
     //     public var analyticsHost: URL { url("AnalyticsHost", xcconfig: "ANALYTICS_HOST") }
 
+__IF_NETWORKING__
+    /// The base URL every request is built against — `API_BASE_URL` in
+    /// `Secrets.xcconfig` → `Info.plist` `APIBaseURL`.
+    ///
+    /// Written by `/start`, not `/add-secret`: it is the one key a networked
+    /// project has on day one, and the composition root passes it straight into
+    /// `RequestBuilder`. It traps at launch when unset — a misconfigured base URL
+    /// breaks every request in the app, and failing loudly at startup beats a
+    /// screen of empty states. Never add a fallback URL.
+    public var apiBaseURL: URL { url("APIBaseURL", xcconfig: "API_BASE_URL") }
+
+__END_NETWORKING__
     // MARK: add-secret-insertion-point
 
     // MARK: - Readers
