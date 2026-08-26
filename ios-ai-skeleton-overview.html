@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>iOS AI-Optimized Skeleton — Template Reference</title>
+<title>iOS AI-Optimized Skeleton — the guide</title>
 <style>
 /* ─── reset ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -843,33 +843,40 @@ html { scroll-behavior: smooth; }
   <!-- ══ MASTHEAD ══════════════════════════════════════════════════════ -->
   <header class="masthead">
     <div class="eyebrow">
-      <span>Template, not an app</span><span class="tick">/</span>
-      <span>Greenfield projects</span><span class="tick">/</span>
+      <span>A starting kit, not an app</span><span class="tick">/</span>
+      <span>For brand-new projects</span><span class="tick">/</span>
       <span>ios-ai-boilerplate</span>
     </div>
 
     <h1>iOS AI-Optimized<br>Skeleton <span class="dim">— the guide</span></h1>
 
     <p class="standfirst">
-      A template for starting a <b>new</b> iOS project that an AI coding agent can work in without
-      re-deriving your conventions every session. Eleven questions at setup produce a compiling app,
-      a rendered rulebook the agent auto-loads, and deterministic scaffolding for everything after.
+      A starting kit for a <b>new</b> iOS app, set up so an AI coding assistant can work in it
+      without having to re-learn your team's habits every time you talk to it. You answer eleven
+      questions once. Out comes an app that already builds, a rulebook the assistant reads on its
+      own, and a set of commands that add screens and settings the same way every time.
     </p>
 
     <p class="standfirst" style="font-size:15px; color:var(--ink-faint); max-width:64ch">
-      Written for iOS developers moving to agent-assisted work: it assumes Xcode, Swift and SPM, and
-      explains only what's specific to this template. Covers <b
-      style="color:var(--ink-soft);font-weight:600">greenfield use</b> — <code>/start</code> can also
-      adopt an existing app, but that path is out of scope here.
+      Written for <b style="color:var(--ink-soft);font-weight:600">everyone who will touch the
+      project</b> — iOS developers, backend or web developers moving across, QA engineers, and people
+      shipping their first mobile app. iOS words are explained as they appear; hover any
+      <span class="term" tabindex="0" data-def="Like this. Hover or tab to a dashed-underlined word to see what it means.">dashed
+      word</span> for a one-line definition, and see <a href="#glossary" style="color:var(--accent)">00</a>
+      for the full list. Each section opens with a <b style="color:var(--ink-soft);font-weight:600">In
+      plain terms</b> box: read those alone and you have the whole picture. You will need a Mac with
+      Xcode installed. This guide covers <b style="color:var(--ink-soft);font-weight:600">starting from
+      scratch</b> — <code>/start</code> can also move an existing app onto this setup, but that isn't
+      covered here.
     </p>
 
     <div class="stats">
-      <div class="stat"><b>11</b><span>Questions asked</span></div>
+      <div class="stat"><b>11</b><span>Setup questions</span></div>
       <div class="stat"><b>9</b><span>Commands</span></div>
-      <div class="stat"><b>7</b><span>Scripts</span></div>
-      <div class="stat"><b>4</b><span>Templated combos</span></div>
-      <div class="stat"><b>3</b><span>Structure tiers</span></div>
-      <div class="stat"><b>2</b><span>Git hooks</span></div>
+      <div class="stat"><b>7</b><span>Helper scripts</span></div>
+      <div class="stat"><b>4</b><span>Ready-made combos</span></div>
+      <div class="stat"><b>3</b><span>Project shapes</span></div>
+      <div class="stat"><b>2</b><span>Commit-time hooks</span></div>
     </div>
   </header>
 
@@ -877,19 +884,161 @@ html { scroll-behavior: smooth; }
   <nav class="rail" aria-label="Contents">
     <h2>Contents</h2>
     <ol>
+      <li><a href="#glossary"><span class="n">00</span><span>Words you'll need</span></a></li>
       <li><a href="#why"><span class="n">01</span><span>Why this exists</span></a></li>
       <li><a href="#first-app"><span class="n">02</span><span>Setup</span></a></li>
-      <li><a href="#knowledge-base"><span class="n">03</span><span>The knowledge base</span></a></li>
-      <li><a href="#topology"><span class="n">04</span><span>Project topology</span></a></li>
-      <li><a href="#architecture"><span class="n">05</span><span>Architecture</span></a></li>
+      <li><a href="#knowledge-base"><span class="n">03</span><span>The rulebook</span></a></li>
+      <li><a href="#topology"><span class="n">04</span><span>How the project is laid out</span></a></li>
+      <li><a href="#architecture"><span class="n">05</span><span>How a screen is built</span></a></li>
       <li><a href="#commands"><span class="n">06</span><span>Day-to-day commands</span></a></li>
-      <li><a href="#xcode"><span class="n">07</span><span>Xcode's own agents</span></a></li>
-      <li><a href="#guardrails"><span class="n">08</span><span>What's enforced</span></a></li>
-      <li><a href="#limits"><span class="n">09</span><span>Limitations</span></a></li>
+      <li><a href="#xcode"><span class="n">07</span><span>Xcode's own assistants</span></a></li>
+      <li><a href="#guardrails"><span class="n">08</span><span>What's checked for you</span></a></li>
+      <li><a href="#limits"><span class="n">09</span><span>What it won't do</span></a></li>
     </ol>
+    <div class="rail-foot">
+      Hover a dashed word<br>for its definition.
+    </div>
   </nav>
 
   <main>
+
+    <!-- ══ 00 GLOSSARY ═════════════════════════════════════════════════ -->
+    <section id="glossary">
+      <div class="sec-head">
+        <span class="ref">00</span>
+        <h2 class="sec-title">Words you'll need</h2>
+      </div>
+
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          iOS has its own vocabulary, and most of it is just a name for something you already know from
+          other kinds of software. This page is here so you can skim it once and then stop worrying
+          about it. Nothing later depends on memorising this list — every term is also explained where
+          it first comes up.
+        </p>
+      </div>
+
+      <h3>Apple's tools and files</h3>
+      <dl class="gloss">
+        <div>
+          <dt>Xcode</dt>
+          <dd>Apple's editor. It's where you write the code, press Run, and see the app. Free from the Mac App Store.</dd>
+        </div>
+        <div>
+          <dt>Simulator</dt>
+          <dd>A fake iPhone or iPad that runs on your Mac. You test in it before ever touching real hardware.</dd>
+        </div>
+        <div>
+          <dt>Swift</dt>
+          <dd>The programming language iOS apps are written in. Everything this kit generates is Swift.</dd>
+        </div>
+        <div>
+          <dt><code>.xcodeproj</code> · <code>.xcworkspace</code></dt>
+          <dd>The file you double-click to open the app in Xcode. A <i>project</i> is one app; a <i>workspace</i> groups several projects together.</dd>
+        </div>
+        <div>
+          <dt><code>pbxproj</code></dt>
+          <dd>The file inside a <code>.xcodeproj</code> that lists every source file. Notoriously painful to merge by hand, which is why this kit generates it instead.</dd>
+        </div>
+        <div>
+          <dt>Target</dt>
+          <dd>One thing that gets built. An app is a target; so is its test suite. One project can hold several.</dd>
+        </div>
+        <div>
+          <dt>Scheme</dt>
+          <dd>A saved "what to build and how" setting in Xcode — which target, debug or release. It's what the Run button obeys.</dd>
+        </div>
+        <div>
+          <dt>Bundle ID</dt>
+          <dd>Your app's unique name to Apple, written like a backwards web address: <code>com.yourcompany.yourapp</code>. Can't be changed casually once you've shipped.</dd>
+        </div>
+        <div>
+          <dt><code>Info.plist</code></dt>
+          <dd>A settings file baked into the app. Holds things iOS itself needs to read — the app's name, its version, and why it wants your camera.</dd>
+        </div>
+        <div>
+          <dt><code>.xcconfig</code></dt>
+          <dd>A plain text file of build settings, one <code>KEY = value</code> per line. This kit uses one to keep server addresses out of the code.</dd>
+        </div>
+        <div>
+          <dt>Asset Catalog</dt>
+          <dd>The folder Xcode keeps images and the app icon in. Named <code>Assets.xcassets</code>.</dd>
+        </div>
+        <div>
+          <dt>Entitlement · Capability</dt>
+          <dd>Permission granted by Apple rather than by the user — push notifications, iCloud, Sign in with Apple. Switched on in Xcode and in your Apple developer account.</dd>
+        </div>
+        <div>
+          <dt>Deployment target</dt>
+          <dd>The oldest iOS version your app will run on. Setting it higher lets you use newer Apple features but excludes older phones.</dd>
+        </div>
+        <div>
+          <dt>Keychain · <code>UserDefaults</code></dt>
+          <dd>Two places to store small amounts of data. Keychain is encrypted and is where passwords and tokens belong; <code>UserDefaults</code> is not, and is for preferences like "dark mode on".</dd>
+        </div>
+      </dl>
+
+      <h3>How the code is organised</h3>
+      <dl class="gloss">
+        <div>
+          <dt>SwiftUI · UIKit</dt>
+          <dd>The two ways to build screens. SwiftUI is the modern one — you describe what the screen looks like. UIKit is the older one — you build it piece by piece. Both are fully supported and both are still in wide use.</dd>
+        </div>
+        <div>
+          <dt>View</dt>
+          <dd>One screen, or a piece of one. Its only job is to display things.</dd>
+        </div>
+        <div>
+          <dt>Module · package · framework</dt>
+          <dd>A bundle of code kept separate from the rest, with its own boundary. Roughly what other ecosystems call a library. "Package" and "framework" are two ways iOS does this.</dd>
+        </div>
+        <div>
+          <dt>SPM (Swift Package Manager)</dt>
+          <dd>Apple's built-in tool for adding libraries and splitting your own code into packages. The equivalent of npm or pip.</dd>
+        </div>
+        <div>
+          <dt>Protocol</dt>
+          <dd>A list of what a type promises to do, without saying how. Called an <i>interface</i> in most other languages. It's what lets a test swap the real server for a fake one.</dd>
+        </div>
+        <div>
+          <dt>Architecture pattern</dt>
+          <dd>An agreed answer to "which file does what" — MVVM, VIP, MVC and so on. Its whole value is that everyone, including the assistant, picks the same answer.</dd>
+        </div>
+        <div>
+          <dt>ViewModel</dt>
+          <dd>The layer between the screen and the data. Holds what the screen currently shows, decides what to do when you tap. Knows nothing about how it looks.</dd>
+        </div>
+        <div>
+          <dt>Repository · Service</dt>
+          <dd>Where the data actually comes from. The <i>service</i> talks to the server; the <i>repository</i> decides whether to ask it or use what's already saved.</dd>
+        </div>
+        <div>
+          <dt>Dependency injection</dt>
+          <dd>Handing a piece of code the things it needs from outside, rather than letting it fetch them itself. It's what makes testing possible.</dd>
+        </div>
+        <div>
+          <dt>Composition root</dt>
+          <dd>The one place, at app launch, where all the real pieces get built and handed to each other. If wiring is wrong, it's wrong here.</dd>
+        </div>
+        <div>
+          <dt>Persistence</dt>
+          <dd>Saving data on the phone so it survives closing the app. SwiftData and Core Data are Apple's two options.</dd>
+        </div>
+        <div>
+          <dt>Localization</dt>
+          <dd>Keeping user-visible text in a separate file per language, rather than typed into the screen, so the app can be translated.</dd>
+        </div>
+        <div>
+          <dt>Bundle</dt>
+          <dd>The folder a built app or framework really is, containing its images and translations. Matters because looking in the wrong one gives you nothing — silently.</dd>
+        </div>
+        <div>
+          <dt>Theme token</dt>
+          <dd>A named colour or font — <code>Theme.primary</code> instead of "this exact shade of blue" typed in twenty places.</dd>
+        </div>
+      </dl>
+    </section>
 
     <!-- ══ 01 WHY ══════════════════════════════════════════════════════ -->
     <section id="why">
@@ -898,42 +1047,62 @@ html { scroll-behavior: smooth; }
         <h2 class="sec-title">Why this exists</h2>
       </div>
 
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          An AI assistant forgets everything between conversations. It can write a screen perfectly today
+          and, tomorrow, write the next one a completely different way — files in a different place, data
+          fetched by a different route. Neither one is wrong on its own; having both in the same app is
+          the problem.
+        </p>
+        <p>
+          The fix is to write your decisions down in files the assistant reads automatically, every
+          single time, before you say anything. That's most of what this kit is: those files, plus code
+          that already follows them.
+        </p>
+      </div>
+
       <p>
-        You already know how to build the app. What you don't have is a way to make an AI assistant build
-        it <em>the same way twice</em>. It has no memory between sessions, so unless your conventions are
-        written where it loads them automatically, screen forty is built however that morning's
-        conversation went — a different folder shape, a different navigation call, a view model wired
-        straight to <code>URLSession</code>.
+        You might already know how to build the app. What's missing is a way to make an AI assistant
+        build it <em>the same way twice</em>. It keeps no memory between sessions, so unless your
+        conventions live somewhere it loads on its own, screen forty gets built however that morning's
+        conversation happened to go — a different folder shape, a different way of moving between
+        screens, a screen reaching out to the network directly instead of going through the layers
+        below it.
       </p>
       <p>
-        This kit records those decisions once, at setup, into files the assistant reads at the start of
-        every session, and generates code that follows them. Scaffolding and a rulebook, not a framework.
+        This kit records those decisions once, during setup, into files the assistant reads at the start
+        of every session — and it generates code that already follows them. It's a starting point and a
+        rulebook. It is not a <span class="term" tabindex="0" data-def="A body of code that calls yours and dictates how your app is structured. A library is the opposite — you call it.">framework</span>: nothing here is a library you import, and nothing takes over
+        how your app runs.
       </p>
 
+      <h3>What you get</h3>
       <ul class="bullets tight">
-        <li><b>A compiling app on the first run</b> — one screen with loading, error and empty states, a network layer, theme tokens, per-module localization, and a test that has already passed. Answer <b>None</b> to networking and one thing is left for you: that screen's local-store read and its test ship red on purpose.</li>
-        <li><b>Meta-files the assistant loads by itself</b> — see <a href="#knowledge-base" style="color:var(--accent)">03</a>.</li>
-        <li><b>Nine commands</b> for the work you repeat: a screen, an asset, a permission, a token, a locale, a module.</li>
-        <li><b>Commit-time guards</b> for hardcoded colours, string-key drift, lint and commit format.</li>
+        <li><b>An app that builds and runs on the first try</b> — one working screen that already handles the three states every real screen needs (loading, failed, nothing to show), the code that talks to a server, named colours and fonts, translation files, and one test that already passes. The exception: if you tell setup your app has no server, one piece is deliberately left for you, and its test ships failing on purpose so you can't forget it.</li>
+        <li><b>Files the assistant loads by itself</b>, so you never start a session by re-explaining the project — see <a href="#knowledge-base" style="color:var(--accent)">03</a>.</li>
+        <li><b>Nine commands</b> for the jobs you'll do over and over: add a screen, an image, a permission, a colour, a language, a module.</li>
+        <li><b>Automatic checks when you commit</b> — colours typed in by hand, translations that have drifted out of sync, style problems, and badly formatted commit messages.</li>
       </ul>
 
       <div class="note">
-        <span class="tag">Before anything else</span>
-        <b>This repository is the template, not an app</b> — no <code>.xcodeproj</code>, no chosen
-        pattern, nothing app-shaped until you run <code>/start</code>.
+        <span class="tag">Read this before anything else</span>
+        <b>This repository is the starting kit, not an app.</b> There's no Xcode project in it, no
+        chosen pattern, nothing app-shaped at all until you run <code>/start</code>. If you open the
+        folder looking for an app to run, that's why you can't find one.
       </div>
 
-      <h3>Where the defaults come from</h3>
+      <h3>Where the recommended answers come from</h3>
       <p>
-        Not taste. These were read out of the <b>NIBE iOS project</b> — two shipping apps
-        (Consumer and Pro) on one shared framework spine, about 20 feature flows each,
-        18 languages, seven years of commits. We read the code and the history, then wrote
-        down what actually held up.
+        Not opinion. They were taken from a real, long-lived codebase: the <b>NIBE iOS project</b> — two
+        apps that ship to the App Store (one for customers, one for professionals) built on one shared
+        core, roughly 20 screens each, 18 languages, seven years of history. We read the code and the
+        record of how it changed, then wrote down what had actually held up over that time.
       </p>
       <ul class="evidence">
-        <li><span class="lab obs">observed</span><span><b>Shared code ships the pieces, each app assembles them.</b> The shared framework holds the coordinators and screens; each app decides which ones to show and how. Where shared code instead asks <i>"am I the Pro app?"</i> and branches, that spot became the hard one to change — so the template keeps app-specific choices in the app.</span></li>
-        <li><span class="lab obs">observed</span><span><b>Every module with visible text needs all 18 languages.</b> iOS looks up a string in the framework that owns the screen, not in the app — so each such module keeps its own full set. Not a preference; that's just how the lookup works.</span></li>
-        <li><span class="lab rec">recommended</span><span><b>Write a protocol when you have a second thing that uses it</b> — a fake for tests counts, a backend you might build one day doesn't.</span></li>
+        <li><span class="lab obs">observed</span><span><b>Shared code supplies the parts; each app puts them together.</b> The shared core holds the screens and the logic for moving between them; each app decides which to show and how. Wherever shared code instead asked <i>"wait, am I the professional app?"</i> and branched, that spot turned out to be the hardest to change later. So this kit keeps app-specific decisions inside the app.</span></li>
+        <li><span class="lab obs">observed</span><span><b>Every <span class="term" tabindex="0" data-def="A bundle of code kept separate from the rest, with its own boundary. Roughly what other ecosystems call a library.">module</span> with visible text needs all 18 languages, not just the app.</b> When iOS looks up a piece of text, it looks inside whichever module owns that screen — not in the app. So each of those modules keeps its own complete set of translations. That's not a preference we chose; it's how the lookup works.</span></li>
+        <li><span class="lab rec">recommended</span><span><b>Only write a <span class="term" tabindex="0" data-def="A list of what a type promises to do, without saying how. Called an interface in most other languages.">protocol</span> once you have a second thing that uses it.</b> A fake version for tests counts as that second thing. A backend you might build one day does not.</span></li>
       </ul>
     </section>
 
@@ -944,23 +1113,41 @@ html { scroll-behavior: smooth; }
         <h2 class="sec-title">Setup</h2>
       </div>
 
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          Four things happen, once: install three small command-line tools, run <code>/start</code>,
+          answer eleven questions, and paste your server address into one file. After that you have a
+          real app you can open and run.
+        </p>
+        <p>
+          The eleven questions are the important part. Everything the kit generates afterwards is
+          decided by your answers, and the commands you'll use for months keep reading them back. If
+          you're not sure, say <b>"use the recommended defaults"</b> — that's a complete answer, not a
+          cop-out.
+        </p>
+      </div>
+
       <div class="steps">
 
         <div class="step">
           <div>
             <h3>Install the three command-line tools</h3>
-            <p>What the scripts shell out to, via Homebrew:</p>
+            <p>
+              These are the tools the kit's scripts call. Homebrew is the standard way to install
+              command-line software on a Mac — think apt or Chocolatey.
+            </p>
             <div class="panel">
               <div class="panel-head"><span>Terminal</span><span>one-time</span></div>
-<pre><span class="c"># Homebrew itself, if you don't have it — see brew.sh</span>
+<pre><span class="c"># Homebrew itself, if you don't already have it — see brew.sh</span>
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 brew install <b>xcodegen</b> <b>jq</b> <b>swiftlint</b></pre>
             </div>
             <ul class="bullets tight">
-              <li><b>xcodegen</b> — generates the <code>.xcodeproj</code> from <code>project.yml</code>. Install <b>tuist</b> instead if you answer Tuist below.</li>
-              <li><b>jq</b> — reads <code>ios-skeleton.config.json</code>; scripts exit rather than guess.</li>
-              <li><b>swiftlint</b> — pre-commit hook and build phase.</li>
+              <li><b>xcodegen</b> — writes the <code>.xcodeproj</code> (the file you open in Xcode) from a readable text file, <code>project.yml</code>. Install <b>tuist</b> instead if you pick Tuist below.</li>
+              <li><b>jq</b> — reads JSON in the terminal. It's how every script looks up your answers in <code>ios-skeleton.config.json</code>. If it's missing, the scripts stop rather than guess.</li>
+              <li><b>swiftlint</b> — checks Swift code style. Runs when you commit and when you build.</li>
             </ul>
           </div>
         </div>
@@ -968,19 +1155,20 @@ brew install <b>xcodegen</b> <b>jq</b> <b>swiftlint</b></pre>
         <div class="step">
           <div>
             <h3>Run <code>/start</code> in Claude Code</h3>
+            <p>Pick whichever of these two suits you — they end up in the same place.</p>
             <div class="panel">
               <div class="panel-head"><span>Terminal — Claude Code</span><span>pick one</span></div>
-<pre><span class="c"># A: clone the template as the project, run /start inside it</span>
+<pre><span class="c"># A: clone the kit and use it as the project, then run /start inside</span>
 git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
 <b>/start</b>
 
-<span class="c"># B: give it a path — it creates and populates the folder itself</span>
+<span class="c"># B: give it a folder name — it creates and fills the folder for you</span>
 <b>/start MyNewApp</b></pre>
             </div>
             <p style="margin-top:10px">
-              No manual file copying, no manual Xcode step. Run it from the terminal — see
-              <a href="#xcode" style="color:var(--accent)">07</a> for driving an agent inside Xcode
-              instead.
+              You don't copy any files yourself and you don't touch Xcode yet. Run this from the
+              terminal — see <a href="#xcode" style="color:var(--accent)">07</a> if you'd rather drive an
+              assistant from inside Xcode.
             </p>
           </div>
         </div>
@@ -989,8 +1177,15 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
           <div>
             <h3>Answer eleven questions</h3>
             <p>
-              Say <b>"use the recommended defaults"</b> to skip them. Answers are validated as a set, then
-              written to <code>ios-skeleton.config.json</code>.
+              Say <b>"use the recommended defaults"</b> to skip all of them. Your answers are checked
+              together as a set — some combinations don't make sense — and then saved to
+              <code>ios-skeleton.config.json</code>, which every command reads afterwards so you never
+              have to repeat yourself.
+            </p>
+            <p style="margin-top:8px">
+              The <b>Why</b> column below says what each question is really asking and what changes if
+              you answer differently. You do not need to understand all of it to start; you do need to
+              know that these answers are hard to change later.
             </p>
             <div class="tw">
               <table>
@@ -998,18 +1193,48 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
                 <tbody>
                   <tr>
                     <td>Project topology</td><td class="mono">T2</td>
-                    <td><b>T1</b> one <code>.xcodeproj</code>, one app target · <b>T2</b> that plus local Swift packages · <b>T3</b> an <code>.xcworkspace</code> over N projects. T2 buys real module boundaries cheaply — <a href="#topology" style="color:var(--accent)">04</a></td>
+                    <td><b>How many separate pieces the code is split into.</b> <b>T1</b> — everything in one <code>.xcodeproj</code> with one app target; simplest, but nothing stops any file reaching into any other. <b>T2</b> — that, plus your shared code in local Swift packages, so the compiler itself enforces the boundaries. <b>T3</b> — an <code>.xcworkspace</code> holding several projects; needed when two apps share a core. T2 is the default because real boundaries cost almost nothing to set up now and are expensive to add later — <a href="#topology" style="color:var(--accent)">04</a></td>
                   </tr>
-                  <tr><td>UI framework</td><td class="mono">SwiftUI</td><td>UIKit fully supported</td></tr>
-                  <tr><td>Persistence</td><td class="mono">SwiftData</td><td>Needs iOS 17+. Changes generated code, not just config: <code>None</code> means every feature is remote-only; a real stack adds a <code>&lt;Feature&gt;LocalStore</code> beside each remote dependency</td></tr>
-                  <tr><td>Architecture pattern</td><td class="mono">MVVM</td><td>Best template coverage here — <a href="#architecture" style="color:var(--accent)">05</a></td></tr>
-                  <tr><td>Navigation</td><td class="mono">NavigationStack</td><td>Least glue; Coordinator on UIKit</td></tr>
-                  <tr><td>Networking</td><td class="mono">URLSession + async/await</td><td>No third-party dependency. <b>None</b> for an offline, local-only app — drops the networking layer from the composition root rather than leaving it unused</td></tr>
-                  <tr><td>Deployment target</td><td class="mono">iOS 17</td><td>Gates SwiftData and <code>@Observable</code></td></tr>
-                  <tr><td>Dependency injection</td><td class="mono">Initializer injection</td><td>No container until it earns itself</td></tr>
-                  <tr><td>Test framework</td><td class="mono">XCTest</td><td>Swift Testing available</td></tr>
-                  <tr><td>Project generation</td><td class="mono">XcodeGen</td><td>Tuist recommended at T3</td></tr>
-                  <tr><td>Name and bundle ID</td><td><span class="badge stop">you answer</span></td><td>No default is possible</td></tr>
+                  <tr>
+                    <td>UI framework</td><td class="mono">SwiftUI</td>
+                    <td><b>Which of Apple's two screen-building toolkits you use.</b> SwiftUI is the modern one — you describe what the screen should look like and it keeps itself up to date, which is far less code. <b>UIKit is fully supported</b>, and is the right answer if your team already knows it, you need very fine control, or you must support older iOS versions</td>
+                  </tr>
+                  <tr>
+                    <td>Persistence</td><td class="mono">SwiftData</td>
+                    <td><b>Whether the app saves data on the phone, and with what.</b> SwiftData is Apple's current option and needs iOS 17 or newer; Core Data is the older one. This answer changes the code that gets written, not just a setting: <code>None</code> means every screen fetches from the server every time, while a real choice adds a <code>&lt;Feature&gt;LocalStore</code> file next to each screen's server code so it can read what's already saved</td>
+                  </tr>
+                  <tr>
+                    <td>Architecture pattern</td><td class="mono">MVVM</td>
+                    <td><b>The agreed answer to "which file does what".</b> MVVM splits a screen into three: the view that displays, the view model that holds what's on screen and decides what happens on a tap, and the data layer. Its whole value is that everyone — you and the assistant — reaches for the same shape. MVVM has the most complete ready-made templates here, so it produces the most predictable results — <a href="#architecture" style="color:var(--accent)">05</a></td>
+                  </tr>
+                  <tr>
+                    <td>Navigation</td><td class="mono">NavigationStack</td>
+                    <td><b>How the app moves from one screen to the next.</b> NavigationStack is Apple's built-in answer for SwiftUI and needs the least extra code holding it together. On UIKit there's no equivalent, so the answer is a <b>Coordinator</b> — one object that owns "what screen comes next", keeping that decision out of the screens themselves</td>
+                  </tr>
+                  <tr>
+                    <td>Networking</td><td class="mono">URLSession + async/await</td>
+                    <td><b>How the app talks to your server.</b> URLSession is built into iOS, so this adds no third-party library to maintain or audit; async/await is the modern way to write code that waits for a reply without freezing the screen. Answer <b>None</b> for an app with no server at all — that genuinely removes the networking layer instead of generating one and leaving it unused</td>
+                  </tr>
+                  <tr>
+                    <td>Deployment target</td><td class="mono">iOS 17</td>
+                    <td><b>The oldest iOS version your app will run on.</b> Higher means fewer devices but newer tools available; lower means the reverse. iOS 17 specifically is what unlocks two things used above: SwiftData, and <code>@Observable</code> — the modern, much simpler way a screen notices its data changed. Choose lower and those two options close</td>
+                  </tr>
+                  <tr>
+                    <td>Dependency injection</td><td class="mono">Initializer injection</td>
+                    <td><b>How each piece of code receives the things it needs.</b> Initializer injection means you hand them in when you create it — plain Swift, nothing to install, and easy to follow because you can see who gave what to whom. The alternative is a <i>container</i>: a library that hands things out automatically. Useful eventually on large projects, but it hides the wiring, so this kit waits until the manual way actually hurts</td>
+                  </tr>
+                  <tr>
+                    <td>Test framework</td><td class="mono">XCTest</td>
+                    <td><b>Which tool writes and runs the tests.</b> XCTest is Apple's long-standing one — it works everywhere, and every example and answer online assumes it. <b>Swift Testing</b> is the newer alternative, easier to read, and is available here if your team prefers it</td>
+                  </tr>
+                  <tr>
+                    <td>Project generation</td><td class="mono">XcodeGen</td>
+                    <td><b>The tool that writes your Xcode project file for you.</b> The real project file (<code>pbxproj</code>) is enormous, machine-written, and merges badly — two people adding a file at once is a routine, ugly conflict. Generating it from a short readable text file removes that whole class of problem. <b>Tuist</b> is recommended if you chose T3, because it handles several projects at once better</td>
+                  </tr>
+                  <tr>
+                    <td>Name and bundle ID</td><td><span class="badge stop">you answer</span></td>
+                    <td><b>What your app is called, and its unique ID with Apple</b> — written like a backwards web address, <code>com.yourcompany.yourapp</code>. Nobody can guess these for you, and the bundle ID is genuinely hard to change once you've shipped to the App Store, so it's worth a moment's thought</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -1020,41 +1245,55 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
           <div>
             <h3>Fill in <code>Secrets.xcconfig</code> before the first build</h3>
             <p>
-              <code>/start</code> leaves two files at the repo root: <code>Secrets.xcconfig.example</code>,
-              committed, which records <em>which</em> keys exist, and <code>Secrets.xcconfig</code>, which
-              is gitignored and holds the real values. Set <code>API_BASE_URL</code> there — not in Swift.
+              <code>/start</code> leaves two files at the top of the repo. <code>Secrets.xcconfig.example</code>
+              is committed to git and records <em>which</em> settings exist. <code>Secrets.xcconfig</code> is
+              ignored by git and holds the real values. Put your server address in
+              <code>API_BASE_URL</code> there — never in the Swift code, so that a public repo can't leak
+              it and each person can point at a different server.
             </p>
             <div class="panel">
               <div class="panel-head"><span>Secrets.xcconfig</span><span>gitignored</span></div>
-<pre><span class="c">// `//` starts a comment here, so a URL's scheme needs the $() escape</span>
+<pre><span class="c">// `//` starts a comment in this file, so a URL's `//` needs the $() escape</span>
 API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
             </div>
             <p style="margin-top:10px">
-              The value reaches the app as the target's <code>Info.plist</code> key
-              <code>APIBaseURL</code>, which <code>AppEnvironment</code> in the shared Core module reads —
-              the one place the app reads configuration — and the composition root injects into
-              <code>RequestBuilder</code>. Leave it empty and the app <b>crashes at launch</b> with a
-              message telling you which file to fix — deliberate, because a fallback URL is a
-              staging build silently talking to the wrong server. Every fresh clone repeats this step.
+              From there the value travels into the app's <span class="term" tabindex="0" data-def="A settings file baked into the app, holding things iOS itself reads: the app name, version, and why it wants your camera."><code>Info.plist</code></span> as a key called
+              <code>APIBaseURL</code>. A single type in the shared core, <code>AppEnvironment</code>,
+              reads it — that's the only place in the whole app that reads configuration — and hands it
+              to <code>RequestBuilder</code>, which builds every outgoing request. Leave it empty and the
+              app <b>deliberately crashes at launch</b> with a message naming the file to fix. That's on
+              purpose: a quiet fallback address is how a test build ends up talking to the live server
+              without anyone noticing. Every fresh clone of the repo needs this step again.
             </p>
+
+            <div class="plain">
+              <div class="plain-label">Why that <code>$()</code> is there</div>
+              <p>
+                In this kind of file, <code>//</code> means "ignore the rest of the line". A URL has
+                <code>//</code> in it. So <code>https://host</code> silently becomes just
+                <code>https:</code> — the app then has a broken address and no error message. The
+                <code>$()</code> sits between the two slashes so they're never next to each other while
+                the file is being read, and disappears afterwards. Odd-looking, but it's a one-time
+                copy-paste, and the check below catches you if you forget.
+              </p>
+            </div>
+
             <p style="margin-top:10px">
-              That check tests for a <b>scheme and a host</b>, not merely that the string parsed —
-              which is what catches the mistake the <code>$()</code> above exists for. Quoting is
-              not an alternative: xcconfig has no string literals and no escape character, so
-              <code>"https://host"</code> truncates exactly like the bare form. <code>$()</code>
-              works by expanding to nothing <em>after</em> the comment is stripped, so the
-              <code>//</code> is never adjacent while anything is looking for it.
-              <code>Scripts/check_secrets.sh</code> applies the same rules at commit time, and
-              <code>docs/CODING_STANDARDS.md</code> has the full mechanism with a table of what every
-              candidate form resolves to.
+              The launch check tests that the value has <b>both a scheme and a host</b> — not merely that
+              some text was present — which is exactly what catches the mistake above. Quoting is not a
+              way around it: this file format has no string literals and no escape character, so
+              <code>"https://host"</code> gets truncated in exactly the same way.
+              <code>Scripts/check_secrets.sh</code> applies the same rules when you commit, and
+              <code>docs/CODING_STANDARDS.md</code> has the full explanation, including a table of what
+              every form you might try resolves to.
             </p>
             <p style="margin-top:10px; font-size:15px; color:var(--ink-soft)">
-              Answer <b>None</b> to the networking question and this step doesn't exist: an offline
-              app renders no <code>RequestBuilder</code>, no <code>APIBaseURL</code> key and no accessor for it,
-              so there's nothing to fill in and nothing to crash about. The rule is <em>don't render
-              the reader</em>, never <em>make the read tolerant</em> — softening the check to suit
-              offline apps would trade a correct crash for a networked build quietly pointing at the
-              wrong server.
+              If you answered <b>None</b> to the networking question, this step doesn't exist for you: an
+              offline app gets no <code>RequestBuilder</code>, no <code>APIBaseURL</code> key and nothing
+              to read it with, so there's nothing to fill in and nothing to crash about. The rule is
+              <em>don't generate the reader at all</em> — never <em>make the check lenient</em>. Softening
+              it to suit offline apps would trade a correct, loud crash for a networked app quietly
+              pointing at the wrong server.
             </p>
           </div>
         </div>
@@ -1062,41 +1301,44 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
       </div>
 
       <div class="note warn">
-        <span class="tag">The project file is generated</span>
-        Don't add or move files in Xcode's navigator — the next regenerate overwrites it. Edit
-        <code>project.yml</code>, or use the commands.
+        <span class="tag">The Xcode project file is generated, so don't edit it</span>
+        Don't add, rename or move files in Xcode's file list on the left — the next time the project is
+        regenerated, your change is gone. Edit <code>project.yml</code> instead, or use the commands in
+        <a href="#commands" style="color:var(--accent)">06</a>, which do it for you.
       </div>
 
       <h3>Do's and don'ts</h3>
       <p class="dd-lede">
-        Everything <code>/start</code> writes is downstream of your eleven answers, so the session that
-        produces them is the one worth getting right.
+        Everything <code>/start</code> writes follows from your eleven answers, which makes that one
+        conversation the one worth slowing down for.
       </p>
       <div class="dd">
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Answer the eleven as a set</h4>
-          <p>They're validated as a set, not one at a time. <b>"Use the recommended defaults"</b> is a
-          complete answer; a guessed one propagates into every command that reads the config
-          afterwards.</p>
+          <h4>Answer the eleven together, as one set</h4>
+          <p>They're checked as a set, not one at a time, because some combinations contradict each
+          other. <b>"Use the recommended defaults"</b> is a complete, respectable answer. A guessed one
+          spreads into every command that reads the config from then on.</p>
         </div>
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Re-run <code>/start</code> when something's missing</h4>
-          <p>It's idempotent: it recreates what's absent and refuses structural changes as a re-run side
-          effect. Reaching for it a second time is safe, and cheaper than reconstructing a file by hand.</p>
+          <h4>Re-run <code>/start</code> if something looks missing</h4>
+          <p>It's safe to run twice: it recreates whatever is absent and refuses to quietly restructure
+          what's already there. Reaching for it again is cheaper and safer than rebuilding a file by
+          hand.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Copy the template files in by hand</h4>
-          <p><code>/start</code> walks them file-by-file and never overwrites something already there,
-          which is exactly what makes that re-run safe. A manual <code>cp -r</code> loses both.</p>
+          <h4>Copy the kit's files in by hand</h4>
+          <p><code>/start</code> walks them one file at a time and never overwrites anything already
+          present — which is exactly what makes re-running it safe. A manual <code>cp -r</code> loses
+          both of those properties.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Point <code>/start</code> at a hand-maintained Xcode project</h4>
-          <p>It never regenerates or overwrites one. Adopting an existing codebase is a different path
-          from scaffolding a greenfield, and it will tell you so rather than scaffolding over the top.</p>
+          <h4>Point <code>/start</code> at a hand-built Xcode project</h4>
+          <p>It won't regenerate or overwrite one. Moving an existing codebase onto this setup is a
+          different job from starting fresh, and it will say so rather than scaffolding over your work.</p>
         </div>
       </div>
     </section>
@@ -1105,46 +1347,68 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
     <section id="knowledge-base">
       <div class="sec-head">
         <span class="ref">03</span>
-        <h2 class="sec-title">The knowledge base</h2>
+        <h2 class="sec-title">The rulebook</h2>
+      </div>
+
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          The assistant begins every conversation knowing nothing about your project. These files are
+          the answers, written down in advance, so it doesn't have to guess or ask. One of them,
+          <code>CLAUDE.md</code>, is read automatically before your first message and points at all the
+          others.
+        </p>
+        <p>
+          The practical habit this asks of you is small: when you explain a constraint, put the sentence
+          in a file rather than only in the chat. Chat is forgotten tomorrow; the file is read every
+          time.
+        </p>
       </div>
 
       <p>
-        The assistant starts every session knowing nothing about your project. These files answer, in
-        advance, what it would otherwise guess. <code>CLAUDE.md</code> loads automatically and points at
-        the rest.
+        <code>CLAUDE.md</code> loads on its own and points at the rest. Together these files answer, up
+        front, the questions the assistant would otherwise answer by guessing.
       </p>
 
-      <h3>On a greenfield project it arrives three ways</h3>
+      <h3>On a new project they arrive four ways</h3>
       <ul class="bullets tight">
-        <li><b>Copied in finished</b> — the rules independent of your answers: theming, UI, permissions, coding standards, git conventions.</li>
-        <li><b>Rendered by <code>/start</code></b> — the templates ship describing every pattern and tier; the render <b>deletes the ones you didn't choose</b>, so your docs describe one architecture, not five. No placeholder survives it.</li>
-        <li><b>Written by you</b> — <code>docs/product/</code>. The template knows how an app here is built and nothing about what it's for; requirements arrive later, keep changing, and are read fresh each time rather than digested into <code>CLAUDE.md</code>.</li>
-        <li><b>Grown as you work</b> — seeded at setup, then appended to by the commands that change what they describe.</li>
+        <li><b>Copied in already finished</b> — the rules that don't depend on your answers: colours and fonts, UI conventions, permissions, coding style, git habits.</li>
+        <li><b>Written out by <code>/start</code></b> — these ship describing every pattern and every project shape, and the setup step <b>deletes the ones you didn't pick</b>. So your docs describe one architecture, not five, and no half-filled placeholder survives.</li>
+        <li><b>Written by you</b> — <code>docs/product/</code>. This kit knows how an app here is built and nothing whatsoever about what your app is <i>for</i>. Requirements arrive later and keep changing, so they're read fresh each time rather than summarised into <code>CLAUDE.md</code>.</li>
+        <li><b>Grown as you work</b> — created at setup, then added to automatically by the commands that change what they describe.</li>
       </ul>
 
       <div class="tw">
         <table>
-          <thead><tr><th>File</th><th>Origin</th><th>What it settles</th></tr></thead>
+          <thead><tr><th>File</th><th>Where it comes from</th><th>What it settles</th></tr></thead>
           <tbody>
-            <tr><th class="mono">CLAUDE.md</th><td>rendered</td><td>Stack, pattern, tier, module graph, and where deeper rules live — <b>auto-loaded every session</b></td></tr>
-            <tr><th class="mono">ios-skeleton.config.json</th><td><code>/start</code></td><td>Every answer, machine-readable. Commands resolve "which module / which app" here instead of asking</td></tr>
-            <tr><th class="mono">docs/ai/architecture.md</th><td>rendered</td><td>The one chosen pattern — no mixing patterns feature-to-feature</td></tr>
-            <tr><th class="mono">docs/ai/modularization.md</th><td>rendered</td><td>Tier, module graph and direction, and which module owns strings, assets and tokens</td></tr>
-            <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>as-is</td><td>Colours and fonts only via <code>Theme/</code>; mandatory previews, no raw user-facing strings, never <code>Bundle.main</code> from a framework, real accessibility labels; no permission without a usage string; force-unwrap and <code>// MARK:</code> policy; commit format. Plus the Swift-level calls below: where data goes, secrets, concurrency, ARC, <code>struct</code> vs <code>class</code></td></tr>
-            <tr><th class="mono">docs/PROJECT_MAP.md</th><td>seeded, appended</td><td>What convention doesn't cover: modules with kinds and consumers, shipped locales, which combos are templated</td></tr>
-            <tr><th class="mono">docs/product/</th><td>yours</td><td><b>PRD, SRS, API contracts — the one folder nothing here generates, renders or overwrites.</b> Living documents: <code>CLAUDE.md</code> points at them and never summarizes them, and <code>/new-feature</code> re-reads the relevant one per invocation rather than inferring field names and types</td></tr>
-            <tr><th class="mono">Secrets.xcconfig<br>Secrets.xcconfig.example</th><td><code>/start</code></td><td>Everything that varies by environment. The <code>.example</code> is committed and is the record of which keys exist; the real file is gitignored, and <code>.gitignore</code> ships with that entry already in it</td></tr>
-            <tr><th class="mono">TODO.md</th><td>seeded, appended</td><td><code>API_BASE_URL</code>, signing team, App Store Connect record, push certs, <code>PrivacyInfo.xcprivacy</code></td></tr>
+            <tr><th class="mono">CLAUDE.md</th><td>generated</td><td>Your stack, pattern, project shape, list of modules, and where the deeper rules live — <b>read automatically every session</b></td></tr>
+            <tr><th class="mono">ios-skeleton.config.json</th><td><code>/start</code></td><td>All eleven answers in a form scripts can read. It's how a command works out "which module, which app" without asking you again</td></tr>
+            <tr><th class="mono">docs/ai/architecture.md</th><td>generated</td><td>The one pattern you chose, and nothing else — so features don't drift into different shapes</td></tr>
+            <tr><th class="mono">docs/ai/modularization.md</th><td>generated</td><td>Your project shape, which modules exist and which may depend on which, and which module owns text, images and colours</td></tr>
+            <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>copied as-is</td><td>Colours and fonts only through <code>Theme/</code>; every screen must ship a preview; no user-facing text typed straight into a screen; a framework must never look in <code>Bundle.main</code>; real accessibility labels; no permission without an explanation string; when a force-unwrap is allowed; commit message format. Plus the four Swift-level calls below</td></tr>
+            <tr><th class="mono">docs/PROJECT_MAP.md</th><td>seeded, then added to</td><td>The things convention can't cover: which modules exist and who uses them, which languages ship, which combinations are ready-made</td></tr>
+            <tr><th class="mono">docs/product/</th><td>yours</td><td><b>Requirements, specs, API contracts — the one folder nothing here generates, rewrites or overwrites.</b> Living documents: <code>CLAUDE.md</code> points at them and never summarises them, and <code>/new-feature</code> re-reads the relevant one every time rather than inventing field names and types</td></tr>
+            <tr><th class="mono">Secrets.xcconfig<br>Secrets.xcconfig.example</th><td><code>/start</code></td><td>Everything that differs between environments. The <code>.example</code> is committed and is the record of which settings exist; the real file is ignored by git, and the <code>.gitignore</code> already has that line in it</td></tr>
+            <tr><th class="mono">TODO.md</th><td>seeded, then added to</td><td>The jobs only a human can do: the server address, your signing team, the App Store Connect record, push certificates, the privacy manifest</td></tr>
           </tbody>
         </table>
       </div>
 
-      <h3>The Swift-level calls the rulebook makes for you</h3>
-      <p>
-        None of these follow from your eleven answers, and all four are questions an assistant will
-        otherwise answer by habit — badly, in the same four ways. They're written down so it doesn't
-        have to guess, each one anchored in code the template actually ships.
-      </p>
+      <h3>Four Swift decisions the rulebook makes so nobody has to</h3>
+      <div class="plain">
+        <div class="plain-label">If you're not a Swift developer, read this and skip the table</div>
+        <p>
+          These four are long-running arguments in iOS development. None of them follow from your eleven
+          answers, and an assistant left to itself will answer them by habit — differently each time.
+          They're written down once, with the reasoning, so every generated file makes the same call.
+        </p>
+        <p>
+          <b>You don't have to decide any of this.</b> The value of the table is that the decision exists
+          in writing and is anchored in code the kit actually ships — so if you ever need to know why
+          something was done a particular way, the answer is on record instead of in someone's head.
+        </p>
+      </div>
 
       <div class="tw">
         <table class="fixed-first">
@@ -1152,76 +1416,78 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
           <tbody>
             <tr>
               <th>Where does this data go?</th>
-              <td><code>UserDefaults</code> for small non-sensitive state and preferences · the persistence stack you chose for domain records · <b>Keychain for tokens and credentials</b>, the only encrypted store and the only one kept out of unencrypted backups. The hard line: <b>never a credential in <code>UserDefaults</code> or the local database</b>. <code>UserDefaults</code> itself goes behind a narrow protocol, not reached for as a global</td>
+              <td><code>UserDefaults</code> for small, non-sensitive things like preferences · your chosen persistence stack for real records · <b>Keychain for tokens and passwords</b>, since it's the only encrypted store and the only one kept out of unencrypted backups. The hard line: <b>never a credential in <code>UserDefaults</code> or the local database</b>. And <code>UserDefaults</code> itself sits behind a small protocol rather than being reached for from anywhere as a global</td>
             </tr>
             <tr>
               <th>GCD or async/await?</th>
-              <td>async/await, and the generated code already is: every service, repository and store is <code>async throws</code>, <code>Debouncer</code> is an <code>actor</code>, UI-owning types are <code>@MainActor</code>, and <b>no template contains a single <code>DispatchQueue</code></b>. GCD only where an SDK forces it — wrapped once in a continuation at the boundary. An <code>actor</code> for shared mutable state rather than a serial queue; <code>@MainActor</code> rather than <code>DispatchQueue.main.async</code>; never a semaphore blocking on async work</td>
+              <td>async/await — and the generated code already is. Every service, repository and store is <code>async throws</code>, <code>Debouncer</code> is an <code>actor</code>, anything that owns UI is <code>@MainActor</code>, and <b>no template contains a single <code>DispatchQueue</code></b>. GCD (the older approach) appears only where an outside SDK forces it, wrapped once at the boundary. An <code>actor</code> rather than a serial queue for shared mutable state; <code>@MainActor</code> rather than <code>DispatchQueue.main.async</code>; never a semaphore blocking on async work</td>
             </tr>
             <tr>
               <th>When is <code>[weak self]</code> needed?</th>
-              <td>Keyed to ownership direction, not sprinkled. An escaping closure stored on a long-lived object needs it — the generated retry handler is the shape; a non-escaping one doesn't, and adding it there is noise. A back-reference <em>up</em> the graph is always <code>weak</code>, which is why VIP's presenter holds its display layer weakly. Prefer <code>weak</code> over <code>unowned</code>: <code>unowned</code> is a crash where <code>weak</code> is a no-op</td>
+              <td>Decided by which object owns which, not sprinkled everywhere out of caution. A closure stored on a long-lived object needs it — the generated retry handler is the example. A closure that's used and discarded doesn't, and adding it there is just noise. A reference pointing back <em>up</em> the ownership chain is always <code>weak</code>, which is why VIP's presenter holds its display layer weakly. Prefer <code>weak</code> over <code>unowned</code>: <code>unowned</code> crashes where <code>weak</code> quietly does nothing</td>
             </tr>
             <tr>
               <th><code>struct</code> or <code>class</code>?</th>
-              <td><code>struct</code> by default; <code>class</code> for identity (a coordinator, a view model), a framework requirement (<code>UIViewController</code>, <code>@Model</code>, or needing to be the target of a <code>weak</code> reference), or <code>@Observable</code> view state. Models, <code>RequestBuilder</code> and the API client are structs because none of those apply. Mark classes <code>final</code> unless something subclasses them, and remember a <code>struct</code> holding a mutable reference is not a value type</td>
+              <td><code>struct</code> unless there's a reason. Use <code>class</code> for things with an identity (a coordinator, a view model), where a framework demands it (<code>UIViewController</code>, <code>@Model</code>, or anything that needs to be held weakly), or for <code>@Observable</code> view state. Models, <code>RequestBuilder</code> and the API client are structs because none of those apply. Mark classes <code>final</code> unless something subclasses them — and remember a <code>struct</code> holding a mutable reference is not really a value type</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="note warn">
-        <span class="tag">Stale is worse than absent</span>
-        An architecture doc describing a pattern you've moved away from doesn't fail loudly — it steers
-        the assistant wrong for months. The commands append rather than leaving it to discipline, and
-        <code>/status</code> reports drift between what's recorded and what's on disk.
+        <span class="tag">A stale doc is worse than a missing one</span>
+        A file describing a pattern you've since moved away from doesn't announce itself — it quietly
+        steers the assistant wrong for months. That's why the commands update these files themselves
+        instead of leaving it to memory, and why <code>/status</code> reports where what's written no
+        longer matches what's actually on disk.
       </div>
 
       <h3>Do's and don'ts</h3>
       <p class="dd-lede">
-        These files exist so a session doesn't start by re-establishing what the last one already knew.
-        Using them well is mostly a matter of where you put a sentence.
+        These files exist so a session doesn't begin by re-establishing what the last one already knew.
+        Using them well is mostly about where you put a sentence.
       </p>
       <div class="dd">
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Write the answer down, not just into the chat</h4>
+          <h4>Write the answer into a file, not just into the chat</h4>
           <p>The assistant has no memory between sessions. A constraint you explain in conversation is
-          gone tomorrow; the same sentence in <code>docs/product/</code> or <code>PROJECT_MAP.md</code>
-          loads every time, unprompted.</p>
+          gone tomorrow. The same sentence in <code>docs/product/</code> or <code>PROJECT_MAP.md</code>
+          gets read every time, without you asking.</p>
         </div>
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Point at the file rather than pasting its contents</h4>
+          <h4>Point at the file instead of pasting it in</h4>
           <p>"Read <code>docs/product/api-contracts.md</code> before building this service" costs a
-          fraction of pasting the document, and stays correct after the document changes.</p>
+          fraction of pasting the document — and it stays correct after someone edits the document.</p>
         </div>
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Let the commands do the appending</h4>
-          <p><code>PROJECT_MAP.md</code>, <code>PERMISSIONS.md</code> and <code>TODO.md</code> are seeded
-          at setup and then written to by the commands that change what they describe — grown as you
-          work, rather than maintained by discipline.</p>
+          <h4>Let the commands do the writing-down</h4>
+          <p><code>PROJECT_MAP.md</code>, <code>PERMISSIONS.md</code> and <code>TODO.md</code> are
+          created at setup and then updated by the commands that change what they describe. They grow as
+          you work instead of depending on anyone remembering.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Re-state your stack, tier and pattern each session</h4>
-          <p><code>CLAUDE.md</code> is loaded automatically before your first message is read. Restating
-          it spends context on what's already there, and a restatement that drifts from the file is worse
-          than silence.</p>
+          <h4>Re-explain your stack and pattern every session</h4>
+          <p><code>CLAUDE.md</code> is already loaded before your first message is read. Repeating it
+          wastes room in the conversation — and a repetition that has drifted from the file is worse than
+          saying nothing.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Summarize <code>docs/product/</code> into <code>CLAUDE.md</code></h4>
-          <p>Requirements keep changing, and a digest goes stale without failing. <code>CLAUDE.md</code>
-          points at them and never summarizes them; <code>/new-feature</code> re-reads the relevant one
-          per invocation.</p>
+          <h4>Summarise <code>docs/product/</code> into <code>CLAUDE.md</code></h4>
+          <p>Requirements keep changing, and a summary goes stale without ever failing visibly.
+          <code>CLAUDE.md</code> points at them and never summarises them; <code>/new-feature</code>
+          re-reads the relevant one each time it runs.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
           <h4>Keep the patterns you didn't choose "for reference"</h4>
-          <p>The render deletes them on purpose, so your docs describe one architecture rather than five.
-          A pattern left in the file is a pattern the assistant may decide is on the menu.</p>
+          <p>Setup deletes them deliberately, so your docs describe one architecture instead of five. A
+          pattern left sitting in the file is a pattern the assistant may reasonably decide is still on
+          the menu.</p>
         </div>
       </div>
     </section>
@@ -1230,78 +1496,96 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
     <section id="topology">
       <div class="sec-head">
         <span class="ref">04</span>
-        <h2 class="sec-title">Project topology</h2>
+        <h2 class="sec-title">How the project is laid out</h2>
+      </div>
+
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          There are three sizes of project, called T1, T2 and T3. The <i>layers</i> of code are identical
+          in all three — the only difference is how tightly they're separated, and therefore whether the
+          compiler can stop somebody wiring two things together that shouldn't be.
+        </p>
+        <p>
+          T1 is one big bucket. T2 puts your shared code into separate packages, so crossing a boundary
+          becomes a visible, deliberate act. T3 splits things further so two apps can share one core.
+          <b>T2 is the default</b>, and the reason is timing: separating things now is a few minutes,
+          separating them after a year is a project.
+        </p>
       </div>
 
       <p>
-        The layers are identical at all three tiers — only the packaging changes, which is what keeps
-        migration tractable. What differs is whether the compiler can enforce a boundary.
+        The layers are the same at all three sizes — only the packaging changes, which is what keeps
+        moving between them manageable. What actually differs is whether the compiler can enforce a
+        boundary or whether it's left to good intentions.
       </p>
 
       <div class="tw">
         <table>
           <thead><tr><th></th><th>T1</th><th>T2 <span class="badge neu">default</span></th><th>T3</th></tr></thead>
           <tbody>
-            <tr><th>Shape</th><td>one <code>.xcodeproj</code>, one app target</td><td>+ local Swift packages under <code>Packages/</code></td><td><code>.xcworkspace</code> over N projects: app + dynamic framework targets</td></tr>
-            <tr><th>Swift modules</th><td>one — all <code>internal</code></td><td>one per package; crossing needs <code>public</code> plus an explicit <code>public init</code></td><td>one per framework, each with a shared scheme, independently buildable</td></tr>
-            <tr><th>Spec files</th><td>one <code>project.yml</code></td><td>+ a <code>Package.swift</code> per package</td><td>one <b>per project</b>, plus a generated <code>contents.xcworkspacedata</code></td></tr>
-            <tr><th>Lock file</th><td colspan="2"><code>Package.resolved</code> inside <code>App.xcodeproj/…/swiftpm/</code></td><td>moves to <code>xcshareddata/swiftpm/</code></td></tr>
-            <tr><th>Good for</th><td>prototypes, &lt;10 screens</td><td>one shipping app, any size</td><td>two apps sharing a spine, or a shipped framework</td></tr>
+            <tr><th>Shape</th><td>one <code>.xcodeproj</code>, one app target</td><td>the same, plus local Swift packages under <code>Packages/</code></td><td>an <code>.xcworkspace</code> over several projects: the app plus framework targets</td></tr>
+            <tr><th>Code boundaries</th><td>one module — everything can see everything</td><td>one per package; using something from another package means marking it <code>public</code> on purpose</td><td>one per framework, each buildable on its own</td></tr>
+            <tr><th>Files describing the build</th><td>one <code>project.yml</code></td><td>plus a <code>Package.swift</code> per package</td><td>one <b>per project</b>, plus a generated workspace file</td></tr>
+            <tr><th>Where dependency versions are pinned</th><td colspan="2"><code>Package.resolved</code>, inside <code>App.xcodeproj/…/swiftpm/</code></td><td>moves to <code>xcshareddata/swiftpm/</code></td></tr>
+            <tr><th>Good for</th><td>prototypes, fewer than about 10 screens</td><td>one app you intend to ship, any size</td><td>two apps sharing a core, or a framework you publish</td></tr>
           </tbody>
         </table>
       </div>
 
       <p style="margin-top:14px">
-        Dependencies point one way — app targets → shared modules → leaf modules; never framework to app
-        or app to app. A shared module needing app-specific behaviour takes it as a protocol injected at
-        the composition root. <code>/add-module</code> refuses to create a cycle.
+        Dependencies only ever point one direction — app → shared modules → the small building-block
+        modules. Never a framework depending on the app, and never one app on another. When a shared
+        module needs behaviour that differs per app, it takes that in as a protocol, handed to it at
+        launch. <code>/add-module</code> refuses to create a loop, where two modules each need the other.
       </p>
 
       <div class="note warn">
-        <span class="tag">Cheap to add, expensive to retrofit</span>
-        Adding a package or project is a spec edit plus a regenerate — never <code>pbxproj</code> surgery.
-        Extracting shared code from an app target that never had boundaries is the expensive path: an
-        access-control pass over every type the new consumer touches, and <code>Bundle.main</code> lookups
-        that compile and then return nothing. A second app is a weekend at T3 from day one, a quarter
-        retrofitted.
+        <span class="tag">Cheap to add now, expensive to add later</span>
+        Adding a package or project is a text edit plus a regenerate — never hand-surgery on the Xcode
+        project file. Pulling shared code out of an app that never had boundaries is the expensive path:
+        you have to go through every type the new consumer touches and decide what becomes public, and
+        untangle <span class="term" tabindex="0" data-def="A lookup that searches the app itself. From inside a shared module it finds nothing — and doesn't complain, it just returns empty."><code>Bundle.main</code></span> lookups that still compile happily and then return nothing at
+        runtime. A second app is a weekend's work if you started at T3, and a quarter if you're
+        retrofitting.
       </div>
 
-      <h3>Ownership rules from T2 onward</h3>
+      <h3>Who owns what, from T2 onward</h3>
       <ul class="bullets tight">
-        <li><b>Localization is per resource-owning module.</b> Lookup resolves against a bundle, so each module with UI owns its <code>.strings</code> and a bundle-aware accessor — <code>Bundle.module</code> in a package, <code>Bundle(for:)</code> in a framework, never <code>Bundle.main</code>.</li>
-        <li><b>Theme is base plus per-app override</b>, not one file.</li>
-        <li><b><code>Info.plist</code>, entitlements, asset catalog, icon and signing are app-target-only.</b></li>
+        <li><b>Each module with UI owns its own translations.</b> Text lookup happens inside whichever bundle owns the screen, so every module with visible text keeps its own text files and its own bundle-aware way of reading them — <code>Bundle.module</code> in a package, <code>Bundle(for:)</code> in a framework, and never <code>Bundle.main</code>.</li>
+        <li><b>Colours and fonts are a shared base plus a per-app override</b>, not a single file everyone edits.</li>
+        <li><b>The <code>Info.plist</code>, entitlements, image catalog, app icon and signing belong to the app target only</b> — never to a shared module.</li>
       </ul>
 
       <h3>Do's and don'ts</h3>
       <p class="dd-lede">
-        Once there's more than one module, every command has to resolve a destination before it can do
-        anything. Most of the friction here is that question, asked repeatedly.
+        As soon as there's more than one module, every command has to work out where to put things
+        before it can do anything. Most of the friction here is that one question, asked over and over.
       </p>
       <div class="dd">
         <div class="dd-card">
           <span class="dd-label">Do</span>
           <h4>Record a <code>defaultModule</code> once there's more than one candidate</h4>
-          <p>Every command refuses to guess a destination without it, so you'll be answering "which
-          module?" on each invocation until it's in the config. One line, answered once.</p>
+          <p>Commands refuse to guess a destination, so you'll be answering "which module?" every single
+          time until it's saved in the config. One line, answered once.</p>
         </div>
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Pass <code>--ui</code> when the module will own views</h4>
-          <p>It's what wires in that module's localization and asset catalog at creation. Adding them to
-          a module that was created without the flag is manual work the command won't redo for you.</p>
+          <h4>Pass <code>--ui</code> when the new module will contain screens</h4>
+          <p>That flag is what sets up the module's translations and image catalog at the moment it's
+          created. Adding them afterwards is manual work the command won't go back and do for you.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
           <h4>Expect <code>/add-module</code> to work at T1</h4>
-          <p>It refuses, with the reason: adding a module <em>is</em> the T1→T2 migration. Make that move
-          deliberately rather than as a side effect of wanting one more folder.</p>
+          <p>It refuses and tells you why: adding a module <em>is</em> the move from T1 to T2. Better to
+          make that decision deliberately than as a side effect of wanting one more folder.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Ask for a second app by copying the first</h4>
-          <p><code>/add-app</code> extends the shared base views and refuses to copy features across. A
-          copied screen is two screens from the day it lands, and they diverge on the first bug fix.</p>
+          <h4>Make a second app by copying the first</h4>
+          <p><code>/add-app</code> builds on the shared screens and refuses to copy features across. A
+          copied screen is two screens from day one, and they start drifting apart at the first bug fix.</p>
         </div>
       </div>
     </section>
@@ -1310,74 +1594,108 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
     <section id="architecture">
       <div class="sec-head">
         <span class="ref">05</span>
-        <h2 class="sec-title">Architecture</h2>
+        <h2 class="sec-title">How a screen is built</h2>
+      </div>
+
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          One command produces a whole working screen as several small files, each with one job, none of
+          them knowing more than it needs to. That last part is the point: the file that draws the screen
+          doesn't know where the data came from, so you can swap in a fake one and test the screen with
+          no server at all.
+        </p>
+        <p>
+          On the recommended answers, all of these files come from fixed templates — identical every
+          time. On other combinations, some of them are written by the assistant instead, and that
+          difference is worth knowing about before you review the result.
+        </p>
       </div>
 
       <p>
-        <code>/new-feature Films "title:String,year:Int"</code> on the MVVM default generates six files —
-        flat feature folder, models hoisted to the shared package:
+        <code>/new-feature Films "title:String,year:Int"</code> on the default MVVM setup produces six
+        files — a flat folder for the feature, with the data types lifted out into the shared package:
       </p>
 
       <div class="tw">
         <table>
-          <thead><tr><th>File</th><th>Job</th><th>Doesn't know</th></tr></thead>
+          <thead><tr><th>File</th><th>Its job</th><th>What it deliberately doesn't know</th></tr></thead>
           <tbody>
-            <tr><th class="mono">FilmsView</th><td>Render state; loading, error and empty from <code>DesignSystem</code></td><td>Where films come from</td></tr>
-            <tr><th class="mono">FilmsViewModel</th><td><code>@Observable</code>; owns state, depends on the repository <em>protocol</em></td><td>SwiftUI, or which host</td></tr>
-            <tr><th class="mono">FilmsRepository</th><td>Owns the protocol's one real conformance; network or cache</td><td>That a view exists</td></tr>
-            <tr><th class="mono">FilmsService</th><td>Builds the request, decodes the response</td><td>Why it was wanted</td></tr>
-            <tr><th class="mono">Models/FilmsModels</th><td>Request, Response, Entity — in the shared <code>Models/</code></td><td>Everything else</td></tr>
-            <tr><th class="mono">FilmsViewModelTests</th><td>Fake conformance, no network, runs in milliseconds</td><td>The server</td></tr>
+            <tr><th class="mono">FilmsView</th><td>Draw the screen. Loading, error and empty states come ready-made from <code>DesignSystem</code></td><td>Where the films came from</td></tr>
+            <tr><th class="mono">FilmsViewModel</th><td>Hold what's currently on screen and decide what happens on a tap. Depends on the repository <em>protocol</em>, not the real thing</td><td>Anything about SwiftUI, or which screen shows it</td></tr>
+            <tr><th class="mono">FilmsRepository</th><td>The one real implementation of that protocol: decide whether to hit the network or use what's saved</td><td>That any screen exists</td></tr>
+            <tr><th class="mono">FilmsService</th><td>Build the network request and turn the response into Swift types</td><td>Why anyone wanted it</td></tr>
+            <tr><th class="mono">Models/FilmsModels</th><td>The data types — request, response, the thing itself — in the shared <code>Models/</code></td><td>Everything else</td></tr>
+            <tr><th class="mono">FilmsViewModelTests</th><td>Test the view model against a fake repository. No network, runs in milliseconds</td><td>The server</td></tr>
           </tbody>
         </table>
       </div>
 
       <p style="margin-top:14px">
-        The protocol is owned by the <b>consumer</b>, not the implementer, and named for a capability
-        (<code>FilmsRepository</code>) rather than a pattern (<code>FilmsInteractorProtocol</code>). No
-        <code>UseCase</code> layer sits between ViewModel and Repository — a type that forwards one call
-        is ceremony.
+        Two naming rules worth knowing, because they're the ones an assistant gets wrong by habit. The
+        protocol belongs to the code that <b>uses</b> it, not the code that implements it. And it's named
+        for what it does (<code>FilmsRepository</code>) rather than for the pattern it belongs to
+        (<code>FilmsInteractorProtocol</code>). There's also no extra <code>UseCase</code> layer between
+        the view model and the repository — a file whose only job is to pass one call along is ceremony.
       </p>
 
       <div class="note">
-        <span class="tag">Four combinations are fully templated</span>
+        <span class="tag">Four combinations come from fixed templates</span>
         <b>MVVM+SwiftUI</b>, <b>VIP+SwiftUI</b>, <b>VIP+UIKit</b> and <b>MVC+UIKit</b> have every layer
-        file written from a real template. Anything else — MVC+SwiftUI, MV, VIPER, or any pattern on its
-        non-default navigation approach — still gets deterministic folders, models, DI wiring, navigation
-        registration and a test scaffold, but the layer bodies are written by the assistant from your
-        rendered <code>architecture.md</code>. If you didn't take the defaults, review before trusting.
+        file written from a real template — the same output every time, for everyone. Any other
+        combination — MVC+SwiftUI, MV, VIPER, or any pattern paired with navigation other than its
+        default — is <b>assisted</b> instead: you still get the folders, the data types, the wiring, the
+        navigation entry and a test scaffold generated the same way every time, but the contents of the
+        layer files are written by the assistant, guided by the <code>architecture.md</code> your setup
+        produced.
+      </div>
+
+      <div class="note warn">
+        <span class="tag">If your combination isn't one of those four, expect to explain it</span>
+        <b>Assisted does not mean automatic.</b> Because the layer bodies depend on the mix of answers you
+        gave — pattern, UI framework, navigation, persistence, <span class="term" tabindex="0" data-def="Dependency injection: handing a piece of code the things it needs from outside, rather than letting it fetch them itself.">DI</span> — there is no single template that
+        could cover them, so the assistant writes them from your written rules. In practice that means
+        you should <b>describe the pattern you want in your own words</b> when you ask for a feature: what
+        each layer is called, which layer may talk to which, where state lives, and what the first
+        feature should look like when it's done. The clearer that description, the closer the result. Then
+        <b>read the generated files before building on them</b>, and once you have one feature you're happy
+        with, say so plainly — "match the structure of the Films feature" — so every later screen has a
+        concrete example to copy rather than a description to interpret. If you'd rather not do any of
+        this, take the recommended defaults; that's exactly what they're for.
       </div>
 
       <h3>Do's and don'ts</h3>
       <p class="dd-lede">
-        Six files arrive at once. Knowing which of them proves the other five are wired up is most of
-        reviewing a generated feature.
+        Six files land at once. Knowing which single one proves the other five are correctly connected is
+        most of the skill in reviewing a generated feature.
       </p>
       <div class="dd">
         <div class="dd-card">
           <span class="dd-label">Do</span>
           <h4>Run the generated test first</h4>
-          <p>It ships passing, against a fake conformance, with no network — so it runs in milliseconds
-          and it fails for exactly one reason: the wiring between the layers is wrong. Cheaper than
-          reading six files.</p>
+          <p>It ships passing, uses a fake data source, touches no network, and finishes in
+          milliseconds — so it fails for essentially one reason: the layers aren't wired together
+          properly. Far cheaper than reading six files.</p>
         </div>
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Treat a refusal on an existing folder as the guard working</h4>
+          <h4>Treat a refusal on an existing folder as the guard doing its job</h4>
           <p><code>/new-feature</code> stops rather than merging into a half-built feature. Rename or
-          remove first — talking it into proceeding is how you get two sets of layer files interleaved.</p>
+          delete first. Talking it into continuing is how you end up with two sets of layer files tangled
+          together.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Let the pattern drift feature to feature</h4>
-          <p>Nothing detects a feature built a different way — no hook, no lint rule, no check. Protocol
-          and layer discipline is review here, and it's the failure that compounds most quietly.</p>
+          <h4>Let the pattern drift from feature to feature</h4>
+          <p>Nothing detects a feature built a different way — no hook, no lint rule, no check at all.
+          Keeping to one shape is a review job, and it's the failure that builds up most quietly.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Plan to move a feature into the right module afterwards</h4>
-          <p>Generated into the wrong one, its models, DI registration, navigation entry and strings all
-          land in the wrong place — and moving them is hand work. Answer the module question instead.</p>
+          <h4>Plan to move a feature into the right module later</h4>
+          <p>Generated into the wrong module, its data types, wiring, navigation entry and text all land
+          in the wrong place too — and moving them is hand work. Answer the module question properly
+          instead.</p>
         </div>
       </div>
     </section>
@@ -1389,79 +1707,99 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
         <h2 class="sec-title">Day-to-day commands</h2>
       </div>
 
-      <p>Each already knows your recorded answers, so you never restate them.</p>
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          These are the jobs you'll do repeatedly. Each one is a written checklist the assistant follows,
+          plus scripts it runs — so adding an image or a permission touches every place it needs to,
+          rather than the one place you remembered.
+        </p>
+        <p>
+          They already know your setup answers, so you never restate them. And you can describe what you
+          want in ordinary English instead of typing the command; it reaches the same place.
+        </p>
+      </div>
 
-      <p>Each declares its model in <code>SKILL.md</code> frontmatter, so the tier follows the work rather
-      than whatever model your session is on. Four are pinned to <b>opus at high effort</b> — the ones that
-      are irreversible or cross-cutting: <code>/start</code>, which writes the config every other command
-      reads, plus the three that rewire feature, module or app wiring. The rest declare
-      <code>model: inherit</code> and follow your <code>/model</code> choice, because a bounded,
-      single-destination edit over an already-decided architecture has no business overriding it.</p>
+      <p>Every command already knows your recorded answers, so you never have to repeat them.</p>
 
-      <p>A pinned model <i>replaces</i> the session model for that run: <code>/model sonnet</code> then
-      <code>/status</code> gives you Sonnet, but <code>/model sonnet</code> then <code>/start</code> still
-      gives you Opus. That asymmetry is the point. There's no per-invocation flag — to change one anyway,
-      edit the frontmatter in your project's own <code>.claude/skills/&lt;name&gt;/SKILL.md</code>.</p>
+      <p>
+        Each one also declares which AI model it wants, in its own definition file — so the model
+        follows the difficulty of the work instead of whatever your session happens to be set to. Four
+        are pinned to <b><span class="term" tabindex="0" data-def="Anthropic's most capable model tier. Slower and pricier than the alternatives, which is why only four commands ask for it.">Opus</span> at high effort</b>: the ones that are hard to undo or that touch many files
+        at once — <code>/start</code>, which writes the config every other command reads, plus the three
+        that rewire a feature, a module or an app. The rest say <code>model: inherit</code> and follow
+        your <code>/model</code> choice, because a small, single-destination edit inside an architecture
+        that's already decided has no business overriding what you picked.
+      </p>
+
+      <p>A pinned model <i>replaces</i> your session model for that one run: <code>/model sonnet</code>
+      then <code>/status</code> gives you Sonnet, but <code>/model sonnet</code> then <code>/start</code>
+      still gives you Opus. That asymmetry is deliberate. There's no per-run flag to override it — to
+      change one anyway, edit the header of your project's own
+      <code>.claude/skills/&lt;name&gt;/SKILL.md</code>.</p>
 
       <div class="tw">
         <table>
-          <thead><tr><th>Command</th><th>Model</th><th>Produces</th></tr></thead>
+          <thead><tr><th>Command</th><th>Model</th><th>What you get</th></tr></thead>
           <tbody>
-            <tr><td class="cmd">/new-feature Profile "name:String"</td><td class="mono">opus · high</td><td>Layer files for the chosen pattern, models in the shared package, DI and navigation registration, a passing test</td></tr>
-            <tr><td class="cmd">/add-assets logo</td><td class="mono">inherit</td><td>Image set at 1×/2×/3×, plus a generated typed accessor</td></tr>
-            <tr><td class="cmd">/update-app-icon icon.png</td><td class="mono">inherit</td><td>Icon regenerated after checking 1024², sRGB and no alpha</td></tr>
-            <tr><td class="cmd">/add-permission camera</td><td class="mono">inherit</td><td>The <code>Info.plist</code> usage key with a real string, plus a <code>PERMISSIONS.md</code> entry</td></tr>
-            <tr><td class="cmd">/update-theme</td><td class="mono">inherit</td><td>Token updated in the correct layer — shared base, or this app's override</td></tr>
-            <tr><td class="cmd">/translate es fr</td><td class="mono">inherit</td><td>Draft entries for every existing key in the target locales, marked for review</td></tr>
-            <tr><td class="cmd">/add-module Shared --kind framework</td><td class="mono">opus · high</td><td>Folders, spec, test target, localization and assets if <code>--ui</code>, wired into consumers; cycles refused</td></tr>
-            <tr><td class="cmd">/add-app Companion</td><td class="mono">opus · high</td><td>A second app target extending the shared base views rather than copying screens</td></tr>
-            <tr><td class="cmd">/add-secret ANALYTICS_HOST=…</td><td class="mono">inherit</td><td>Key in <code>Secrets.xcconfig</code> + the committed example, a <code>$(KEY)</code> entry in each app's <code>Info.plist</code>, and a typed <code>AppEnvironment</code> accessor. Credential-shaped values are held back for you to paste in by hand — never through the agent</td></tr>
-            <tr><td class="cmd">/status</td><td class="mono">inherit</td><td>Tier, module graph, orphaned modules, lint state, outstanding TODOs</td></tr>
+            <tr><td class="cmd">/new-feature Profile "name:String"</td><td class="mono">opus · high</td><td>The layer files for your chosen pattern, data types in the shared package, wiring and a navigation entry, and a test that already passes</td></tr>
+            <tr><td class="cmd">/add-assets logo</td><td class="mono">inherit</td><td>An image at all three screen resolutions, plus generated code to refer to it by name instead of by string</td></tr>
+            <tr><td class="cmd">/update-app-icon icon.png</td><td class="mono">inherit</td><td>The app icon regenerated, after checking your file is 1024×1024, in the right colour space, and has no transparency</td></tr>
+            <tr><td class="cmd">/add-permission camera</td><td class="mono">inherit</td><td>The <code>Info.plist</code> entry with a real explanation for the user, plus a note in <code>PERMISSIONS.md</code></td></tr>
+            <tr><td class="cmd">/update-theme</td><td class="mono">inherit</td><td>A colour or font updated in the right place — the shared base, or this one app's override</td></tr>
+            <tr><td class="cmd">/translate es fr</td><td class="mono">inherit</td><td>Draft translations of every existing piece of text into those languages, each marked as needing a human check</td></tr>
+            <tr><td class="cmd">/add-module Shared --kind framework</td><td class="mono">opus · high</td><td>Folders, build files, a test target, translations and images if you pass <code>--ui</code>, and the module connected to everything that needs it. Circular dependencies refused</td></tr>
+            <tr><td class="cmd">/add-app Companion</td><td class="mono">opus · high</td><td>A second app built on top of the shared screens rather than by copying them</td></tr>
+            <tr><td class="cmd">/add-secret ANALYTICS_HOST=…</td><td class="mono">inherit</td><td>The setting added in four places at once: <code>Secrets.xcconfig</code>, the committed example, each app's <code>Info.plist</code>, and a typed accessor on <code>AppEnvironment</code>. Anything that looks like a real credential is held back for you to paste in by hand — never through the assistant</td></tr>
+            <tr><td class="cmd">/status</td><td class="mono">inherit</td><td>Your project shape, the module map, modules nothing uses, style problems, and outstanding TODOs</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="note">
-        <span class="tag">Prose works, and gets confirmed first</span>
-        "Add a films list screen showing title and release year" reaches the same script — the agent
-        translates it. Because that translation invents things prose can't carry, <code>/new-feature</code>
-        batch-asks the three before generating: the field list with Swift types, whether the folder nests,
-        and which module — then echoes the resolved command. Fully specified invocations skip the
-        questions. The value of the command form is the checklist behind it: hoist the models, register
-        the route, add strings to the owning module, generate a test that runs.
+        <span class="tag">Plain English works too — and gets confirmed first</span>
+        "Add a films list screen showing title and release year" reaches the same script; the assistant
+        translates it for you. Because that translation involves details plain English can't carry,
+        <code>/new-feature</code> asks three questions together before it generates anything: the exact
+        fields with their Swift types, whether the folder should nest inside another, and which module it
+        belongs to — then shows you the command it worked out, so you can correct it. If you typed the
+        command fully yourself, it skips the questions. The point of the command form isn't the syntax;
+        it's the checklist behind it — lift the data types out, register the route, put the text in the
+        owning module, generate a test that actually runs.
       </div>
 
       <h3>Do's and don'ts</h3>
       <p class="dd-lede">
-        Each command is a checklist with a script behind it. The failure modes are answering its questions
-        badly, and doing by hand the part it was going to do in four places at once.
+        Each command is a checklist with a script behind it. The two ways to get burned are answering
+        its questions carelessly, and doing by hand the part it was about to do in four places at once.
       </p>
       <div class="dd">
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Answer the three questions <code>/new-feature</code> batch-asks</h4>
-          <p>Module, grouping, and the field list with Swift types. It never infers a type from an English
-          noun, and a feature generated into the wrong module has to be moved by hand.</p>
+          <h4>Answer the three questions <code>/new-feature</code> asks</h4>
+          <p>Which module, whether the folder nests, and the fields with their Swift types. It will never
+          guess a type from an English word, and a feature generated into the wrong module has to be
+          moved by hand.</p>
         </div>
         <div class="dd-card">
           <span class="dd-label">Do</span>
           <h4>Review what <code>/translate</code> writes</h4>
-          <p>Draft entries for every existing key in the target locales, marked for review. Drafts, not
-          shippable strings.</p>
+          <p>It drafts an entry for every existing piece of text in the languages you name, each marked as
+          needing review. Drafts — not strings you can ship to users.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Hand-edit one of the files a command owns</h4>
-          <p><code>/add-secret</code> touches four places at once — the xcconfig, the committed example,
-          each app's <code>Info.plist</code> and the typed accessor. Editing one by hand leaves the other
-          three behind, and nothing tells you.</p>
+          <h4>Hand-edit a file a command owns</h4>
+          <p><code>/add-secret</code> touches four places at once — the config file, the committed
+          example, each app's <code>Info.plist</code>, and the typed accessor. Editing one by hand leaves
+          the other three behind, and nothing will tell you.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Paste a live API key, token or password into the chat</h4>
-          <p><code>/add-secret</code> writes an obvious placeholder for credential-shaped values and never
-          echoes a held-back one — into <code>TODO.md</code> or anywhere else. The real value goes into
-          the gitignored file by hand.</p>
+          <h4>Paste a real API key, token or password into the chat</h4>
+          <p><code>/add-secret</code> writes an obvious placeholder for anything credential-shaped, and
+          never repeats a held-back value anywhere — not into <code>TODO.md</code>, not into the chat. The
+          real value goes into the gitignored file by hand, by you.</p>
         </div>
       </div>
     </section>
@@ -1470,77 +1808,93 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
     <section id="xcode">
       <div class="sec-head">
         <span class="ref">07</span>
-        <h2 class="sec-title">Xcode's own agents, and where this kit sits</h2>
+        <h2 class="sec-title">Xcode's own assistants, and where this kit fits</h2>
+      </div>
+
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          Xcode now has AI assistants built in. They don't replace this kit and this kit doesn't replace
+          them — they're good at different things. Xcode's is good at small fixes right where you're
+          typing; this kit's commands and automatic checks live in the terminal.
+        </p>
+        <p>
+          Two things to set up deliberately: connect the terminal assistant to Xcode so it can build and
+          run tests properly, and check what permissions you've handed out, because in Xcode those apply
+          to every project on your Mac rather than just this one.
+        </p>
       </div>
 
       <p>
-        Xcode now runs coding agents natively — Claude Agent and Codex, enabled under
-        <b>Xcode ▸ Settings ▸ Intelligence</b>. Three consequences worth setting up deliberately.
+        Xcode can now run coding assistants itself — Claude Agent and Codex — switched on under
+        <b>Xcode ▸ Settings ▸ Intelligence</b>. Three consequences are worth handling on purpose rather
+        than discovering later.
       </p>
 
-      <h3>Give terminal Claude Code access to Xcode's tools</h3>
+      <h3>Let the terminal assistant use Xcode's own tools</h3>
       <p>
-        Under <b>Intelligence ▸ Model Context Protocol</b>, turn on <b>"Allow external agents to use
-        Xcode tools"</b>, then register the bridge once:
+        Under <b>Intelligence ▸ <span class="term" tabindex="0" data-def="An open standard that lets an AI assistant use tools it does not own — here, Xcode's own build and test machinery.">Model Context Protocol</span></b>, turn on <b>"Allow external agents to use
+        Xcode tools"</b>, then register the connection once:
       </p>
       <div class="panel">
         <div class="panel-head"><span>Terminal</span><span>one-time</span></div>
 <pre>claude mcp add --transport stdio xcode -- <b>xcrun mcpbridge</b>
-claude mcp list   <span class="c"># verify</span></pre>
+claude mcp list   <span class="c"># check it worked</span></pre>
       </div>
       <p style="margin-top:10px">
-        Keep the project open in Xcode; Xcode notifies you when an external agent connects and while it's
-        active. The agent then builds and tests through Xcode itself rather than reconstructing
-        <code>xcodebuild</code> invocations.
+        Keep the project open in Xcode. Xcode tells you when an outside assistant connects and while it's
+        working. With this in place, the assistant builds and runs tests through Xcode itself instead of
+        trying to reconstruct the right <code>xcodebuild</code> command from scratch — which is where a
+        lot of wasted time goes otherwise.
       </p>
 
-      <h3>Permissions are global; project config isn't</h3>
+      <h3>Permissions are Mac-wide; project settings aren't</h3>
       <ul class="bullets tight">
-        <li><b>Intelligence ▸ Agents ▸ Permissions</b> holds the <b>Allowed Commands</b> and <b>Allowed Tools</b> lists. Anything you approved once in a transcript lands there and applies to every project on that Mac — worth auditing rather than accumulating.</li>
-        <li>Config under <code>~/Library/Developer/Xcode/CodingAssistant/</code> affects agents <em>launched in Xcode only</em>. Your repo's <code>CLAUDE.md</code> is read by both, and Xcode expects it beside the <code>.xcodeproj</code> — repo root at T1/T2, but not automatically at T3.</li>
+        <li><b>Intelligence ▸ Agents ▸ Permissions</b> holds the <b>Allowed Commands</b> and <b>Allowed Tools</b> lists. Anything you approved once, in any conversation, ends up there and then applies to <em>every project on that Mac</em> — worth reviewing occasionally rather than letting it pile up.</li>
+        <li>Settings under <code>~/Library/Developer/Xcode/CodingAssistant/</code> only affect assistants <em>launched inside Xcode</em>. Your repo's <code>CLAUDE.md</code> is read by both, and Xcode expects to find it next to the <code>.xcodeproj</code> — which is the repo root at T1 and T2, but not automatically at T3.</li>
       </ul>
 
       <div class="note">
-        <span class="tag">Use both, for different things</span>
-        Xcode's assistant is stronger where the editor is: inline fixes on a diagnostic, generated
-        previews and playgrounds, doc comments, and its own built-in skills such as <code>/plan</code>.
-        This template's scripts and <code>core.hooksPath</code> hooks are terminal-side regardless, so
-        the terminal is the surface it's designed around. Whether the in-Xcode agent also picks up this
-        repo's <code>.claude/skills/</code> isn't something Apple documents — treat it as worth testing
-        on your setup, not as given.
+        <span class="tag">Use both, for different jobs</span>
+        Xcode's assistant is stronger wherever the editor is: fixing the error it's pointing at, generating
+        previews and playgrounds, writing doc comments, and its own built-in commands like
+        <code>/plan</code>. This kit's scripts and commit-time checks are terminal-side no matter what, so
+        the terminal is the surface it's designed around. Whether the in-Xcode assistant also picks up
+        this repo's <code>.claude/skills/</code> isn't something Apple documents — treat that as worth
+        testing on your own setup rather than assuming either way.
       </div>
 
       <h3>Do's and don'ts</h3>
       <p class="dd-lede">
-        Two agents on the same repo is fine. Two agents with different ideas about where the source of
-        truth lives is not.
+        Two assistants working on the same repo is fine. Two assistants with different ideas about where
+        the truth lives is not.
       </p>
       <div class="dd">
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Audit <b>Intelligence ▸ Agents ▸ Permissions</b> periodically</h4>
-          <p>Anything you approved once in a transcript lands in <b>Allowed Commands</b> and applies to
-          every project on that Mac — including repos you hadn't thought about when you approved it.</p>
+          <h4>Review <b>Intelligence ▸ Agents ▸ Permissions</b> now and then</h4>
+          <p>Anything approved once in a conversation lands in <b>Allowed Commands</b> and applies to every
+          project on that Mac — including repos you weren't thinking about when you approved it.</p>
         </div>
         <div class="dd-card">
           <span class="dd-label">Do</span>
-          <h4>Verify the bridge once, then watch for the notification</h4>
+          <h4>Check the connection once, then watch for the notification</h4>
           <p><code>claude mcp add</code> is a one-time registration — confirm it with
-          <code>claude mcp list</code>. Xcode then tells you when an external agent connects and while
-          it's active, which is how you know the terminal session is going through it.</p>
+          <code>claude mcp list</code>. After that Xcode tells you when an outside assistant connects and
+          while it's active, which is how you know the terminal session is actually going through it.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Close the project once the bridge is registered</h4>
-          <p>Keep it open in Xcode. That's what lets the agent build and test through Xcode itself rather
-          than reconstructing an <code>xcodebuild</code> invocation.</p>
+          <h4>Close the project once the connection is registered</h4>
+          <p>Keep it open in Xcode. That's what lets the assistant build and test through Xcode rather than
+          guessing at an <code>xcodebuild</code> command.</p>
         </div>
         <div class="dd-card no">
           <span class="dd-label">Don't</span>
-          <h4>Run both localization toolchains</h4>
-          <p>Xcode's translation agent writes String Catalogs; <code>/translate</code> and the parity
-          check operate on per-module <code>.strings</code>. Pick one — running both splits the source of
-          truth, and the check won't see the half it doesn't own.</p>
+          <h4>Run two translation systems at once</h4>
+          <p>Xcode's translation assistant writes String Catalogs; <code>/translate</code> and the
+          consistency check work on per-module <code>.strings</code> files. Pick one. Running both splits
+          your text across two systems, and the check can't see the half it doesn't own.</p>
         </div>
       </div>
     </section>
@@ -1549,43 +1903,61 @@ claude mcp list   <span class="c"># verify</span></pre>
     <section id="guardrails">
       <div class="sec-head">
         <span class="ref">08</span>
-        <h2 class="sec-title">What's enforced</h2>
+        <h2 class="sec-title">What's checked for you</h2>
       </div>
 
-      <p>Two git hooks, wired via <code>core.hooksPath</code>, block four things:</p>
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          Some rules aren't left to memory or review — they run automatically when you commit, and stop
+          the commit if something's wrong. Four things get blocked, and then the tests that relate to what
+          you changed get run.
+        </p>
+        <p>
+          The reason to automate exactly these four is that they're the ones that fail <i>quietly</i>. A
+          colour typed in by hand looks fine until dark mode; a missing translation looks fine until a
+          user in that language opens the app.
+        </p>
+      </div>
+
+      <p>
+        Two git hooks — checks that run automatically at commit time — block four things:
+      </p>
 
       <div class="tw">
         <table>
-          <thead><tr><th>Check</th><th>Blocks</th></tr></thead>
+          <thead><tr><th>Check</th><th>What it blocks</th></tr></thead>
           <tbody>
-            <tr><th class="mono">hardcoded colours</th><td><code>UIColor(red:</code>, <code>Color(red:</code>, <code>(hex:</code> and 6-digit hex literals in staged Swift outside any <code>Theme/</code> directory</td></tr>
-            <tr><th class="mono">string key parity</th><td>A key in the base locale missing from another, per module, plus cross-module duplicate keys</td></tr>
-            <tr><th class="mono">swiftlint --strict</th><td>One root config, every tier. <code>try!</code> errors; stray <code>print(</code> and raw <code>Text("…</code> inside a <code>*View.swift</code> warn</td></tr>
-            <tr><th class="mono">commit-msg</th><td>Anything but <code>PROJ-123 feat: summary</code> — ticket prefix optional, type required from feat, fix, refactor, test, docs, chore. Merge commits exempt</td></tr>
+            <tr><th class="mono">hardcoded colours</th><td><code>UIColor(red:</code>, <code>Color(red:</code>, <code>(hex:</code> and six-digit hex values in any Swift file you're committing that isn't inside a <code>Theme/</code> folder</td></tr>
+            <tr><th class="mono">translation consistency</th><td>Text that exists in the main language but is missing from another, checked per module — plus the same key defined in two different modules</td></tr>
+            <tr><th class="mono">swiftlint --strict</th><td>One style config for the whole project, at every size. <code>try!</code> is an error; a stray <code>print(</code> or text typed straight into a <code>*View.swift</code> is a warning</td></tr>
+            <tr><th class="mono">commit message format</th><td>Anything other than <code>PROJ-123 feat: summary</code> — the ticket prefix is optional, the type is required and must be one of feat, fix, refactor, test, docs, chore. Merge commits are exempt</td></tr>
           </tbody>
         </table>
       </div>
 
       <p style="margin-top:14px">
-        Then tests, scoped to the staged change — at T3 only the affected schemes and their dependents,
-        because a hook that runs every suite is a hook the team disables.
+        Then the tests run, but only the ones related to what you changed — at T3, only the affected
+        pieces and whatever depends on them. That's a deliberate choice: a commit check that runs every
+        test in the project is a commit check the team eventually turns off.
       </p>
 
       <p style="margin-top:14px">
-        One guard is structural rather than a check: the <code>.gitignore</code> <code>/start</code>
-        copies in already excludes <code>Secrets.xcconfig</code>, build products and
-        <code>xcuserdata/</code>. A rule saying "don't commit secrets" against a repo that doesn't
-        ignore them is worse than no rule, because the developer believes it.
+        One safeguard isn't a check at all but the way things are arranged: the <code>.gitignore</code>
+        that <code>/start</code> puts in place already excludes <code>Secrets.xcconfig</code>, build
+        output and personal Xcode settings. A written rule saying "don't commit secrets", in a repo that
+        doesn't actually ignore them, is worse than no rule — because people believe it.
       </p>
 
       <div class="note">
-        <span class="tag">The one deliberate deviation from stock convention</span>
-        <b>Colours are never Asset Catalog colour sets.</b> Every colour and font is a Swift value under
-        <code>Theme/</code>: typed and compiler-checked from both SwiftUI and UIKit instead of
-        string-keyed lookups that fail silently, mechanically enforceable by the colour check, and
-        light/dark stays a one-file change. Across modules a token crosses as a
-        <code>public static let</code>, where a catalog colour needs the right bundle at every lookup
-        site.
+        <span class="tag">The one place this kit deliberately departs from the usual iOS convention</span>
+        <b>Colours never go in the Asset Catalog.</b> Normally you'd define a colour there and look it up
+        by name. Here, every colour and font is a Swift value under <code>Theme/</code>. Four reasons:
+        the compiler checks it, so a typo is a build error instead of an invisible fallback at runtime;
+        it works identically from SwiftUI and UIKit; the colour check above can actually be enforced
+        mechanically; and light/dark mode stays a change in one file. Across modules a colour crosses as
+        an ordinary <code>public static let</code>, whereas an Asset Catalog colour needs the correct
+        bundle at every single place it's used.
       </div>
     </section>
 
@@ -1593,88 +1965,104 @@ claude mcp list   <span class="c"># verify</span></pre>
     <section id="limits">
       <div class="sec-head">
         <span class="ref">09</span>
-        <h2 class="sec-title">Limitations</h2>
+        <h2 class="sec-title">What it won't do</h2>
+      </div>
+
+      <div class="plain">
+        <div class="plain-label">In plain terms</div>
+        <p>
+          These are deliberate limits and known gaps, listed honestly — not bugs, and not a to-do list
+          that's about to be finished. Read them before you plan around something that isn't here.
+        </p>
+        <p>
+          The two most likely to actually affect you: if you didn't take the recommended answers, some
+          files are written by the assistant rather than from a template, so review them. And mistakes in
+          translations or colours can't be caught by the compiler — they show up when the app is running,
+          not when it's built.
+        </p>
       </div>
 
       <p>
-        Deliberate scope calls and known gaps, not bugs. The two likeliest to reach you: off-default
-        combinations are agent-written rather than templated, and localization and theming errors are
-        runtime failures the compiler can't catch.
+        Deliberate scope decisions and known gaps, not bugs. The two you're most likely to run into: if
+        you went off the defaults, some layer files are assistant-written rather than templated; and
+        translation and theming mistakes are runtime failures the compiler can't catch for you.
       </p>
 
       <div class="limits">
         <div class="limit">
-          <h4>Four combinations are deterministic; the rest are assisted</h4>
-          And those four are T1/T2 shape — T3 placement is best-effort.
+          <h4>Four combinations are fully templated; everything else is assisted</h4>
+          And even those four are shaped for T1 and T2 — at T3, where files should go is a best guess.
+          See <a href="#architecture" style="color:var(--accent)">05</a> for what to do about it.
         </div>
         <div class="limit">
-          <h4>Two localization toolchains can collide</h4>
-          Xcode's translation agent writes String Catalogs (<code>.xcstrings</code>) and marks entries
-          Machine Translated. <code>/translate</code> and <code>check_strings.sh</code> operate on
-          per-module <code>.strings</code>. Pick one — running both splits the source of truth, and the
-          parity check won't see the half it doesn't own.
+          <h4>Two translation systems can collide</h4>
+          Xcode's translation assistant writes <span class="term" tabindex="0" data-def="Apple's newer format for translatable text: one file per module holding every language, edited visually in Xcode.">String Catalogs</span> (<code>.xcstrings</code>) and marks entries
+          as machine-translated. <code>/translate</code> and <code>check_strings.sh</code> work on
+          per-module <code>.strings</code> files. Pick one — running both splits your text across two
+          systems, and the consistency check can't see the half it doesn't own.
         </div>
         <div class="limit">
-          <h4>No hardcoded-<em>string</em> check</h4>
-          A blanket regex false-positives on log messages, format strings and identifiers. The lint rule
-          covers only <code>Text("…</code> in a view file, as a warning.
+          <h4>No check for text typed straight into a screen</h4>
+          A blanket search for quoted text flags far too much — log messages, format strings, internal
+          identifiers. So the style rule only covers <code>Text("…</code> inside a view file, and only as
+          a warning.
         </div>
         <div class="limit">
-          <h4>Bundle and theme correctness is unguarded</h4>
-          A framework reaching for <code>Bundle.main</code> compiles and returns nothing at runtime, in
-          the consuming app only. Nothing stops app code redefining a token the shared module owns.
+          <h4>Bundle and theme correctness isn't guarded</h4>
+          A framework reaching for <code>Bundle.main</code> compiles perfectly and then finds nothing at
+          runtime — and only inside the app using it. Nothing stops app code redefining a colour the
+          shared module already owns.
         </div>
         <div class="limit">
-          <h4>Protocol-boundary discipline is review, not tooling</h4>
-          Nothing detects a shared module that grew an app-specific branch, or a service protocol drifted
-          to twenty methods.
+          <h4>Keeping to the layer boundaries is a review job, not a tool</h4>
+          Nothing detects a shared module that has grown an app-specific branch inside it, or a service
+          protocol that has crept from three methods to twenty.
         </div>
         <div class="limit">
-          <h4><code>/start</code>'s conflict handling is judgment</h4>
-          Idempotent, refuses structural changes as a re-run side effect, recreates what's missing — but
-          it's reasoning about the tree, not a mechanical diff.
+          <h4><code>/start</code> resolves conflicts by judgment, not by rule</h4>
+          It's safe to re-run, refuses to restructure things as a side effect, and recreates what's
+          missing — but it's reasoning about your folder, not running a mechanical comparison.
         </div>
         <div class="limit">
-          <h4>An offline project's data layer is one agent-written method</h4>
-          Answer <b>None</b> to networking and everything about a feature is still generated —
-          folder, models, local store, composition-root factory, navigation registration,
-          localization. What's left is the store read itself and its test, as
-          <code>TODO(agent)</code>, because the templated tests assert remote-vs-cache
-          behaviour an offline feature doesn't have. Networking <em>and</em> persistence both
-          <code>None</code> is refused with an explanation rather than scaffolded — there'd be no
-          data layer at all.
+          <h4>An offline app's data layer is one method you or the assistant must write</h4>
+          Answer <b>None</b> to networking and almost everything about a feature is still generated —
+          folder, data types, local store, wiring, navigation entry, translations. What's left is the
+          actual read from local storage and its test, marked <code>TODO(agent)</code>, because the
+          templated tests check network-versus-cache behaviour that an offline feature simply doesn't
+          have. Answering <b>None</b> to networking <em>and</em> persistence is refused with an
+          explanation rather than scaffolded — there'd be no data layer left at all.
         </div>
         <div class="limit">
-          <h4>Core Data's per-feature store is a seam, not an implementation</h4>
-          SwiftData is generated end to end — record type, store, schema registration, wiring. Core Data
-          gets the same wiring but leaves its two store methods as <code>TODO(agent)</code>, because the
-          entity lives in a <code>.xcdatamodeld</code> that can't be generated from text. Until it exists,
-          the app behaves like a no-persistence one.
+          <h4>Core Data gets the wiring but not the implementation</h4>
+          SwiftData is generated end to end — record type, store, registration, wiring. Core Data gets the
+          same wiring but leaves its two storage methods as <code>TODO(agent)</code>, because a Core Data
+          entity lives in a visual model file that can't be generated from text. Until someone creates it,
+          the app behaves as if it had no persistence at all.
         </div>
         <div class="limit">
-          <h4>No auth, deep linking or test tiers beyond unit</h4>
-          Nothing generates token refresh, Keychain storage or 401 retry; nothing maps an incoming URL
-          onto a route; no UI or snapshot test target. Unaddressed so far rather than ruled out. The
-          <em>rule</em> that credentials belong in the Keychain is documented; the wrapper implementing
+          <h4>No login, deep links, or tests beyond unit tests</h4>
+          Nothing generates token refresh, <span class="term" tabindex="0" data-def="The encrypted store on the device. The only correct place for passwords and access tokens, and the only one kept out of unencrypted backups.">Keychain</span> storage or retry-after-401; nothing turns an <span class="term" tabindex="0" data-def="A deep link: a URL that opens your app directly on a particular screen, from a browser, an email or another app.">incoming
+          link</span> into a screen; there's no UI or screenshot test target. Not ruled out — just not done yet.
+          The <em>rule</em> that credentials belong in the Keychain is written down; the code implementing
           it is yours to write.
         </div>
         <div class="limit">
-          <h4>Deliberately out of scope</h4>
-          No CI pipeline, no pagination in the base repository contract, no image-caching library.
-          Generated project files are committed, so a fresh clone opens without XcodeGen — at the cost of
-          a <code>pbxproj</code> diff per regenerate.
+          <h4>Deliberately left out</h4>
+          No <span class="term" tabindex="0" data-def="Continuous integration: a server that builds your app and runs its tests automatically on every push.">CI</span> pipeline, no paging in the base data contract, no image-caching library. Generated project
+          files are committed, so a fresh clone opens in Xcode without needing XcodeGen installed — at the
+          cost of a noisy project-file diff each time it's regenerated.
         </div>
         <div class="limit">
-          <h4>The baseline is one codebase, not a survey</h4>
-          UIKit-heavy and hybrid. Games, offline-first or extension-heavy apps would calibrate
-          differently.
+          <h4>The recommendations come from one codebase, not a survey</h4>
+          And a UIKit-heavy, partly-hybrid one. A game, an offline-first app or something built mostly of
+          extensions would reasonably land on different answers.
         </div>
       </div>
     </section>
   </main>
 
   <footer class="colophon">
-    <span>ios-ai-boilerplate — a guide to starting a new iOS project with this template.</span>
+    <span>ios-ai-boilerplate — a guide to starting a new iOS app with this kit.</span>
   </footer>
 
 </div>
