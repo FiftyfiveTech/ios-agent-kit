@@ -203,6 +203,100 @@ Full rules, plus where data
 belongs (`UserDefaults` vs. the local store vs. Keychain), concurrency, ARC and
 struct-vs-class: `docs/CODING_STANDARDS.md`.
 
+## When to run `xcodegen generate`
+
+The `.xcodeproj` is generated from `project.yml` and **committed** (see below),
+which means the file list Xcode builds from is a snapshot of the disk at the
+moment it was generated. That snapshot goes stale quietly: a file that exists on
+disk but isn't in it is never compiled, and nothing reports an error — the symbol
+just isn't there.
+
+**Regenerate whenever the set of files or folders changed, or the spec did.**
+
+| Run `xcodegen generate` after | No need after |
+|---|---|
+| Adding, deleting, renaming or moving a source file | Editing an existing source file |
+| Adding a folder — a new `Features/<Name>/`, a new layer directory | Adding an entry inside a file that's already referenced |
+| A module's **first** `Localization/Localizable.xcstrings` | Adding a key, a translation, or a whole **locale** to an existing String Catalog |
+| A target's **first** `Assets.xcassets` | Adding an image set, color set or icon inside an existing catalog |
+| Any edit to `project.yml` — new target, dependency, build setting, `Info.plist` key | Editing `Secrets.xcconfig` (xcconfig is read at build time) |
+| Adding or removing a package dependency | |
+
+(Tuist projects: same rule, `tuist generate`, `Project.swift` in place of
+`project.yml`.)
+
+Two things worth knowing, because both catch people out:
+
+- **A new language used to need this and no longer does.** With the older
+  per-locale `de.lproj/Localizable.strings` layout, adding a language created a
+  new folder and a new file — squarely in the left column, so the app would build
+  and silently ship without the language until someone regenerated. This template
+  uses one String Catalog per module instead, so a new locale is an edit to a file
+  that already exists and the next build picks it up. XcodeGen also reads the
+  catalog to fill in the project's `knownRegions`, so the language list stays
+  correct on the next regenerate without anyone maintaining it by hand. (The
+  build ships a locale even before that regenerate — `knownRegions` is the Xcode
+  project's own record, not what the compiler reads.)
+- **Don't edit project settings in Xcode's inspector.** They live in `project.yml`;
+  the next regenerate overwrites anything set in the UI. Adding a *file* in Xcode
+  is fine — Xcode writes it into the project immediately, and because XcodeGen
+  globs directories the next regenerate finds it on disk anyway.
+
+The Skills regenerate for you whenever they add a file, so this is mainly a rule
+for hand-editing. When unsure, just run it: it's idempotent and takes about a
+second. The `pbxproj` diff it produces belongs in the same commit as the change
+that caused it.
+
+## Localization
+
+Each resource-owning module owns exactly one String Catalog —
+`<module>/Localization/Localizable.xcstrings` — holding every locale for that
+module, plus a generated `L10n.swift` beside it.
+
+- **Add or edit strings** in the catalog (Xcode's String Catalog editor, or by
+  hand — it's JSON), then run `Scripts/generate_strings.sh <module>` to refresh
+  the typed `L10n` accessor. Views reference `L10n.home.title`, never a raw key
+  and never a literal.
+- **Add a language** with `/translate <locale-code>`, which drafts every missing
+  entry and marks it `needs_review` — the catalog's own review state, which
+  Xcode's editor shows directly. Review before shipping the locale. You can also
+  add a language in Xcode; the two write the same file and don't fight.
+- **Check health** with `Scripts/check_strings.sh` (also in the pre-commit hook):
+  it fails on a key missing or still `new` in any locale, and on the same key
+  owned by two modules. Outstanding `needs_review` entries are reported, not
+  failed.
+- **Why one catalog per module, not one per repo:** `NSLocalizedString` resolves
+  against a *bundle*. A shared framework that ships UI must carry its own strings
+  or they silently fall back to the raw key inside the consuming app. That's why
+  the generated `L10n` resolves through its own module's bundle and never
+  `Bundle.main`.
+- **Migrating an adopted project** off per-locale `.strings`:
+  `Scripts/migrate_strings_to_catalog.sh [<module>]` folds them into a catalog,
+  keeps existing translations and comments, regenerates `L10n.swift`, and removes
+  the old git-tracked files. Run `xcodegen generate` afterwards — the set of files
+  on disk changed. Until you migrate, `check_strings.sh` warns and skips that
+  module; it does not block commits. **Don't keep both formats**, though — that
+  one *does* fail, because the check only sees the catalog and parity would pass
+  while half your strings are invisible to it.
+
+## UIKit screens are laid out in code
+
+No Skill generates a storyboard or a XIB, and no generated UIKit screen uses one
+— view hierarchies and constraints are built in the ViewController, the app is
+launched programmatically from `SceneDelegate`, and the launch screen is the
+`UILaunchScreen` Info.plist dictionary rather than a storyboard file.
+
+This was a considered call, not an oversight: storyboards are rewritten by Xcode
+on open (so they diff and conflict without anyone changing the design), keyed by
+opaque generated identifiers (so a merge conflict is unreadable and an agent has
+nothing stable to edit against), and wire `@IBOutlet`/`@IBAction` connections that
+fail at runtime rather than at build time — which is the exact failure mode this
+template's typed color tokens and generated `L10n` exist to eliminate.
+
+Nothing stops you adding Interface Builder files for screens you write by hand;
+they're picked up on the next regenerate. Just expect to maintain those yourself
+rather than through a Skill.
+
 ## Generated `.xcodeproj`s are committed
 
 `/start`, `/add-module`, and `/add-app` regenerate `.xcodeproj`/`.xcworkspace`
@@ -227,3 +321,6 @@ see `.gitignore`, which `/start` copies in with those entries already present.
 - No CI pipeline, no hardcoded-string enforcement script, no pagination
   convention — these are documented gaps, not oversights. See the template
   repo's own `README.md` for the full list.
+- Shared views are a review gate, not a tooled one: nothing detects a feature
+  that quietly reimplements a component `DesignSystem/SharedViews/` already has,
+  the way `check_hardcoded_colors.sh` detects a raw color.

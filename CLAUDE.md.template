@@ -49,7 +49,25 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
   directory — see `docs/ai/theming_rules.md`. `Scripts/check_hardcoded_colors.sh`
   blocks a commit that violates this.
 - **Never hardcode a user-facing string.** Route through the owning module's
-  `L10n.<key>` — see `docs/ai/ui_rules.md`.
+  `L10n.<key>` — see `docs/ai/ui_rules.md`. Strings live in that module's
+  `Localization/Localizable.xcstrings` String Catalog (one file, every locale);
+  after editing it run `Scripts/generate_strings.sh <module>` to refresh `L10n`.
+- **Reuse a view before writing one.** Anything used by more than one screen —
+  the loading/error/empty states, buttons, rows, cards — lives in
+  `DesignSystem/SharedViews/` and is consumed from there, in SwiftUI and UIKit
+  alike. If a screen needs something another screen already has, promote it
+  rather than copying it into the feature folder (`docs/ai/ui_rules.md`).
+- **Document the code; never document the template.** Every type, protocol,
+  property and function gets a short `///` doc comment saying what it is or
+  does. Never write comments about where a file came from, which template
+  generated it, or which spec section motivated it — that belongs in
+  `docs/ai/architecture.md`, not in a source file (`docs/CODING_STANDARDS.md`).
+- **Regenerate the project when the set of files changes.** Adding, deleting,
+  renaming or moving a file or folder, or editing `{{TOOLING_SPEC_FILE}}`, means
+  running `{{TOOLING_GENERATE_COMMAND}}` before the change is in the build.
+  Editing the contents of a file that already exists does not — including adding
+  a locale or a key to an existing String Catalog, or an image to an existing
+  asset catalog. See `docs/ONBOARDING.md`.
 - **Never `print()`.** Log through `Log.swift`'s `Logging` protocol (in the
   `Core` module, or `Logging` if this project extracted it) — SwiftLint's
   `no_print_statements` blocks the alternative. Never log a token, credential or
@@ -102,4 +120,5 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
 | Coding standards | `docs/CODING_STANDARDS.md` |
 | Git conventions | `docs/GIT_CONVENTIONS.md` |
 | Project map (files/modules not covered by convention) | `docs/PROJECT_MAP.md` |
+| When to regenerate the Xcode project | `docs/ONBOARDING.md` |
 | Manual follow-ups | `TODO.md` |

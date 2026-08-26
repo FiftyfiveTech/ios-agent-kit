@@ -41,7 +41,13 @@ hasn't been initialized yet — run `/start` first."*
 5. **Enforce the dependency rule.** A module may not depend on an app. A
    dependency cycle is a **hard refusal**, not a warning — check the existing
    graph in `ios-skeleton.config.json` before adding the edge.
-6. **Record it.** Add the module, its kind, and its consumers to
+6. **Give it a String Catalog if it ships UI.** A module with user-facing views
+   owns `Localization/Localizable.xcstrings` and its own generated, bundle-aware
+   `L10n.swift` — `Bundle.main` from inside a shared module returns the wrong
+   strings at runtime, in the consuming app only. Seed the catalog with the
+   module's key namespace and run `Scripts/generate_strings.sh <module>`. A
+   module with no UI needs neither.
+7. **Record it.** Add the module, its kind, and its consumers to
    `ios-skeleton.config.json`'s `modules` array, and append a line to
    `docs/PROJECT_MAP.md`.
 

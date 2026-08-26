@@ -80,6 +80,16 @@ Then follow the same steps below, but:
   instead — an adopted codebase has never been checked against these
   conventions, and a hard-blocking hook can lock the developer out of their
   very next commit.
+- **Offer the String Catalog migration; never perform it unasked.** An adopted
+  project very likely uses per-locale `<locale>.lproj/Localizable.strings`.
+  `check_strings.sh` warns and skips such a module rather than failing, so
+  nothing is blocked — but `/translate` and `generate_strings.sh` only operate on
+  a catalog, so those Skills stay unavailable until it's migrated. Say that
+  plainly and offer `Scripts/migrate_strings_to_catalog.sh [<module>]`, which
+  preserves every existing translation and comment, then needs a regenerate. If
+  the developer declines, record it in `TODO.md` and move on — a working
+  localization setup is exactly the kind of thing adoption promises not to
+  rewrite underneath someone.
 - Before rendering `CLAUDE.md`/`README.md`/`docs/ONBOARDING.md` (§1.9), check
   whether each already exists with real content (no leftover `{{placeholder}}`
   tokens; predates this run's `ios-skeleton.config.json`). If so, do not
@@ -228,7 +238,10 @@ template reads — keep it exactly this shape:
 
 - T1/T2: one `project.yml` (or `Project.swift` for Tuist) at repo root.
 - T3: one spec **per project** (app or framework), plus the workspace.
-- Run `xcodegen generate` once per spec (or `tuist generate`).
+- Run `xcodegen generate` once per spec (or `tuist generate`). Any later step
+  that adds a file or folder to disk needs another run before the build sees it
+  — this is the rule `docs/ONBOARDING.md` documents for the developer, and it
+  applies to this Skill's own remaining steps too.
 - At T3, also run `Scripts/generate_workspace.sh` — XcodeGen has no
   workspace-generation flag; this template owns that file.
 - **No manual Xcode step at any point.**
@@ -306,9 +319,30 @@ spec):**
 | *(anything else)* | — | — | no app-shell template exists — hand-write the composition root/navigation backbone yourself from `docs/ai/architecture.md`'s rendered description; `Scripts/new_feature.sh` will still fall back to template-assisted per feature (§1.4) |
 
 For each app (usually one), render that combo's `app-shell/*.template` files
-into `<app.path>/` (or `<app.path>/Sources/App/` at T3), substituting:
+into the tree §1.7 materialized — **not all into one folder.** They are grouped
+by role, and the destination is the folder that role owns:
+
+| Template(s) | Destination |
+|---|---|
+| `App.swift` / `AppDelegate.swift` + `SceneDelegate.swift` | `<app.path>/` (or `<app.path>/Sources/App/` at T3) |
+| `Route.swift`, `Router.swift`, `AppCoordinator.swift` | `<app.path>/Navigation/` |
+| `ColorTokens.swift`, `Typography.swift` | `DesignSystem/Theme/` |
+| `LoadingView.swift`, `ErrorView.swift`, `EmptyStateView.swift` | `DesignSystem/SharedViews/` |
+| `RequestBuilder.swift`, `APIClient.swift` | `Networking/` |
+| `Debouncer.swift` | `Core/Utilities/` |
+
+At T2/T3 the `DesignSystem`, `Networking` and `Core` destinations are the shared
+modules of those names, so those files are `public` and the app imports them.
+
+Substitute, in every file rendered above:
 
 - `__APP_NAME__` → the app's real name (from Q12/`apps[].name`).
+- `__MODULE_LOWER__` → the lowercased key namespace of the module that owns
+  `SharedViews/` (the app's own namespace at T1, the shared DesignSystem
+  module's from T2 onward). The three shared state view templates use it to
+  reach `L10n.<module>.common.loading`/`.retry`; leaving it unresolved is a
+  build failure, so grep for `__MODULE_LOWER__` across the rendered app before
+  moving on, the same way you do for the marker families below.
 - **`__IF_PERSISTENCE__` / `__ELSE_PERSISTENCE__` / `__END_PERSISTENCE__`** →
   whole-line block markers, exactly like the ones `Scripts/new_feature.sh`
   resolves in the feature templates — but nothing resolves them here, so **you**
@@ -344,10 +378,58 @@ the insertion-point markers (`Route.swift`/`App.swift` for the SwiftUI combos;
 `AppCoordinator.swift` for the UIKit combos) are owned by `Scripts/new_feature.sh`;
 never re-render them on a later `/start` re-run (§4).
 
-Seed each localization-owning module's `Localizable.strings` with at least the
-module's namespace placeholder, then run `Scripts/generate_strings.sh` with no
-argument to regenerate every module's `L10n.swift` — never leave the
-localization layer unwired, even before the first feature exists.
+Seed each localization-owning module's `Localization/Localizable.xcstrings`
+with at least the module's namespace placeholder, then run
+`Scripts/generate_strings.sh` with no argument to regenerate every module's
+`L10n.swift` — never leave the localization layer unwired, even before the first
+feature exists.
+
+A String Catalog is JSON; write a minimal valid one rather than an empty file:
+
+```json
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "<module>.common.loading" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Loading" } }
+      }
+    },
+    "<module>.common.retry" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Retry" } }
+      }
+    },
+    "<module>.home.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}
+```
+
+The two `common.*` keys are **required**, not decoration: the shared state views
+reference `L10n.<module>.common.loading` and `.common.retry`, so the project
+doesn't compile without them. Seed the module that owns `SharedViews/` — the app
+at T1, the shared DesignSystem module from T2 onward.
+
+One catalog per resource-owning module, holding every locale for that module —
+never per-locale `.lproj/Localizable.strings` folders, which this template
+migrated away from (build spec §8.5). `Scripts/lib/xcstrings.py` is the helper
+every localization script goes through; use `python3 Scripts/lib/xcstrings.py set
+<catalog> <locale> <key> "<value>"` rather than hand-editing JSON if you're
+adding entries beyond the seed.
+
+**Also render the shared state views for the project's UI framework** into
+`DesignSystem/SharedViews/` — `LoadingView`, `ErrorView` (message + retry) and
+`EmptyStateView`. The SwiftUI combos take them from the combo's `app-shell/`
+templates; the UIKit combos take the `UIView` subclasses from
+`Scripts/templates/<combo>/app-shell/`. Both UI frameworks get all three, in the
+same folder, and the starter feature consumes them rather than building its own
+spinner (build spec §3.6). A generated project with an empty `SharedViews/` is a
+failed run.
 
 ### 1.7a Render the persistence bootstrap — only when Q4 isn't `None`
 
@@ -441,6 +523,24 @@ feature consumes, so the sharing seam is exercised on day one.
 Build and confirm the generated test actually passes — this is a real
 `xcodebuild test`/`swift test` run, not an aspiration.
 
+### 1.8b House style for anything you write by hand
+
+Wherever this Skill hand-writes Swift (an off-default architecture combo's
+composition root, a layer file with no template behind it), it follows the same
+two rules the templates do:
+
+- **Every type, protocol, property and function gets a `///` doc comment** saying
+  what it is or does — one line is usually enough, two when it isn't.
+- **Nothing in a source file refers to this template.** No spec section numbers,
+  no `.template` filenames, no paragraph explaining why the template structures
+  things a certain way. That rationale goes in `docs/ai/architecture.md`, which
+  §1.9 renders for exactly this purpose. The one exception is a
+  "generated — do not edit" banner on genuinely machine-generated output such as
+  `L10n.swift`.
+
+See `docs/CODING_STANDARDS.md`, which ships into the project and carries the
+full rule.
+
 ### 1.9 Render the doc templates
 
 Render `CLAUDE.md.template` → `CLAUDE.md`, `docs/ai/architecture.md.template` →
@@ -449,7 +549,11 @@ architecture pattern and navigation approach — delete the others, don't just
 comment them out), `docs/ai/modularization.md.template` →
 `docs/ai/modularization.md` (keeping only the matching topology section, and
 filling in the real module graph table). Every `{{placeholder}}` must be
-resolved — an agent reading the rendered file should never see one.
+resolved — an agent reading the rendered file should never see one. Two of
+`CLAUDE.md.template`'s placeholders come from Q11 (tooling) rather than from a
+questionnaire answer directly: `{{TOOLING_SPEC_FILE}}` is `project.yml` for
+XcodeGen and `Project.swift` for Tuist, and `{{TOOLING_GENERATE_COMMAND}}` is
+`xcodegen generate` or `tuist generate` to match.
 
 Seed `docs/PROJECT_MAP.md` in the same step — `CLAUDE.md` links to it, so it
 must exist before that link is live. There's no `.template` for it; write it
