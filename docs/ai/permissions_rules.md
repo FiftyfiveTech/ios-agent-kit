@@ -32,3 +32,17 @@ any script in this template can do for them.
 Multiple apps in one repo (T3) do not share a permission set implicitly. Adding
 a permission for one app's feature never silently adds it to a second app that
 doesn't request it.
+
+## After adding a permission: regenerate
+
+An `Info.plist` usage-description key is declared in the app target's
+`info.properties` in `project.yml`, and the `Info.plist` Xcode builds from is
+generated from it. Run `xcodegen generate` (or `tuist generate`) for each affected
+app before testing — without it the key isn't in the built app and the permission
+request crashes at the moment it's made.
+
+Never hand-edit a generated `Info.plist`: the next regenerate discards it.
+
+For an app shipping more than one language, usage strings are localized in an
+`InfoPlist.xcstrings` catalog in the app target — the system reads these, not
+`L10n`, so they don't live in the module's `Localizable.xcstrings`.

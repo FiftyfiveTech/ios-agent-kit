@@ -1,16 +1,22 @@
 import Foundation
 
-// Base URL, headers, API-key injection, query params — the one place every
-// Service calls through (§3.7). Never a second request-construction path.
+/// Builds every outgoing request: base URL, headers, query parameters.
+///
+/// Every `Service` calls through this — a request constructed anywhere else
+/// bypasses the configured base URL and default headers.
 public struct RequestBuilder {
     private let baseURL: URL
     private let defaultHeaders: [String: String]
 
+    /// - Parameters:
+    ///   - baseURL: resolved at the composition root from configuration, never a literal.
+    ///   - defaultHeaders: sent on every request; per-request headers override these.
     public init(baseURL: URL, defaultHeaders: [String: String] = [:]) {
         self.baseURL = baseURL
         self.defaultHeaders = defaultHeaders
     }
 
+    /// Builds a request for `path` relative to the base URL.
     public func request(
         path: String,
         method: String = "GET",

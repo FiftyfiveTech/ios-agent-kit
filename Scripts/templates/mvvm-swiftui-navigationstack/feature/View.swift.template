@@ -1,9 +1,10 @@
 import SwiftUI
 __MODULE_IMPORTS__
 
-// Presentation layer — binds to the ViewModel, never touches networking/persistence
-// directly (§3.3). Flat in Features/__FEATURE__/, no Presentation/Domain/Data
-// subfolders (§3.2).
+/// The __FEATURE__ screen.
+///
+/// Renders whatever its ViewModel's state says and forwards user intent back to
+/// it — it never reaches for networking or persistence itself.
 struct __FEATURE__View: View {
     @State private var viewModel: __FEATURE__ViewModel
 
@@ -17,6 +18,7 @@ struct __FEATURE__View: View {
             .navigationTitle(L10n.__MODULE_LOWER__.__FEATURE_LOWER__.title)
     }
 
+    /// One branch per ViewModel state, using the shared state views.
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
@@ -42,6 +44,7 @@ struct __FEATURE__View: View {
     }
 }
 
+/// Stub repository so the preview never touches the network.
 private struct Preview__FEATURE__Repository: __FEATURE__RepositoryProtocol {
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] { [] }
 }

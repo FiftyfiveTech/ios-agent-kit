@@ -1,7 +1,8 @@
 
-// The SwiftData mirror of __FEATURE__Model. A record type is a data shape, so it
-// lives in Models/ with every other one (§3.2) — never inside Features/.
-// PersistenceController's schema list registers it automatically.
+/// The stored form of `__FEATURE__Model`.
+///
+/// The record is the storage shape and the model is the domain shape; the local
+/// store maps between them and nothing else traffics in records.
 @Model
 public final class __FEATURE__Record {
 __RECORD_PROPERTIES__
@@ -9,6 +10,7 @@ __RECORD_PROPERTIES__
 __RECORD_INIT_ASSIGN__
     }
 
+    /// Converts this record back into its domain model.
     public func asModel() -> __FEATURE__Model {
         __FEATURE__Model(__RECORD_TO_MODEL_ARGS__)
     }

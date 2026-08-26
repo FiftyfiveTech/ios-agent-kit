@@ -1,16 +1,19 @@
 import Foundation
 
-// Shared debounce helper for search-as-you-type interactors (§3.7). Any feature
-// with a search-as-you-type field wires through this instead of firing a request
-// per keystroke.
+/// Coalesces rapid calls into one, running only the last after a quiet period.
+///
+/// Wire a search-as-you-type field through this rather than firing a request per
+/// keystroke. An `actor` because the pending task is shared mutable state.
 public actor Debouncer {
     private let delay: Duration
     private var task: Task<Void, Never>?
 
+    /// - Parameter delay: quiet period before `action` runs. 300ms suits typing.
     public init(delay: Duration = .milliseconds(300)) {
         self.delay = delay
     }
 
+    /// Cancels any pending action and schedules `action` after the delay.
     public func run(_ action: @escaping @Sendable () async -> Void) {
         task?.cancel()
         task = Task {

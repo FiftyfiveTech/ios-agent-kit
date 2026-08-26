@@ -1,21 +1,25 @@
 import Foundation
 
-// Executes the built request, decodes the response, maps errors/failures/empty
-// responses (§3.7). `APIClient` is the protocol every generated Service consumes —
-// declared here because Service is its only consumer in this template (§8.2); a
-// second conformance (the fake used by /new-feature's generated tests) is what
-// keeps this a real abstraction rather than ceremony.
+/// Why a request failed, in terms a screen can act on.
 public enum APIError: Error, Equatable {
+    /// The request never reached the server.
     case transport(String)
+    /// The response arrived but couldn't be decoded into the expected type.
     case decoding(String)
+    /// The server answered with a non-2xx status.
     case server(statusCode: Int)
+    /// The server answered successfully with no body.
     case empty
 }
 
+/// Sends a built request and decodes its response.
 public protocol APIClient {
+    /// Sends `request` and decodes the response body as `Response`.
+    /// - Throws: `APIError` for transport, status, empty-body and decoding failures.
     func send<Response: Decodable>(_ request: URLRequest, decodingTo: Response.Type) async throws -> Response
 }
 
+/// `URLSession`-backed `APIClient` — the default implementation.
 public struct URLSessionAPIClient: APIClient {
     private let session: URLSession
     private let decoder: JSONDecoder

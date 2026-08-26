@@ -39,7 +39,8 @@ Full walkthrough: [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 .claude/skills/    — /start plus 10 routine-work Skills (new-feature, add-module,
                       add-secret, translate, ...), each pinning its own model
                       tier in frontmatter (see Model tiers below)
-Scripts/           — lint, string/color/secrets enforcement, codegen, four fully-authored
+Scripts/           — lint, string/color/secrets enforcement, codegen (incl. the
+                      String Catalog toolchain in lib/xcstrings.py), four fully-authored
                       file-template sets (see Architecture below), plus the
                       persistence/, logging/ and config/ templates /start renders
                       into a real project
@@ -160,15 +161,21 @@ Carried over honestly rather than hidden:
   this gap shows up; the composition root's launch-time guard still catches it.
 - Generated `.xcodeproj`/`.xcworkspace` files are **committed**, not
   gitignored (see `docs/ONBOARDING.md`).
-- Xcode's own localization agent writes String Catalogs (`.xcstrings`);
-  `/translate` and `check_strings.sh` operate on per-module
-  `Localizable.strings`. Nothing detects a project using both — parity passes
-  while a locale is actually incomplete. Pick one (build spec §5.1).
+- Shared views (`DesignSystem/SharedViews/`) are mandatory by convention with
+  nothing enforcing them — nothing detects a feature that reimplements a
+  component the shared folder already has, the way `check_hardcoded_colors.sh`
+  detects a raw color.
+- Storyboards and XIBs are out of scope **by decision** — generated UIKit
+  screens lay out in code (build spec §3.3 records why). A project can add them
+  by hand; no Skill will generate or edit one.
 - Agent permissions granted inside Xcode (Intelligence ▸ Agents ▸ Permissions)
   are global to the Mac and apply to every project. Nothing in this template
   can scope, version or audit them.
 
-Resolved since the initial build (persistence now actually generates a local
+Resolved since the initial build (localization moved to String Catalogs, so
+Xcode's localization tooling and this template's scripts now share one source of
+truth instead of two — with a migration script and a check that fails a module
+carrying both formats; persistence now actually generates a local
 data layer instead of being recorded and discarded, `Core/Logging/Log.swift` now
 exists so the no-`print()` rule has a referent, Objective-C support dropped entirely,
 `/translate` Skill added, commit-msg format now hook-enforced, DI-container

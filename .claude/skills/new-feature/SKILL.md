@@ -80,7 +80,7 @@ Resolution order is `--module` → the config's `defaultModule` → the single a
 if there is exactly one. Read `ios-skeleton.config.json` and ask *before*
 invoking if that leaves more than one candidate — don't let the script's refusal
 be the way the developer finds out. The feature directory, its test directory
-and its `Localizable.strings` all hang off the resolved module, and generated
+and its `Localizable.xcstrings` all hang off the resolved module, and generated
 keys are namespaced `<module>.<feature>.*`, so this answer decides more than
 placement.
 
@@ -153,9 +153,24 @@ the project's config selects, it generates:
   the SwiftUI combos, or a `make<Name>ViewController()` factory on
   `AppCoordinator` for the UIKit combos — never a second navigation path. If
   part of a tab-bar flow, wires into that tab's own stack only.
-- **Localization**: appends the target module's `Localizable.strings` with
-  `<module>.<feature>.title`/`.empty` and regenerates that module's `L10n.swift`
-  — never a hardcoded string literal.
+- **Localization**: adds `<module>.<feature>.title`/`.empty` to the target
+  module's `Localization/Localizable.xcstrings` String Catalog and regenerates
+  that module's `L10n.swift` — never a hardcoded string literal. Only the
+  source language is written; use `/translate` for the rest.
+- **Shared views, not new ones.** The generated screen consumes `LoadingView`,
+  `ErrorView` and `EmptyStateView` from `DesignSystem/SharedViews/` — SwiftUI
+  views for the SwiftUI combos, `UIView` subclasses for the UIKit ones. If the
+  screen needs a component another screen already has, consume it or promote it
+  into `SharedViews/`; never copy a view into the feature folder
+  (`docs/ai/ui_rules.md`).
+- **Documented code, with nothing about the template in it.** Every generated
+  type, protocol, property and function carries a `///` doc comment saying what
+  it is or does. No generated file mentions the template, a `.template`
+  filename, or a spec section number — that rationale lives in
+  `docs/ai/architecture.md` (`docs/CODING_STANDARDS.md`).
+- **A project regeneration**, because a feature adds files and folders: the
+  script runs `xcodegen generate`/`tuist generate` at the end, and the resulting
+  `pbxproj` diff belongs in the same commit as the feature.
 - **A local store, only when the project's Q4 answer isn't `None`.** With
   SwiftData or Core Data recorded in the config, the script also generates
   `<Name>LocalStore.swift` in the feature folder, declares its protocol beside

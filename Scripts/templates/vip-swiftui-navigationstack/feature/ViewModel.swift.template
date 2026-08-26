@@ -2,38 +2,36 @@ import Foundation
 import Observation
 __MODULE_IMPORTS__
 
-// __FEATURE__BusinessLogic is declared here, not in Interactor.swift — a
-// protocol is owned by the module that CONSUMES it, never the one that
-// implements it (§8.2). The ViewModel calls interactor.load(request:), so the
-// ViewModel is the consumer; __FEATURE__Interactor conforms to this below.
+/// What this feature's ViewModel asks its Interactor to do.
+///
+/// Declared here rather than beside the Interactor because a protocol is owned by
+/// its consumer.
 protocol __FEATURE__BusinessLogic {
+    /// Starts a load. Results arrive through `__FEATURE__DisplayLogic`, never as a
+    /// return value.
     func load(request: __FEATURE__.Load.Request) async
 }
 
-// Thin reference-type bridge (§1.4). Classic VIP puts `weak var displayLogic`
-// on the ViewController because a UIViewController is a reference type; a
-// SwiftUI View is a value type and can't be the target of a weak reference, so
-// this @Observable class stands in for it instead. It holds NO formatting and
-// NO business logic — its only job is @Observable state plus conforming to
-// __FEATURE__DisplayLogic (declared in Presenter.swift, since Presenter is
-// its consumer, §8.2).
-//
-// __FEATURE__DisplayLogic needs two methods, not one: __FEATURE__BusinessLogic
-// .load(request:) is `async` with no `throws`, so the Interactor catches its
-// own errors and reports them through presenter.present(error:) — a second,
-// symmetric display method (display(errorMessage:)) keeps that path distinct
-// from the success-shaped ViewState rather than overloading one payload with
-// two unrelated meanings. See Presenter.swift.template for the fuller
-// rationale on this choice.
+/// Observable state for the __FEATURE__ screen, and the Presenter's display target.
+///
+/// A reference type by necessity: the Presenter holds its display target weakly,
+/// and a SwiftUI `View` is a value type that can't be the target of a weak
+/// reference. This holds no formatting and no business logic — only state.
 @Observable
 final class __FEATURE__ViewModel: __FEATURE__DisplayLogic {
+    /// What the screen should currently render.
     enum State {
+        /// Nothing requested yet.
         case idle
+        /// A load is in flight.
         case loading
+        /// A load succeeded, with the items it returned.
         case loaded([__FEATURE__Model])
+        /// A load failed, with a message to show the user.
         case error(String)
     }
 
+    /// The current state. The View renders exactly this.
     private(set) var state: State = .idle
 
     private let interactor: __FEATURE__BusinessLogic
@@ -42,6 +40,7 @@ final class __FEATURE__ViewModel: __FEATURE__DisplayLogic {
         self.interactor = interactor
     }
 
+    /// Asks the Interactor to load; the result arrives via the display methods below.
     func load() async {
         state = .loading
         await interactor.load(request: __FEATURE__.Load.Request())
@@ -49,10 +48,12 @@ final class __FEATURE__ViewModel: __FEATURE__DisplayLogic {
 
     // MARK: - __FEATURE__DisplayLogic
 
+    /// Records a successful load.
     func display(viewState: __FEATURE__.Load.ViewState) {
         state = .loaded(viewState.items)
     }
 
+    /// Records a failure.
     func display(errorMessage: String) {
         state = .error(errorMessage)
     }

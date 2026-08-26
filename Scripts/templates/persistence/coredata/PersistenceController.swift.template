@@ -1,25 +1,26 @@
 import CoreData
 import Foundation
 
-// Local persistence bootstrap (Q4 = Core Data). Rendered by /start ONLY when the
-// project chose a persistence stack.
-//
-// Honest scoping (§10): unlike SwiftData, a Core Data entity lives in a
-// `.xcdatamodeld` bundle that can't be text-templated deterministically, so this
-// file is the whole of what the template generates. The model is loaded from
-// whatever `.xcdatamodeld` the app ships; passing an explicit model (rather than
-// letting `NSPersistentContainer(name:)` look one up and trap when it finds
-// nothing) is what keeps a project that hasn't added its data model yet in a
-// buildable, runnable state. Verify that on the first launch after adding the
-// data model — this path is generated, not exercised by any test here.
+/// The app's Core Data stack.
+///
+/// The one place an `NSPersistentContainer` is created. Every feature's local
+/// store takes `context` by initializer injection from the composition root.
+///
+/// The managed object model is merged from whatever `.xcdatamodeld` the app ships.
+/// Passing an explicit model — rather than letting `NSPersistentContainer(name:)`
+/// look one up and trap when it finds none — is what keeps an app that hasn't
+/// added its data model yet buildable and runnable.
 public final class PersistenceController {
+    /// The app-wide instance, constructed at the composition root.
     public static let shared = PersistenceController()
 
+    /// The container backing every local store.
     public let container: NSPersistentContainer
 
     /// The main-queue context every LocalStore reads and writes through.
     public var context: NSManagedObjectContext { container.viewContext }
 
+    /// - Parameter inMemory: use a throwaway store, for tests and previews.
     public init(inMemory: Bool = false) {
         // TODO: add a `.xcdatamodeld` to the app target (Xcode ▸ File ▸ New ▸ Data
         // Model) and define this feature's entities in it — see TODO.md. Until
@@ -34,8 +35,8 @@ public final class PersistenceController {
 
         container.loadPersistentStores { _, error in
             if let error {
-                // Same reasoning as the SwiftData variant: an unopenable store is
-                // a programmer error, not a recoverable runtime condition.
+                // An unopenable store is a programmer error — a bad model or an
+                // unwritten migration — not a recoverable runtime condition.
                 fatalError("Core Data store failed to load: \(error)")
             }
         }

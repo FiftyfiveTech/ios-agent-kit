@@ -21,7 +21,10 @@ SwiftLint enforces from what's convention-only.
   outside a `Theme/` directory (§6) — run in the pre-commit hook, not SwiftLint
   itself.
 - `Scripts/check_strings.sh` blocks a commit with a localization key parity
-  mismatch or a cross-module key duplicate (§8.5).
+  mismatch or a cross-module key duplicate (§8.5). It reads each module's
+  `Localization/Localizable.xcstrings` String Catalog, treats Xcode's `new`
+  state as missing (a user sees the same fallback either way), and reports
+  `needs_review` entries without failing.
 
 ## Convention-only (reviewed, not tooled)
 
@@ -37,8 +40,131 @@ SwiftLint enforces from what's convention-only.
   `lowerCamelCase`. A generated file is always `<Feature><Layer>.swift`
   (`HomeViewModel.swift`, never `ViewModel-Home.swift` or similar).
 - **No hardcoded user-facing strings.** Route through the owning module's
-  `L10n.<key>` — see `docs/ai/ui_rules.md`. Not mechanically enforceable
+  `L10n.<key>`, generated from that module's String Catalog — see
+  `docs/ai/ui_rules.md`. Not mechanically enforceable
   everywhere (§10), so this is a review gate.
+
+## Comments and documentation
+
+Two rules that pull in opposite directions and are both absolute. Read them
+together: **document what the code is; never document where it came from.**
+
+### Every declaration gets a doc comment
+
+`///` on every type, protocol, property, function and enum case that isn't a
+purely local implementation detail. One line is usually right; two when the
+first can't carry it.
+
+```swift
+/// A user's saved article, as the app displays it.
+struct Article {
+    /// Server-assigned identifier — stable across refreshes.
+    let id: String
+    /// Headline shown in the list and on the detail screen.
+    let title: String
+}
+
+/// Loads articles, preferring the network and falling back to the local cache.
+protocol ArticleRepository {
+    /// Returns every article, newest first.
+    /// - Throws: the network error when the remote call fails and no cache exists.
+    func articles() async throws -> [Article]
+}
+```
+
+What to write in one: what the thing *is*, or what calling it *does* — plus
+anything a caller can't see from the signature. That last part is where the real
+value is: a non-obvious unit (`/// Timeout in seconds.`), a precondition, what a
+`nil` return means, which errors propagate, whether a method must be called on
+the main actor. `/// The title.` above `let title: String` is the failure mode —
+it satisfies the rule while telling the reader nothing, and it will not be
+maintained because nobody ever reads it.
+
+Two things this is *not*: not a mandate for `- Parameters:`/`- Returns:` blocks
+on every function (add them when a parameter genuinely needs explaining, and let
+a self-describing signature speak for itself otherwise), and not a licence to
+skip them on `private` types. A private type is exactly where the context lives
+only in the author's head.
+
+Inline `//` comments inside a function body stay rare and stay about *why*: a
+non-obvious ordering requirement, a workaround for a framework bug (with the
+radar or a link), a deliberate deviation. A comment restating the line below it
+is noise.
+
+### Never comment about the template
+
+Generated files carry no trace of the machinery that produced them. Specifically,
+none of these belong in a source file:
+
+- A section reference — `(§3.7)`, `see §8.2` — pointing into the template's spec.
+  The project doesn't use that numbering; the reference is unresolvable to anyone
+  reading the code and stale the moment the spec is renumbered.
+- The name of the template a file was rendered from, or the fact that it was
+  rendered at all.
+- A paragraph explaining why the *template* structures things this way — why VIP
+  needs a ViewModel bridge, why models live in `Models/`, why the base URL comes
+  from xcconfig. That's architecture rationale, and it has a home:
+  `docs/ai/architecture.md`, `docs/ai/*_rules.md`, `CLAUDE.md`.
+
+The reason is not tidiness. A file in `Features/` is read to answer *what does
+this do*; rationale about the generator answers a question the reader didn't ask,
+it survives the refactor that makes it false, and — because it reads as
+authoritative — the next person hesitates to change code the comment appears to
+justify. Rationale rots in a way that documentation of behavior doesn't.
+
+### Generated config files get a header, not an essay
+
+The same restraint applies to non-Swift files this project generates or appends
+to — `Secrets.xcconfig` and its `.example` are the ones you'll actually meet. A
+file's header comment covers what someone editing it needs *at that moment*: what
+the file is for, the one syntax trap it has (xcconfig's `//` and the `$()`
+escape), and where the full explanation lives. It does not restate the
+explanation. `docs/CODING_STANDARDS.md` has the mechanism and the full table of
+what every candidate form resolves to; the config file links there.
+
+Per-entry comments follow from the same test — write one only when there's an
+action to take. A key that's commented out because its value is still missing
+earns a line saying so. A key with a value in it does not: the assignment already
+says everything, and a `// KEY — added by /add-secret.` line above every entry
+turns a 10-key file into a 30-line one that nobody reads.
+
+What *is* allowed, because it's true of this project rather than of some
+generator: naming a Skill that owns a piece of a file (`/new-feature` inserts a
+case at the marker below), and pointing at a doc that lives in this repo
+(`see docs/ai/architecture.md`). The test is whether a reader can act on it from
+inside this repo.
+
+**This binds the agent as much as the templates.** When a Skill writes a file, it
+documents the declarations and says nothing about the template, the spec, or the
+Skill that ran. The single exception is a generated-file banner on genuinely
+machine-generated output that must not be hand-edited — `L10n.swift` carries one,
+naming the script that regenerates it, because a reader who edits that file will
+lose their work.
+
+## When to regenerate the Xcode project
+
+The `.xcodeproj` is generated from `project.yml` (or `Project.swift`) and
+committed, so its file list is a snapshot that goes stale silently — a file on
+disk but not in the snapshot is simply never compiled, with no error saying so.
+
+Regenerate (`xcodegen generate` / `tuist generate`) whenever **the set of files
+or folders changed**, or the spec did:
+
+- a source file added, deleted, renamed or moved
+- a new folder — a new `Features/<Name>/`, a new layer directory
+- a module's **first** String Catalog, or a target's **first** `Assets.xcassets`
+- any edit to `project.yml`/`Project.swift` — a target, dependency, build
+  setting, or `Info.plist` key
+- a package dependency added or removed
+
+You don't need to for a **content** change to a file that already exists: editing
+Swift, adding a key *or a whole locale* to an existing `Localizable.xcstrings`,
+or adding an image set to an existing asset catalog. The catalog is referenced as
+a single item and its contents are compiled at build time.
+
+The Skills regenerate for you when they add files. When in doubt, regenerate: it's
+idempotent, takes about a second, and the resulting `pbxproj` diff belongs in the
+same commit as the file that caused it.
 
 ## Protocol-boundary rules (§8.2) — the discipline that outlives everything else here
 

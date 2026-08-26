@@ -24,13 +24,23 @@ hasn't been initialized yet — run `/start` first."*
    declared and no `--app`, ask which app(s) before writing anything, unless
    the shared-module case above already answers it (all of them).
 3. **Insert a real, reviewable usage string** — never blank — marked
-   `// TODO: confirm exact wording with product/legal`.
+   `// TODO: confirm exact wording with product/legal`. The key goes in the
+   app target's `info.properties` in `project.yml`, which is where its
+   `Info.plist` is generated from — editing a generated `Info.plist` directly
+   is overwritten on the next regenerate.
+   If the app ships more than one language, the usage strings are localized in
+   an `InfoPlist.xcstrings` catalog in the app target, not in the module's
+   `Localizable.xcstrings` — they're read by the system, not by `L10n`.
 4. **Flag Capability-gated permissions.** Push notifications, HealthKit, Sign
    in with Apple, and background modes need a Capability toggle **in addition
    to** the `Info.plist` key, plus a matching entry in that app's
    `.entitlements` file. Tell the developer this needs a manual toggle — no
    script in this template can do it for them.
-5. **Append to `docs/PERMISSIONS.md`** (create it on first use): the
+5. **Run `xcodegen generate`** (or `tuist generate`) for each affected app.
+   The permission is an edit to `project.yml`, and the `Info.plist` Xcode builds
+   from is generated from it — without the regenerate, the key isn't in the app
+   and the permission prompt crashes at request time.
+6. **Append to `docs/PERMISSIONS.md`** (create it on first use): the
    permission, the justification, and which app(s) it applies to.
 
 ## What NOT to do

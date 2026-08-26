@@ -52,9 +52,9 @@ the reverse, never framework → app, never app → app (§3.9). Enforced by
 ## Ownership rules from T2 onward (§3.11)
 
 - **Localization is per resource-owning module, not per repo.** Every module
-  with UI owns its own `Localization/Localizable.strings` (+ translations) and a
-  **bundle-aware** generated `L10n.swift` — never `Bundle.main` from inside a
-  shared module. Keys are namespaced by module (`shared.error.retry`,
+  with UI owns its own `Localization/Localizable.xcstrings` — one String Catalog
+  holding every locale for that module — and a **bundle-aware** generated
+  `L10n.swift` — never `Bundle.main` from inside a shared module. Keys are namespaced by module (`shared.error.retry`,
   `{{APP_NAMESPACE}}.settings.title`).
 - **Theme is base + override, not one file.** Base tokens live in
   {{BASE_THEME_MODULE}}'s `Theme/`; each app's own thin `Theme/` overrides only

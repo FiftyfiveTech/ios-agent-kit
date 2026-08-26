@@ -1,23 +1,21 @@
 import Foundation
 __MODULE_IMPORTS__
 
-// Wired to the chosen networking stack via RequestBuilder + APIClient — never
-// a second networking path (§4.1). __FEATURE__WorkerProtocol (declared in
-// Interactor.swift) is what the Interactor actually depends on; this is its
-// implementation. The Worker does the real network I/O — Interactor,
-// Presenter and ViewModel never touch RequestBuilder/APIClient directly.
+// The Worker is where this feature's I/O happens. Nothing above it —
+// Interactor, Presenter, ViewModel — touches RequestBuilder or APIClient.
 __IF_PERSISTENCE__
 //
-// The Worker is also where local persistence enters this pattern: it consumes the
-// local store, so it declares its protocol (§8.2). This half exists only because
-// the project answered Q4 with a persistence stack — a `persistence: None`
-// project's Worker is remote-only (§3.8).
+// The Worker also consumes the local store, so it declares that protocol too.
+/// The local cache this feature's Worker depends on.
 protocol __FEATURE__LocalStoreProtocol {
+    /// Returns the cached items, or an empty array when nothing is cached.
     func loadCached__FEATURE__List() async throws -> [__FEATURE__Model]
+    /// Replaces the cached items with `items`.
     func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws
 }
 
 __END_PERSISTENCE__
+/// Does this feature's data fetching, remote and cached.
 struct __FEATURE__Worker: __FEATURE__WorkerProtocol {
     private let requestBuilder: RequestBuilder
     private let apiClient: APIClient
@@ -34,9 +32,11 @@ __IF_PERSISTENCE__
         self.localStore = localStore
     }
 
-    // Remote is the source of truth; the cache is a fallback consulted only when
-    // the network call actually failed. An empty cache rethrows that error rather
-    // than reporting an empty screen as a success.
+    /// Fetches from the network and caches the result, falling back to the cache
+    /// only when the request failed.
+    ///
+    /// - Throws: the network error when the request fails and the cache is empty —
+    ///   an empty screen is not reported as a success.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         do {
             let request = requestBuilder.request(path: "__FEATURE_LOWER__")

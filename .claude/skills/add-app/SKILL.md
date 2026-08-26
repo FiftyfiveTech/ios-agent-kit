@@ -42,8 +42,17 @@ hasn't been initialized yet — run `/start` first."*
    feature, so the sharing seam is exercised immediately rather than asserted
    in a doc.
 5. **Wire the new app's composition root the way `/start` wired the first one.**
-   Render the same combo's `app-shell/` templates, resolving both marker families
-   against the recorded config: `__IF_PERSISTENCE__`/`__ELSE_PERSISTENCE__`/
+   Render **only the composition-root and navigation files** from that combo's
+   `app-shell/` — `App.swift`, or `AppDelegate`/`SceneDelegate` plus
+   `AppCoordinator`, plus `Route`/`Router` for the SwiftUI combos. Everything else
+   in `app-shell/` already exists in a shared module and must **not** be rendered
+   again: `ColorTokens`/`Typography` live in `DesignSystem/Theme/`,
+   `LoadingView`/`ErrorView`/`EmptyStateView` in `DesignSystem/SharedViews/`,
+   `RequestBuilder`/`APIClient` in `Networking/`, and `Debouncer` in `Core/`.
+   Re-rendering any of them either declares the type twice or overwrites the copy
+   the first app already depends on — the new app imports them instead.
+
+   Resolve both marker families in what you do render, against the recorded config: `__IF_PERSISTENCE__`/`__ELSE_PERSISTENCE__`/
    `__END_PERSISTENCE__` against Q4, and `__IF_NETWORKING__`/`__END_NETWORKING__`
    against Q7 — `networking: none` means the whole networking block goes, so the
    new app gets no `RequestBuilder` and needs no `APIBaseURL` plist key (which is
@@ -51,9 +60,15 @@ hasn't been initialized yet — run `/start` first."*
    app needs its own `PersistenceController` property in the composition root, or
    the factory `new_feature.sh` writes for its starter feature won't compile.
    `Core/Logging/Log.swift` is already shared; nothing to re-render for it.
+   `__MODULE_LOWER__` doesn't appear in the files you're rendering here — it
+   belongs to the shared state views, which this Skill doesn't touch.
 6. **Create the app's own theme override layer** (§3.11) and its own
-   `.lproj` set, seeded from the shared module's key list — not copied
-   verbatim, seeded (empty values where the new app's copy genuinely differs).
+   `Localization/Localizable.xcstrings`, seeded from the shared module's key
+   list — not copied verbatim, seeded (empty values where the new app's copy
+   genuinely differs). Run `Scripts/generate_strings.sh <app>` afterward. The
+   new app does **not** get copies of the shared module's views: shared views
+   stay in `DesignSystem/SharedViews/` and both apps consume them, with visual
+   differences going through the theme override layer (`docs/ai/ui_rules.md`).
 7. **Add the project to the workspace** and regenerate; re-run
    `Scripts/generate_workspace.sh`.
 8. **Append manual follow-ups to `TODO.md`**: signing, App Store Connect

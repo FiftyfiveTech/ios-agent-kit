@@ -2,12 +2,10 @@ import XCTest
 __MODULE_IMPORTS__
 __TESTABLE_IMPORT__
 
-// A real, passing unit test against fakes (§4.1) — the fake Worker and spy
-// Presenter are second conformances to __FEATURE__WorkerProtocol and
-// __FEATURE__PresentationLogic (§8.2), not a mocking framework, which is
-// exactly what makes this possible at all. Tests the Interactor, since that's
-// where VIP's actual business logic lives — the ViewModel/Presenter around it
-// are thin bridges with nothing of their own worth testing in isolation.
+/// Covers the Interactor against a fake Worker and a spy Presenter.
+///
+/// The Interactor is where this feature's logic lives; the ViewModel and
+/// Presenter around it are thin bridges with nothing worth isolating.
 final class __FEATURE__InteractorTests: XCTestCase {
     func test_load_presentsResponseOnWorkerSuccess() async {
         let expected = __FAKE_MODEL_LIST__
@@ -64,12 +62,12 @@ private final class Spy__FEATURE__Presenter: __FEATURE__PresentationLogic {
 
 __IF_PERSISTENCE__
 
-// The read-through policy is the densest logic /new-feature generates, so it
-// carries its own coverage (§3.8): remote wins when it succeeds and is cached,
-// the cache answers when the remote call fails, and an empty cache rethrows the
-// remote error rather than reporting an empty screen as success. Both fakes are
-// second conformances, not mocks (§8.2). Delete these tests only if you replace
-// the policy — a feature that pages or syncs deltas needs its own.
+/// Covers the read-through cache policy: remote wins when it succeeds and is
+/// cached, the cache answers when the remote call fails, and an empty cache
+/// rethrows the remote error rather than reporting an empty screen as success.
+///
+/// Delete these only if you replace the policy — a feature that pages or syncs
+/// deltas needs its own.
 final class __FEATURE__WorkerReadThroughTests: XCTestCase {
     private let requestBuilder = RequestBuilder(baseURL: URL(string: "https://example.test")!)
 

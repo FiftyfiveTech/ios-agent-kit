@@ -3,26 +3,32 @@ import SwiftUI
 import UIKit
 #endif
 
-// Base color tokens (§6). Never a Color Set in an Asset Catalog — a typo in a
-// string-keyed lookup fails silently at runtime, a typo here fails to compile.
-// From T2 onward these are the shared module's BASE tokens; an app's own Theme/
-// overrides only what differs (§3.11) — /update-theme enforces the split.
+/// The app's colour palette, as compiler-checked Swift values.
+///
+/// Each token carries its own light and dark variants, so dark mode is a property
+/// of the palette rather than something each view handles. Colours are never
+/// defined as Asset Catalog colour sets: a typo in a string-keyed lookup fails
+/// silently at runtime, a typo here fails to compile.
 public enum ThemeColor {
+    /// Primary brand colour — tint for interactive elements.
     public static let primary = Color(
         light: UIColor(red: 0.09, green: 0.45, blue: 0.91, alpha: 1),
         dark: UIColor(red: 0.36, green: 0.65, blue: 0.98, alpha: 1)
     )
 
+    /// Default screen background.
     public static let background = Color(
         light: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 1),
         dark: UIColor(red: 0.07, green: 0.07, blue: 0.09, alpha: 1)
     )
 
+    /// Supporting text — captions, subtitles, empty-state messages.
     public static let secondaryText = Color(
         light: UIColor(red: 0.42, green: 0.42, blue: 0.44, alpha: 1),
         dark: UIColor(red: 0.62, green: 0.62, blue: 0.64, alpha: 1)
     )
 
+    /// Errors and destructive actions.
     public static let danger = Color(
         light: UIColor(red: 0.80, green: 0.15, blue: 0.15, alpha: 1),
         dark: UIColor(red: 0.94, green: 0.40, blue: 0.40, alpha: 1)
@@ -30,6 +36,7 @@ public enum ThemeColor {
 }
 
 public extension Color {
+    /// Creates a colour that resolves to `light` or `dark` per the current trait collection.
     init(light: UIColor, dark: UIColor) {
         #if canImport(UIKit)
         self = Color(uiColor: UIColor { trait in

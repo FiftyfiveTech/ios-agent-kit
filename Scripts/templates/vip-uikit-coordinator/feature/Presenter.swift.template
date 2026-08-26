@@ -1,38 +1,39 @@
 import Foundation
 __MODULE_IMPORTS__
 
-// Presenter imports Foundation only — no UIKit, no Color/Image in its output.
-//
-// __FEATURE__DisplayLogic is declared here, not in ViewController.swift — a
-// protocol is owned by the module that CONSUMES it, never the one that
-// implements it (§8.2). This Presenter is the only consumer; the ViewController
-// conforms.
+// This layer deals only in Foundation types — no UIKit, no colours or images in
+// its output. `__FEATURE__DisplayLogic` is declared here because a protocol is
+// owned by its consumer, and this Presenter is its only consumer.
+/// Receives display-ready output for this feature's screen.
 public protocol __FEATURE__DisplayLogic: AnyObject {
+    /// Renders a successful load.
     func display(viewState: __FEATURE__.Load.ViewState)
+    /// Renders a failure.
     func displayError(message: String)
 }
 
+/// Turns this feature's results into display-ready view state.
 public final class __FEATURE__Presenter: __FEATURE__PresentationLogic {
-    // MUST be weak. Interactor holds this Presenter strongly, and this Presenter
-    // points back at the ViewController that owns the Interactor in the first
-    // place — a strong reference here closes that into a retain cycle
-    // (ViewController → Interactor → Presenter → ViewController) and leaks the
-    // whole scene every time it's pushed. This is the single most important
-    // correctness property in this combo.
+    /// The display layer, wired up after both objects exist.
+    ///
+    /// Weak, and it must stay weak: the ViewController owns the Interactor, which
+    /// owns this Presenter, so a strong reference back closes the cycle and leaks
+    /// the whole scene on every push.
     public weak var displayLogic: __FEATURE__DisplayLogic?
 
     public init() {}
 
+    /// Formats `response` and hands it to the display layer.
     public func present(response: __FEATURE__.Load.Response) {
         let viewState = __FEATURE__.Load.ViewState(items: response.items)
-        // display(viewState:) must land on the main thread — Interactor/Worker
-        // do their work off the main actor, so hop explicitly here rather than
-        // assuming the caller already did.
+        // The display call must land on the main actor. Interactor and Worker run
+        // off it, so hop explicitly rather than assuming the caller already did.
         Task { @MainActor [weak self] in
             self?.displayLogic?.display(viewState: viewState)
         }
     }
 
+    /// Formats `error` as a user-facing message.
     public func present(error: Error) {
         let message = error.localizedDescription
         Task { @MainActor [weak self] in

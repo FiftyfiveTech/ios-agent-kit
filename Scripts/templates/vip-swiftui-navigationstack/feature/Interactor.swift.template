@@ -1,23 +1,26 @@
 import Foundation
 __MODULE_IMPORTS__
 
-// __FEATURE__PresentationLogic and __FEATURE__WorkerProtocol are declared here,
-// not in Presenter.swift/Worker.swift — a protocol is owned by the module that
-// CONSUMES it, never the one that implements it (§8.2). The Interactor is the
-// only consumer of both for this feature.
+// Both protocols below are declared here rather than beside their
+// implementations: a protocol is owned by its consumer, and the Interactor is the
+// only consumer of both.
+/// Formats this feature's results for display.
 protocol __FEATURE__PresentationLogic {
+    /// Formats a successful load.
     func present(response: __FEATURE__.Load.Response)
+    /// Formats a failure as a user-facing message.
     func present(error: Error)
 }
 
+/// Fetches this feature's data.
 protocol __FEATURE__WorkerProtocol {
+    /// Returns every __FEATURE__ item.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
 }
 
-// Strict one-way VIP flow (§1.4): the Interactor never returns a value to its
-// caller (the ViewModel) — it always calls through to the Presenter, on
-// success or failure alike, and never calls back into anything upstream of
-// itself.
+// One-way flow: this never returns a value to its caller. Success and failure
+// alike go out through the Presenter, and nothing here calls back upstream.
+/// Runs this feature's business logic and hands results to the Presenter.
 final class __FEATURE__Interactor: __FEATURE__BusinessLogic {
     private let presenter: __FEATURE__PresentationLogic
     private let worker: __FEATURE__WorkerProtocol
@@ -27,6 +30,7 @@ final class __FEATURE__Interactor: __FEATURE__BusinessLogic {
         self.worker = worker
     }
 
+    /// Loads the list and reports the outcome through the Presenter.
     func load(request: __FEATURE__.Load.Request) async {
         do {
             let items = try await worker.fetch__FEATURE__List()
