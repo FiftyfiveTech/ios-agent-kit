@@ -171,8 +171,9 @@ the project's config selects, it generates:
   second screen (`docs/ai/ui_rules.md`). A grouped path whose parent already holds
   a screen is valid — the script's existence guard checks the leaf folder, not the
   group — so `Features/Home/` may carry `HomeView.swift` and a `HomeDetail/` child
-  folder side by side. Confirm the child's name is unique app-wide before
-  generating: every layer type and the `Models/<Name>Models.swift` entry go into
+  folder side by side, and a group may also hold flow-level files of its own — a
+  coordinator, a state object its screens share — beside those folders. Confirm
+  the child's name is unique app-wide before generating: every layer type and the `Models/<Name>Models.swift` entry go into
   flat namespaces that nesting does not scope.
 - **Documented code, with nothing about the template in it.** Every generated
   type, protocol, property and function carries a `///` doc comment saying what

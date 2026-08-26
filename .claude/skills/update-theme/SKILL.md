@@ -28,7 +28,19 @@ hasn't been initialized yet — run `/start` first."*
    `ColorTokens.swift`/`Typography.swift`, not `Assets.xcassets`. Every color
    token is a light/dark pair exposed as both `Color` and `UIColor` from the
    same underlying value (see `docs/ai/theming_rules.md`).
-4. **Warn on a redundant override.** If an app's override value is identical
+4. **Put it in the right file, and split only when a family has outgrown one.**
+   `Theme/` starts flat (`ColorTokens.swift`, `Typography.swift`). When a family
+   needs more than one file — a font family plus a type scale plus a Dynamic Type
+   helper — give it a folder (`Theme/Font/`, `Theme/Color/`, `Theme/Size/`) rather
+   than a fourth loose file. Don't create the folder for a single token. A per-app
+   override stays one file named for the app (`Theme.<App>.swift`); an app whose
+   overrides need a folder is redefining the palette, not overriding it — say so.
+5. **A per-component style is a theme token, not a view.** Styling that belongs to
+   one component — a button's fills, insets and typography per variant — goes in
+   `Theme/ComponentStyles/<Component>.swift`, and the component in
+   `DesignSystem/Views/` reads it. Never create `Theme/Views/`: a folder called
+   `Views` inside the theme is how a real view ends up there.
+6. **Warn on a redundant override.** If an app's override value is identical
    to the base token it's supposedly overriding, flag it — that's not an
    override, it's dead code that will silently drift later.
 

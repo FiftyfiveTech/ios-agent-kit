@@ -40,10 +40,43 @@ get one.
 Two apps that each redefine the whole palette are not sharing a design system —
 they're maintaining two.
 
+## Inside `Theme/`
+
+Start flat: `ColorTokens.swift` and `Typography.swift` are the whole layer on day
+one, and two files need no folders.
+
+**Split by token family once a family outgrows one file** — `Color/`, `Font/`,
+`Size/`. A shipped app of this kind reaches four files of type handling
+alone (the font family, the type scale, a scaled-font helper for Dynamic Type),
+which is the point `Typography.swift` stops being one file. Colors follow the
+same rule and usually later. Subfolders are safe for tooling:
+`check_hardcoded_colors.sh` matches any path containing `Theme/`, at any depth.
+
+The per-app override stays **one file**, named for the app — `Theme.<App>.swift`
+in that app's own `Theme/`. If an app's overrides need a folder of their own, the
+app is redefining the palette rather than overriding it, which is the failure the
+base/override split exists to prevent.
+
+## Per-component styling
+
+A component's *look* — a button's fills, insets and typography per variant — is a
+theme concern, not a view concern. It lives in `Theme/ComponentStyles/<Component>.swift`
+and the component in `DesignSystem/Views/` reads it. That keeps a per-app restyle
+in the override layer instead of forking the view (the rule in
+`docs/ai/ui_rules.md`), and it keeps the style out of the view's own file where a
+second app can't reach it.
+
+**Name it `ComponentStyles/`, never `Theme/Views/`.** The shipped app that
+provides this pattern calls it `Theme/Views/`, and the cost is two folders named
+`Views` — one for real views and one for styles — which is exactly how a real
+view ends up in the theme layer.
+
 ## Scope
 
 Applies to **colors and typography**, mandatorily. A spacing scale
 (`Spacing.swift`) is optional — add it the same way once a team wants one (§10).
+Per-component styles are optional in the same sense: the first one appears when a
+component's styling stops fitting in a token.
 
 ## Enforcement
 

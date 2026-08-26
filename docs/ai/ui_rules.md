@@ -53,6 +53,16 @@ Those three are the first instance of a general rule, not a special case:
   second copy of the view is never the answer.
 - **New shared views get a `#Preview` covering their states** — a shared
   component with one preview of one state is how the other states rot.
+- **`DesignSystem/Views/` groups by component, never by layer.** A component
+  stays a loose file for as long as it is one file (`LoadingView.swift`,
+  `ErrorView.swift`, `CommonSwitch.swift`). It gets its own folder the moment it
+  has a companion — its own view model, its own style, a subcomponent only it
+  uses: `CommonLabel/CommonLabel.swift` + `CommonLabel/LabelViewModel.swift`,
+  `Buttons/`, `Dropdown/`. A thematic group (`Molecules/Cards/`) is fine once
+  several components belong to the same family. What's banned is exactly what's
+  banned inside a feature folder: layer-named subfolders. (This mirrors a shipped
+  app of this shape, whose shared folder carries ~20 loose components beside ~15
+  component folders and not one layer-named subfolder.)
 
 Nothing enforces this mechanically (unlike colors) — it's a review gate.
 

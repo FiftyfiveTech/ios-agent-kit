@@ -174,7 +174,10 @@ The general rule, of which those three are the first instance: **a view used by
 more than one screen belongs in `DesignSystem/Views/`.** When a new screen
 needs a component another screen already has — a styled button, a labelled row, a
 card — consume the shared one, or promote the existing one into `DesignSystem/Views/`
-and have both screens use it. Never copy it into a feature folder. From T2 onward
+and have both screens use it. Never copy it into a feature folder. Inside that
+folder, group by component and not by layer: a one-file component stays a loose
+file, and it earns a folder once it has a companion (its view model, its style, a
+subcomponent only it uses). From T2 onward
 these live in the shared module and are `public`; per-app visual differences go
 through the theme override layer, never a forked copy of the view.
 
