@@ -165,12 +165,23 @@ Consumer  →  <Feature>Repository / Worker / Service
 
 Every list/detail screen consumes `LoadingView`, `ErrorView` (message + optional
 retry), and `EmptyStateView` from `DesignSystem/SharedViews/` — never a
-per-feature reimplementation (§3.6). This applies to SwiftUI screens directly;
-the UIKit combos (VIP+UIKit, MVC+UIKit) render the equivalent loading/error/empty
-states as plain UIKit views owned by the ViewController itself rather than a
-shared SwiftUI component — extract a shared UIKit equivalent once a second
-UIKit feature needs the same states, not before (§8.2: don't abstract on
-speculation).
+per-feature reimplementation (§3.6). This holds for **both** UI frameworks: the
+SwiftUI combos get SwiftUI views, the UIKit combos (VIP+UIKit, MVC+UIKit) get
+`UIView` subclasses with the same names in the same folder, and a ViewController
+adds one as a subview instead of building a spinner and an error label inline.
+
+The general rule, of which those three are the first instance: **a view used by
+more than one screen belongs in `DesignSystem/SharedViews/`.** When a new screen
+needs a component another screen already has — a styled button, a labelled row, a
+card — consume the shared one, or promote the existing one into `SharedViews/`
+and have both screens use it. Never copy it into a feature folder. From T2 onward
+these live in the shared module and are `public`; per-app visual differences go
+through the theme override layer, never a forked copy of the view.
+
+This is deliberately stronger than "don't abstract on speculation," and doesn't
+contradict it: that rule is about inventing a protocol before a second conformance
+exists, whereas a second screen rendering the same component *is* the second use
+case, already arrived.
 
 ## Icons and images
 

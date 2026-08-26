@@ -68,11 +68,14 @@ UIKit combos are interchangeable at the navigation layer — their
 Shared, unmodified from `mvvm-swiftui-navigationstack/app-shell/`:
 `ColorTokens.swift.template`, `Typography.swift.template`,
 `RequestBuilder.swift.template`, `APIClient.swift.template`,
-`Debouncer.swift.template`. Not copied: the SwiftUI-specific shared-state
-views (`LoadingView`/`ErrorView`/`EmptyStateView`) and `Route`/`Router`/
-`App.swift.template` — MVC's ViewController owns its own loading/error UI
-directly as plain UIKit, and this combo's navigation root is
-`UINavigationController`, not a SwiftUI `NavigationStack`.
+`Debouncer.swift.template`.
+
+`LoadingView`/`ErrorView`/`EmptyStateView` exist here too, as `UIView`
+subclasses rather than the SwiftUI versions — same names, same
+`DesignSystem/SharedViews/` destination, same rule that no feature reimplements
+them (§3.6). Not copied: `Route`/`Router`/`App.swift.template`, since this
+combo's navigation root is `UINavigationController`, not a SwiftUI
+`NavigationStack`.
 
 ## Local persistence
 

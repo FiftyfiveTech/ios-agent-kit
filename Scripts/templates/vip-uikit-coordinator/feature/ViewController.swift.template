@@ -1,24 +1,25 @@
 import UIKit
+import SwiftUI
 __MODULE_IMPORTS__
 
-// __FEATURE__BusinessLogic is declared here, not in Interactor.swift — a protocol
-// is owned by the module that CONSUMES it, never the one that implements it
-// (§8.2). This ViewController is the Interactor's only consumer.
-//
-// Classic Clean Swift: this ViewController conforms to __FEATURE__DisplayLogic
-// directly, because UIViewController is already a reference type — unlike the
-// SwiftUI VIP combo, no ViewModel bridge is needed here (§1.4).
+/// What this scene asks its Interactor to do.
+///
+/// Declared here rather than beside the Interactor because a protocol is owned by
+/// its consumer, and this ViewController is the Interactor's only consumer.
 public protocol __FEATURE__BusinessLogic {
+    /// Starts a load. Results arrive through `__FEATURE__DisplayLogic`, never as a
+    /// return value.
     func load(request: __FEATURE__.Load.Request) async
 }
 
+/// Renders the __FEATURE__ scene and forwards user intent to the Interactor.
 public final class __FEATURE__ViewController: UIViewController, __FEATURE__DisplayLogic {
     private let interactor: __FEATURE__BusinessLogic
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private let activityIndicator = UIActivityIndicatorView(style: .large)
-    private let errorLabel = UILabel()
-    private let retryButton = UIButton(type: .system)
+    private let loadingView = LoadingView()
+    private let errorView = ErrorView()
+    private let emptyStateView = EmptyStateView()
 
     private var items: [__FEATURE__Model] = []
 
@@ -29,67 +30,57 @@ public final class __FEATURE__ViewController: UIViewController, __FEATURE__Displ
         super.init(nibName: nil, bundle: nil)
     }
 
-    // No Storyboard/.xib (§1.4) — this scene is always composed in code by
-    // AppCoordinator's make__FEATURE__ViewController() factory.
+    /// Unavailable: this scene is always composed in code by `AppCoordinator`.
     @available(*, unavailable)
     public required init?(coder: NSCoder) {
-        fatalError("init(coder:) is not supported — no Storyboard/.xib (§1.4)")
+        fatalError("init(coder:) is not supported — this scene is composed in code")
     }
 
     public override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = L10n.__MODULE_LOWER__.__FEATURE_LOWER__.title
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = UIColor(ThemeColor.background)
         setUpTableView()
-        setUpLoadingIndicator()
-        setUpErrorState()
+        setUpStateViews()
         dispatchLoad()
     }
 
-    // View → Interactor: fire the request, then wait for display(viewState:)/
-    // displayError(message:) to come back — never read anything off the
-    // Interactor directly (§ VIP one-way flow).
+    /// Fires the load request and shows the loading state.
+    ///
+    /// Nothing is read back off the Interactor — the reply arrives through
+    /// `display(viewState:)` or `displayError(message:)`.
     private func dispatchLoad() {
-        activityIndicator.startAnimating()
-        errorLabel.isHidden = true
-        retryButton.isHidden = true
+        show(tableView: false, loading: true, empty: false, error: false)
         Task { [weak self] in
             guard let self else { return }
             await self.interactor.load(request: __FEATURE__.Load.Request())
         }
     }
 
-    @objc private func retryTapped() {
-        dispatchLoad()
-    }
-
     // MARK: - __FEATURE__DisplayLogic
 
-    // Called already on the main actor — Presenter.swift.template hops there
-    // explicitly before calling either method below, since the
-    // Interactor/Worker chain runs off the main actor. Straight-line UIKit here;
-    // hopping a second time would just defer the UI update by a run-loop turn
-    // for no benefit.
+    /// Shows the loaded items, or the empty state when there are none.
+    ///
+    /// Called on the main actor: the Presenter hops there before calling this,
+    /// since the Interactor/Worker chain runs off it.
     public func display(viewState: __FEATURE__.Load.ViewState) {
-        activityIndicator.stopAnimating()
-        errorLabel.isHidden = true
-        retryButton.isHidden = true
         items = viewState.items
-        tableView.isHidden = false
         tableView.reloadData()
+        let isEmpty = items.isEmpty
+        show(tableView: !isEmpty, loading: false, empty: isEmpty, error: false)
     }
 
+    /// Shows the error state with a retry that redispatches the same load.
     public func displayError(message: String) {
-        activityIndicator.stopAnimating()
-        tableView.isHidden = true
-        errorLabel.text = message
-        errorLabel.isHidden = false
-        retryButton.isHidden = false
+        errorView.configure(message: message, retry: { [weak self] in
+            self?.dispatchLoad()
+        })
+        show(tableView: false, loading: false, empty: false, error: true)
     }
 
-    // MARK: - Layout (plain UIKit — a real UITableView + spinner + error/retry,
-    // not shared SwiftUI views; VIP's View owns only rendering)
+    // MARK: - Layout
 
+    /// Adds the list and pins it to the safe area.
     private func setUpTableView() {
         tableView.dataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.cellReuseIdentifier)
@@ -104,40 +95,32 @@ public final class __FEATURE__ViewController: UIViewController, __FEATURE__Displ
         ])
     }
 
-    private func setUpLoadingIndicator() {
-        activityIndicator.hidesWhenStopped = true
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(activityIndicator)
-        NSLayoutConstraint.activate([
-            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
+    /// Adds the shared loading, empty and error views, each filling the screen.
+    ///
+    /// These come from `DesignSystem/SharedViews/` — never rebuild a spinner or an
+    /// error label per feature.
+    private func setUpStateViews() {
+        emptyStateView.configure(message: L10n.__MODULE_LOWER__.__FEATURE_LOWER__.empty)
+
+        for stateView in [loadingView, errorView, emptyStateView] as [UIView] {
+            stateView.translatesAutoresizingMaskIntoConstraints = false
+            stateView.isHidden = true
+            view.addSubview(stateView)
+            NSLayoutConstraint.activate([
+                stateView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
     }
 
-    private func setUpErrorState() {
-        errorLabel.numberOfLines = 0
-        errorLabel.textAlignment = .center
-        errorLabel.isHidden = true
-        errorLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        // "Retry" is generic UI chrome, not feature content — no per-feature L10n
-        // key exists for it (new_feature.sh only writes .title/.empty), matching
-        // the shared SwiftUI ErrorView's own precedent (app-shell/ErrorView.swift).
-        retryButton.setTitle("Retry", for: .normal)
-        retryButton.isHidden = true
-        retryButton.translatesAutoresizingMaskIntoConstraints = false
-        retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
-
-        view.addSubview(errorLabel)
-        view.addSubview(retryButton)
-        NSLayoutConstraint.activate([
-            errorLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            errorLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
-            errorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
-            errorLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
-            retryButton.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 12),
-            retryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        ])
+    /// Sets the visibility of all four mutually exclusive states at once.
+    private func show(tableView showTable: Bool, loading: Bool, empty: Bool, error: Bool) {
+        tableView.isHidden = !showTable
+        loadingView.isHidden = !loading
+        emptyStateView.isHidden = !empty
+        errorView.isHidden = !error
     }
 }
 

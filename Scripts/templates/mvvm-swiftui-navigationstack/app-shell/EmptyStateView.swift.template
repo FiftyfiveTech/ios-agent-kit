@@ -1,8 +1,8 @@
 import SwiftUI
 
-// Shared empty state (§3.6) — a list screen with zero items renders this, never a
-// blank screen or a re-implemented "no results" label.
+/// Empty state: what a screen shows when it loaded successfully and found nothing.
 public struct EmptyStateView: View {
+    /// The message shown to the user, already localized by the caller.
     private let message: String
 
     public init(message: String) {

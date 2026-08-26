@@ -1,26 +1,24 @@
 import UIKit
-import SwiftUI // bridges the shared SwiftUI-defined ThemeColor tokens (§6) to UIColor below
+import SwiftUI
 __MODULE_IMPORTS__
 
-// MVC's whole file lives together deliberately (§3.3) — this is the pattern's
-// documented "Massive View Controller" risk made honest rather than hidden
-// behind an extra file. Protocol + implementation still split (§8.2) so the
-// generated test can fake the network dependency.
+/// Loads __FEATURE__ data for the screen below.
 protocol __FEATURE__ServiceProtocol {
+    /// Returns every __FEATURE__ item to display.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model]
 }
 __IF_PERSISTENCE__
 
-// MVC has no Repository layer, so the Service is what consumes the local store —
-// and therefore what declares its protocol (§8.2). This exists only because the
-// project answered Q4 with a persistence stack; a `persistence: None` project's
-// Service is remote-only and the ViewController is unchanged either way (§3.8).
+/// Reads and writes the locally cached __FEATURE__ list.
 protocol __FEATURE__LocalStoreProtocol {
+    /// Returns the cached items, or an empty array when nothing is cached.
     func loadCached__FEATURE__List() async throws -> [__FEATURE__Model]
+    /// Replaces the cached items with `items`.
     func cache__FEATURE__List(_ items: [__FEATURE__Model]) async throws
 }
 __END_PERSISTENCE__
 
+/// Concrete data layer for __FEATURE__.
 struct __FEATURE__Service: __FEATURE__ServiceProtocol {
 __IF_NETWORKING__
     private let requestBuilder: RequestBuilder
@@ -38,9 +36,11 @@ __IF_PERSISTENCE__
         self.localStore = localStore
     }
 
-    // Remote is the source of truth; the cache is a fallback consulted only when
-    // the network call actually failed. An empty cache rethrows that error rather
-    // than reporting an empty screen as a success.
+    /// Fetches from the network and caches the result, falling back to the cache
+    /// only when the request failed.
+    ///
+    /// - Throws: the network error when the request fails and the cache is empty —
+    ///   an empty screen is not reported as a success.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         do {
             let request = requestBuilder.request(path: "__FEATURE_LOWER__")
@@ -60,6 +60,7 @@ __ELSE_PERSISTENCE__
         self.apiClient = apiClient
     }
 
+    /// Fetches the __FEATURE__ list from the network.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         let request = requestBuilder.request(path: "__FEATURE_LOWER__")
         return try await apiClient.send(request, decodingTo: [__FEATURE__Model].self)
@@ -68,30 +69,36 @@ __END_PERSISTENCE__
 __ELSE_NETWORKING__
     // TODO(agent): implement this against localStore, per docs/ai/architecture.md.
     //
-    // This project answered Q7 = networking: none, so there is no RequestBuilder
-    // or APIClient and the local store is the SOURCE OF TRUTH here, not a
-    // fallback for a failed request — don't port the read-through policy above.
-    // MVC has no Repository layer, so this Service is the whole data layer.
+    // This app has no networking layer, so the local store is the SOURCE OF TRUTH
+    // here, not a fallback for a failed request.
     private let localStore: __FEATURE__LocalStoreProtocol
 
     init(localStore: __FEATURE__LocalStoreProtocol) {
         self.localStore = localStore
     }
 
+    /// Returns the locally stored __FEATURE__ list.
     func fetch__FEATURE__List() async throws -> [__FEATURE__Model] {
         fatalError("TODO(agent): read __FEATURE__ from localStore — see the note above")
     }
 __END_NETWORKING__
 }
 
+/// Displays the __FEATURE__ list, and its loading, empty and error states.
 final class __FEATURE__ViewController: UIViewController {
+    /// What the screen is currently showing.
     enum State {
+        /// Nothing requested yet.
         case idle
+        /// A load is in flight.
         case loading
+        /// A load succeeded, with the items it returned.
         case loaded([__FEATURE__Model])
+        /// A load failed, with a message to show the user.
         case error(String)
     }
 
+    /// Current state. Assigning re-renders the screen.
     private(set) var state: State = .idle {
         didSet { render() }
     }
@@ -99,10 +106,9 @@ final class __FEATURE__ViewController: UIViewController {
     private let service: __FEATURE__ServiceProtocol
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private let activityIndicator = UIActivityIndicatorView(style: .large)
-    private let errorLabel = UILabel()
-    private let retryButton = UIButton(type: .system)
-    private let errorStack = UIStackView()
+    private let loadingView = LoadingView()
+    private let errorView = ErrorView()
+    private let emptyStateView = EmptyStateView()
 
     private var items: [__FEATURE__Model] = []
 
@@ -122,8 +128,7 @@ final class __FEATURE__ViewController: UIViewController {
         view.backgroundColor = UIColor(ThemeColor.background)
 
         setUpTableView()
-        setUpActivityIndicator()
-        setUpErrorState()
+        setUpStateViews()
         render()
 
         Task { await load() }
@@ -131,6 +136,7 @@ final class __FEATURE__ViewController: UIViewController {
 
     // MARK: - Layout
 
+    /// Adds the list and pins it to the safe area.
     private func setUpTableView() {
         tableView.dataSource = self
         tableView.delegate = self
@@ -146,48 +152,33 @@ final class __FEATURE__ViewController: UIViewController {
         ])
     }
 
-    private func setUpActivityIndicator() {
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicator.hidesWhenStopped = true
-        view.addSubview(activityIndicator)
-
-        NSLayoutConstraint.activate([
-            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-    }
-
-    private func setUpErrorState() {
-        errorLabel.font = UIFont.preferredFont(forTextStyle: .body)
-        errorLabel.textColor = UIColor(ThemeColor.secondaryText)
-        errorLabel.textAlignment = .center
-        errorLabel.numberOfLines = 0
-
-        // "Retry" is generic UI chrome, not feature content — no per-feature L10n
-        // key exists for it (new_feature.sh only writes .title/.empty), matching
-        // the shared SwiftUI ErrorView's own precedent (app-shell/ErrorView.swift).
-        retryButton.setTitle("Retry", for: .normal)
-        retryButton.addAction(UIAction { [weak self] _ in
+    /// Adds the shared loading, empty and error views, each filling the screen.
+    ///
+    /// These come from `DesignSystem/SharedViews/` — never rebuild a spinner or an
+    /// error label per feature.
+    private func setUpStateViews() {
+        errorView.configure(message: "", retry: { [weak self] in
             Task { await self?.load() }
-        }, for: .touchUpInside)
+        })
+        emptyStateView.configure(message: L10n.__MODULE_LOWER__.__FEATURE_LOWER__.empty)
 
-        errorStack.axis = .vertical
-        errorStack.spacing = 12
-        errorStack.alignment = .center
-        errorStack.translatesAutoresizingMaskIntoConstraints = false
-        errorStack.addArrangedSubview(errorLabel)
-        errorStack.addArrangedSubview(retryButton)
-        view.addSubview(errorStack)
+        for stateView in [loadingView, errorView, emptyStateView] as [UIView] {
+            stateView.translatesAutoresizingMaskIntoConstraints = false
+            stateView.isHidden = true
+            view.addSubview(stateView)
 
-        NSLayoutConstraint.activate([
-            errorStack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            errorStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
-            errorStack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24)
-        ])
+            NSLayoutConstraint.activate([
+                stateView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
     }
 
     // MARK: - Loading
 
+    /// Loads the list and moves the screen through `.loading` to `.loaded`/`.error`.
     func load() async {
         state = .loading
         do {
@@ -200,26 +191,32 @@ final class __FEATURE__ViewController: UIViewController {
 
     // MARK: - Render
 
+    /// Shows exactly one of the list, loading, empty or error views for `state`.
     private func render() {
         switch state {
         case .idle, .loading:
-            tableView.isHidden = true
-            errorStack.isHidden = true
-            activityIndicator.startAnimating()
+            show(tableView: false, loading: true, empty: false, error: false)
 
         case .loaded(let loadedItems):
             items = loadedItems
             tableView.reloadData()
-            activityIndicator.stopAnimating()
-            errorStack.isHidden = true
-            tableView.isHidden = false
+            let isEmpty = loadedItems.isEmpty
+            show(tableView: !isEmpty, loading: false, empty: isEmpty, error: false)
 
         case .error(let message):
-            activityIndicator.stopAnimating()
-            tableView.isHidden = true
-            errorLabel.text = message
-            errorStack.isHidden = false
+            errorView.configure(message: message, retry: { [weak self] in
+                Task { await self?.load() }
+            })
+            show(tableView: false, loading: false, empty: false, error: true)
         }
+    }
+
+    /// Sets the visibility of all four mutually exclusive states at once.
+    private func show(tableView showTable: Bool, loading: Bool, empty: Bool, error: Bool) {
+        tableView.isHidden = !showTable
+        loadingView.isHidden = !loading
+        emptyStateView.isHidden = !empty
+        errorView.isHidden = !error
     }
 }
 
