@@ -134,11 +134,11 @@ final class ${NAME}InfoTests: XCTestCase {
 EOF
 
 if [ "$WANTS_UI" -eq 1 ]; then
-  mkdir -p "$MODULE_DIR/Resources/Localization/en.lproj" "$MODULE_DIR/Resources/Assets.xcassets"
+  mkdir -p "$MODULE_DIR/Resources/Localization" "$MODULE_DIR/Resources/Assets.xcassets"
   LOWER_NAME="$(echo "$NAME" | tr '[:upper:]' '[:lower:]')"
-  cat > "$MODULE_DIR/Resources/Localization/en.lproj/Localizable.strings" <<EOF
-"${LOWER_NAME}.placeholder" = "${NAME}";
-EOF
+  python3 Scripts/lib/xcstrings.py add \
+    "$MODULE_DIR/Resources/Localization/Localizable.xcstrings" \
+    "${LOWER_NAME}.placeholder" "${NAME}" "Placeholder — replace with this module's first real string"
   cat > "$MODULE_DIR/Resources/Assets.xcassets/Contents.json" <<'EOF'
 {
   "info" : {

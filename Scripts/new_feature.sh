@@ -845,17 +845,21 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# Localization (§3.7, §3.11) — never a hardcoded string literal.
+# Localization — never a hardcoded string literal. One String Catalog per module.
 # ---------------------------------------------------------------------------
 if [ "$DETERMINISTIC" -eq 1 ]; then
-  mkdir -p "$LOC_DIR/en.lproj"
-  STRINGS_FILE="$LOC_DIR/en.lproj/Localizable.strings"
-  [ -f "$STRINGS_FILE" ] || touch "$STRINGS_FILE"
-  {
-    echo "\"${TARGET_MODULE_LOWER}.${FEATURE_LOWER}.title\" = \"${FEATURE}\";"
-    echo "\"${TARGET_MODULE_LOWER}.${FEATURE_LOWER}.empty\" = \"Nothing here yet.\";"
-  } >> "$STRINGS_FILE"
+  mkdir -p "$LOC_DIR"
+  CATALOG="$LOC_DIR/Localizable.xcstrings"
+  CATALOG_EXISTED=1
+  [ -f "$CATALOG" ] || CATALOG_EXISTED=0
+  python3 Scripts/lib/xcstrings.py add "$CATALOG" \
+    "${TARGET_MODULE_LOWER}.${FEATURE_LOWER}.title" "${FEATURE}" "Title of the ${FEATURE} screen"
+  python3 Scripts/lib/xcstrings.py add "$CATALOG" \
+    "${TARGET_MODULE_LOWER}.${FEATURE_LOWER}.empty" "Nothing here yet." "Shown when ${FEATURE} loaded no items"
   ./Scripts/generate_strings.sh "$TARGET_MODULE" || true
+  if [ "$CATALOG_EXISTED" -eq 0 ]; then
+    echo "new_feature.sh: created $CATALOG — run 'xcodegen generate' (or 'tuist generate') so the build picks up the new file."
+  fi
 fi
 
 echo "new_feature.sh: created $FEATURE_DIR (module: $TARGET_MODULE, topology: $TOPOLOGY)."
