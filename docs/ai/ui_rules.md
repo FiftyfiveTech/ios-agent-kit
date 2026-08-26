@@ -46,7 +46,10 @@ Those three are the first instance of a general rule, not a special case:
 - **Promote, don't copy.** When a new screen needs something an existing screen
   already has, move that view into `DesignSystem/Views/` and have both consume it. A
   near-identical view in two feature folders is the failure this prevents, and it
-  is the normal way a design system stops being one.
+  is the normal way a design system stops being one. In a multi-app repo the same
+  rule applies one level up: a component library serving exactly one app may live
+  in that app, and it moves down into the shared module when a second app needs
+  it — moved, never copied into both.
 - **Parameterize with the theme, not with a fork.** A shared view that needs to
   look different in another app takes its colors and fonts from the theme tokens
   (`docs/ai/theming_rules.md`), which already have a per-app override layer. A
