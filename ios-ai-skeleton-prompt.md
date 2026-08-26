@@ -226,6 +226,7 @@ This is the **T2** layout: one app project plus local Swift packages. At **T1**,
 │   ├── pre-commit
 │   └── commit-msg
 ├── CLAUDE.md                         # rendered from CLAUDE.md.template — real decisions, not placeholders
+├── CLAUDE.md.template                # retained, inert after §1.9's render — the source /start's re-run (§2.1) recreates a deleted doc from
 ├── README.md
 ├── docs/
 │   ├── ONBOARDING.md
@@ -236,7 +237,9 @@ This is the **T2** layout: one app project plus local Swift packages. At **T1**,
 │   ├── product/                      # §5.2 — PRD/SRS/API contracts, hand-authored and never generated
 │   └── ai/
 │       ├── architecture.md           # rendered with the ONE chosen pattern's layers
+│       ├── architecture.md.template  # retained render source — still carries ALL patterns; grep `docs/` hits the ones this repo didn't choose
 │       ├── modularization.md         # rendered with THIS repo's tier + module graph — §3.9–§3.11
+│       ├── modularization.md.template
 │       ├── theming_rules.md
 │       ├── ui_rules.md
 │       └── permissions_rules.md
@@ -249,7 +252,8 @@ This is the **T2** layout: one app project plus local Swift packages. At **T1**,
 │   ├── add_secret.sh                 # §4.10 — appends a key to Secrets.xcconfig + .example, escapes `//`, holds back credential-shaped values
 │   ├── generate_strings.sh           # <module> → that module's L10n.swift from its Localizable.xcstrings
 │   ├── new_module.sh
-│   └── new_feature.sh
+│   ├── new_feature.sh
+│   └── templates/                    # NOT one-time input — new_feature.sh, /add-app and /add-secret read these on every call (§1.4, §4.10); deleting them breaks feature generation in this project
 ├── App/                              # the app target: composition root, identity, app-specific features
 │   ├── <AppName>App.swift            # or AppDelegate/SceneDelegate for UIKit
 │   ├── Navigation/                   # Route.swift + Router.swift, or AppCoordinator.swift for the UIKit combos (§3.4)
