@@ -34,7 +34,11 @@ hasn't been initialized yet — run `/start` first."*
    add either. If the app
    needs a *different* base URL from app one, that's the point a per-app key
    (`APP_TWO_API_BASE_URL`) plus its own accessor on the shared `AppEnvironment`
-   earns its place — add the key to `Secrets.xcconfig.example` in the same change — `check_secrets.sh`
+   earns its place — and then **repoint this app's composition root at that
+   accessor**: the shell rendered in step 4 comes out reading
+   `AppEnvironment.current.apiBaseURL`, which is app one's key, so a per-app key
+   that nothing reads is the failure mode here. One accessor per app, one line
+   changed in the new shell, and no reader in either app. Add the key to `Secrets.xcconfig.example` in the same change — `check_secrets.sh`
    fails on a key that exists in one file and not the other, and a per-app URL
    still needs a scheme and a host to clear the launch guard.
 4. **Declare dependencies on the existing shared modules**, and generate the

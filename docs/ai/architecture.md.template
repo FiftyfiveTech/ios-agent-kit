@@ -188,8 +188,9 @@ moves up only when it earns it — a `private` view type at the bottom of the
 screen's own file (the default), then its own file in the same feature folder
 (`Features/Home/HomeHeaderView.swift`) once it owns state or handles its own
 loading/error, then its own child-screen folder beside the parent's layer files
-(`Features/Home/Detail/`, via `/new-feature Home/Detail`) once it is really a
-second screen. Layer-named subfolders inside a screen's folder are banned at any
+(`Features/Home/HomeDetail/`, via `/new-feature Home/HomeDetail` — named uniquely
+app-wide, since its models land in the shared `Models/` namespace) once it is
+really a second screen. Layer-named subfolders inside a screen's folder are banned at any
 depth. See `docs/ai/ui_rules.md`.
 
 ## Icons and images

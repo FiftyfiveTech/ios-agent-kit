@@ -69,10 +69,14 @@ it earns the move:
    feature folder grows to fifteen files without becoming clearer.
 2. **Its own file in the same feature folder** — `Features/Home/HomeHeaderView.swift`
    — once it stops being a small presentation helper: it owns state, it handles
-   its own loading/error, or a second file inside the feature needs it.
+   its own loading/error, a second file inside the feature needs it, or the screen
+   file has grown far enough to trip SwiftLint's `file_length` (warning at 400
+   lines). The first three are the real signals; the fourth is the backstop.
 3. **Its own child-screen folder beside the parent's layer files** —
-   `Features/Home/Detail/`, generated with `/new-feature Home/Detail` — once it is
-   really a second *screen* rather than a component: its own data source, its own
+   `Features/Home/HomeDetail/`, generated with `/new-feature Home/HomeDetail` (name
+   it uniquely app-wide — its models land in the shared `Models/` namespace, which
+   nesting doesn't scope) — once it is really a second *screen* rather than a
+   component: its own data source, its own
    navigation entry, its own tests. Layer-named subfolders (`Views/`, `Domain/`)
    inside a screen's folder stay banned at any depth.
 
