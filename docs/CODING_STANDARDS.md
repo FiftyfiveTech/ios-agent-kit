@@ -232,14 +232,20 @@ generate.
   `$(KEY)` entry in **each** app target's `Info.plist`, and a typed accessor on
   `AppEnvironment`. An xcconfig assignment is a build setting — without the
   plist entry, Swift cannot see it at all.
-- **`AppEnvironment` is the one reader.** `/add-secret` renders it into Core
-  (shared module, not the app — so a feature in any module can read config
-  without the app threading it down) the first time a project adds a key beyond
-  the base URL. Once it exists, nothing else calls
-  `Bundle.main.object(forInfoDictionaryKey:)`. `API_BASE_URL` is the standing
-  exception: it keeps its composition-root path into `RequestBuilder`'s
-  `baseURL`, because two readers for one key with two different failure
-  messages is worse than one reader in a less tidy place.
+- **`AppEnvironment` is the one reader — for every key, including
+  `API_BASE_URL`.** It lives in Core (the shared module, not the app, so a
+  feature in any module can read config without the app threading it down),
+  rendered by `/start` on any project that has a key and by `/add-secret` on the
+  first key of one that didn't. Nothing else in the app calls
+  `Bundle.main.object(forInfoDictionaryKey:)` — the composition root reads
+  `AppEnvironment.current.apiBaseURL` and passes it into `RequestBuilder`'s
+  `baseURL` rather than parsing the plist itself. A second reader for a key is
+  how two call sites end up disagreeing about what a blank value means.
+- **Read a key through its typed accessor, not `string("SomeKey", …)` at the call
+  site.** The generic readers (`string`, `url`, `bool`, `int`) exist so a new key
+  is a one-line accessor on `AppEnvironment`, not a new copy of the trap-on-empty
+  parsing; a call site that passes a raw plist key has moved the config seam back
+  into the feature.
 - **Never paste a real credential into a prompt.** `/add-secret` is normally
   driven by an AI agent, and a value typed into a prompt lives in that
   transcript, in the model's context, and in every log along the way — long
@@ -432,9 +438,9 @@ rather than silently guessing a wrong fake value (§4.1). This is the one
 sanctioned use of `fatalError` as a placeholder — everywhere else, prefer a
 real error path.
 
-The second — and only other — sanctioned crash is the composition root's
-`APIBaseURL` read (`App.swift`/`SceneDelegate.swift`), **on projects that have a
-networking layer at all**: a missing or malformed base URL misconfigures every
+The second — and only other — sanctioned crash is `AppEnvironment`'s read of a
+required key — `APIBaseURL` on any project with a networking layer, and every key
+`/add-secret` adds after it: a missing or malformed base URL misconfigures every
 request in the app, so `preconditionFailure` at launch is correct where a
 fallback URL or a silently broken screen is not. This is the "a crash on failure
 genuinely is the correct behavior" clause of the force-unwrap policy above.

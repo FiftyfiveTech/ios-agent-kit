@@ -54,7 +54,7 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
   after editing it run `Scripts/generate_strings.sh <module>` to refresh `L10n`.
 - **Reuse a view before writing one.** Anything used by more than one screen —
   the loading/error/empty states, buttons, rows, cards — lives in
-  `DesignSystem/SharedViews/` and is consumed from there, in SwiftUI and UIKit
+  `DesignSystem/Views/` and is consumed from there, in SwiftUI and UIKit
   alike. If a screen needs something another screen already has, promote it
   rather than copying it into the feature folder (`docs/ai/ui_rules.md`).
 - **Document the code; never document the template.** Every type, protocol,
@@ -96,8 +96,11 @@ Full architecture layer shapes: `docs/ai/architecture.md`.
   never a summary: a digest of a living document goes stale as fast as the
   document changes. If the requirement you need isn't there or contradicts
   itself, ask — don't invent one.
-- **Nothing that varies by environment is a literal in Swift.** Add the key with
-  `/add-secret` — it writes `Secrets.xcconfig`, the committed example, each app
+- **Nothing that varies by environment is a literal in Swift, and
+  `AppEnvironment` in the shared Core module is the only thing that reads one.**
+  Every key — `API_BASE_URL` included — is a typed accessor there, and no other
+  file calls `Bundle.main.object(forInfoDictionaryKey:)`. Add a key with
+  `/add-secret`: it writes `Secrets.xcconfig`, the committed example, each app
   target's `Info.plist` entry and the `AppEnvironment` accessor together, which
   is the only combination that actually works. **Never put a real credential in
   a prompt**: paste it into the gitignored `Secrets.xcconfig` by hand

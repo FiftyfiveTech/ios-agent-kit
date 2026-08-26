@@ -69,10 +69,14 @@ there long after the key is rotated.** So:
    app that needs the key. A shared module can't declare one — if the reading
    code lives in a shared module, every app that ships it needs the entry, and
    say so rather than picking one app silently.
-4. **Render `AppEnvironment` if it doesn't exist yet**, from
+4. **Render `AppEnvironment` only if it doesn't exist yet.** On a networked
+   project `/start` §1.7c already rendered it — find that file and append to it;
+   don't create a second one. It's missing only on a project that started with no
+   keys at all (`networking: none`), and then you render it from
    `Scripts/templates/config/AppEnvironment.swift.template`, substituting
-   `__APP_NAME__` and nothing else. Destination is Core, at the tier-correct
-   path — the same table `/start` §1.7a uses for `PersistenceController`:
+   `__APP_NAME__` and dropping the `__IF_NETWORKING__` block (there is no
+   `API_BASE_URL` on such a project). Destination is Core, at the tier-correct
+   path — the same table `/start` §1.7a/§1.7c use:
 
    | Tier | Destination |
    |---|---|

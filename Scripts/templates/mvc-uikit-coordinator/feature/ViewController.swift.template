@@ -154,7 +154,7 @@ final class __FEATURE__ViewController: UIViewController {
 
     /// Adds the shared loading, empty and error views, each filling the screen.
     ///
-    /// These come from `DesignSystem/SharedViews/` — never rebuild a spinner or an
+    /// These come from `DesignSystem/Views/` — never rebuild a spinner or an
     /// error label per feature.
     private func setUpStateViews() {
         errorView.configure(message: "", retry: { [weak self] in

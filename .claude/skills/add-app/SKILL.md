@@ -26,14 +26,15 @@ hasn't been initialized yet — run `/start` first."*
    configuration files are per app target, so the new spec needs its own
    `configFiles:` entry pointing at the repo-root `Secrets.xcconfig`. On a
    networked project its `Info.plist` also needs `APIBaseURL` = `$(API_BASE_URL)`;
-   skip that and the new app's composition root `preconditionFailure`s on first
+   skip that and `AppEnvironment` `preconditionFailure`s on the new app's first
    launch with the "missing from this target's `Info.plist`" message — which is
    worded for exactly this mistake, since app one works and only the new target
-   is unwired. On a `networking: none` project, neither the key nor the reader
-   exists — don't add either. If the app
+   is unwired — `AppEnvironment` itself is shared, so nothing else needs adding.
+   On a `networking: none` project neither the key nor the accessor exists — don't
+   add either. If the app
    needs a *different* base URL from app one, that's the point a per-app key
-   (`APP_TWO_API_BASE_URL`) or a real `AppEnvironment` type earns its place —
-   add the key to `Secrets.xcconfig.example` in the same change — `check_secrets.sh`
+   (`APP_TWO_API_BASE_URL`) plus its own accessor on the shared `AppEnvironment`
+   earns its place — add the key to `Secrets.xcconfig.example` in the same change — `check_secrets.sh`
    fails on a key that exists in one file and not the other, and a per-app URL
    still needs a scheme and a host to clear the launch guard.
 4. **Declare dependencies on the existing shared modules**, and generate the
@@ -47,7 +48,7 @@ hasn't been initialized yet — run `/start` first."*
    `AppCoordinator`, plus `Route`/`Router` for the SwiftUI combos. Everything else
    in `app-shell/` already exists in a shared module and must **not** be rendered
    again: `ColorTokens`/`Typography` live in `DesignSystem/Theme/`,
-   `LoadingView`/`ErrorView`/`EmptyStateView` in `DesignSystem/SharedViews/`,
+   `LoadingView`/`ErrorView`/`EmptyStateView` in `DesignSystem/Views/`,
    `RequestBuilder`/`APIClient` in `Networking/`, and `Debouncer` in `Core/`.
    Re-rendering any of them either declares the type twice or overwrites the copy
    the first app already depends on — the new app imports them instead.
@@ -67,7 +68,7 @@ hasn't been initialized yet — run `/start` first."*
    list — not copied verbatim, seeded (empty values where the new app's copy
    genuinely differs). Run `Scripts/generate_strings.sh <app>` afterward. The
    new app does **not** get copies of the shared module's views: shared views
-   stay in `DesignSystem/SharedViews/` and both apps consume them, with visual
+   stay in `DesignSystem/Views/` and both apps consume them, with visual
    differences going through the theme override layer (`docs/ai/ui_rules.md`).
 7. **Add the project to the workspace** and regenerate; re-run
    `Scripts/generate_workspace.sh`.

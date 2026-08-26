@@ -161,7 +161,7 @@ Carried over honestly rather than hidden:
   this gap shows up; the composition root's launch-time guard still catches it.
 - Generated `.xcodeproj`/`.xcworkspace` files are **committed**, not
   gitignored (see `docs/ONBOARDING.md`).
-- Shared views (`DesignSystem/SharedViews/`) are mandatory by convention with
+- Shared views (`DesignSystem/Views/`) are mandatory by convention with
   nothing enforcing them — nothing detects a feature that reimplements a
   component the shared folder already has, the way `check_hardcoded_colors.sh`
   detects a raw color.

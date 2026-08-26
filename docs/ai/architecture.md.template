@@ -164,16 +164,16 @@ Consumer  →  <Feature>Repository / Worker / Service
 ## Shared states
 
 Every list/detail screen consumes `LoadingView`, `ErrorView` (message + optional
-retry), and `EmptyStateView` from `DesignSystem/SharedViews/` — never a
+retry), and `EmptyStateView` from `DesignSystem/Views/` — never a
 per-feature reimplementation (§3.6). This holds for **both** UI frameworks: the
 SwiftUI combos get SwiftUI views, the UIKit combos (VIP+UIKit, MVC+UIKit) get
 `UIView` subclasses with the same names in the same folder, and a ViewController
 adds one as a subview instead of building a spinner and an error label inline.
 
 The general rule, of which those three are the first instance: **a view used by
-more than one screen belongs in `DesignSystem/SharedViews/`.** When a new screen
+more than one screen belongs in `DesignSystem/Views/`.** When a new screen
 needs a component another screen already has — a styled button, a labelled row, a
-card — consume the shared one, or promote the existing one into `SharedViews/`
+card — consume the shared one, or promote the existing one into `DesignSystem/Views/`
 and have both screens use it. Never copy it into a feature folder. From T2 onward
 these live in the shared module and are `public`; per-app visual differences go
 through the theme override layer, never a forked copy of the view.
@@ -182,6 +182,15 @@ This is deliberately stronger than "don't abstract on speculation," and doesn't
 contradict it: that rule is about inventing a protocol before a second conformance
 exists, whereas a second screen rendering the same component *is* the second use
 case, already arrived.
+
+Its counterpart, for a view **one** screen uses: it stays with that screen, and
+moves up only when it earns it — a `private` view type at the bottom of the
+screen's own file (the default), then its own file in the same feature folder
+(`Features/Home/HomeHeaderView.swift`) once it owns state or handles its own
+loading/error, then its own child-screen folder beside the parent's layer files
+(`Features/Home/Detail/`, via `/new-feature Home/Detail`) once it is really a
+second screen. Layer-named subfolders inside a screen's folder are banned at any
+depth. See `docs/ai/ui_rules.md`.
 
 ## Icons and images
 

@@ -33,18 +33,18 @@ Shipped as-is — applies regardless of chosen architecture or UI framework.
 ## Shared views
 
 Every list/detail screen uses `LoadingView`, `ErrorView` (with retry), and
-`EmptyStateView` from the shared module's `SharedViews/` — never a re-implemented
+`EmptyStateView` from the shared module's `DesignSystem/Views/` folder — never a re-implemented
 spinner or "no results" label (§3.6). UIKit screens use `UIView` subclasses of the
 same names from the same folder — same rule, same location, different concrete
 type.
 
 Those three are the first instance of a general rule, not a special case:
 
-- **A view used by more than one screen belongs in `SharedViews/`.** Buttons with
+- **A view used by more than one screen belongs in `DesignSystem/Views/`.** Buttons with
   the app's styling, labelled rows, card containers, section headers, badges — if
   a second screen needs it, it is shared, in SwiftUI and UIKit alike.
 - **Promote, don't copy.** When a new screen needs something an existing screen
-  already has, move that view into `SharedViews/` and have both consume it. A
+  already has, move that view into `DesignSystem/Views/` and have both consume it. A
   near-identical view in two feature folders is the failure this prevents, and it
   is the normal way a design system stops being one.
 - **Parameterize with the theme, not with a fork.** A shared view that needs to
@@ -55,6 +55,29 @@ Those three are the first instance of a general rule, not a special case:
   component with one preview of one state is how the other states rot.
 
 Nothing enforces this mechanically (unlike colors) — it's a review gate.
+
+## Feature-scoped views
+
+The shared-view rule above has an exact counterpart: **a view used by exactly one
+screen stays with that screen.** It moves up through three shapes, and only when
+it earns the move:
+
+1. **A `private` view type in the screen's own file.** A header, a row, a footer,
+   a small styled container — it lives at the bottom of `HomeView.swift`, or of the
+   screen's `UIViewController` file in UIKit as a `private` `UIView` subclass. This is
+   the default and most subviews never leave it. One file per subview is how a
+   feature folder grows to fifteen files without becoming clearer.
+2. **Its own file in the same feature folder** — `Features/Home/HomeHeaderView.swift`
+   — once it stops being a small presentation helper: it owns state, it handles
+   its own loading/error, or a second file inside the feature needs it.
+3. **Its own child-screen folder beside the parent's layer files** —
+   `Features/Home/Detail/`, generated with `/new-feature Home/Detail` — once it is
+   really a second *screen* rather than a component: its own data source, its own
+   navigation entry, its own tests. Layer-named subfolders (`Views/`, `Domain/`)
+   inside a screen's folder stay banned at any depth.
+
+The moment a **second screen** needs it, none of the three apply — it moves to
+`DesignSystem/Views/` per the rule above, which outranks all of this.
 
 ## Icons and images
 

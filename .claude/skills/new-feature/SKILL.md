@@ -158,11 +158,19 @@ the project's config selects, it generates:
   that module's `L10n.swift` — never a hardcoded string literal. Only the
   source language is written; use `/translate` for the rest.
 - **Shared views, not new ones.** The generated screen consumes `LoadingView`,
-  `ErrorView` and `EmptyStateView` from `DesignSystem/SharedViews/` — SwiftUI
+  `ErrorView` and `EmptyStateView` from `DesignSystem/Views/` — SwiftUI
   views for the SwiftUI combos, `UIView` subclasses for the UIKit ones. If the
   screen needs a component another screen already has, consume it or promote it
-  into `SharedViews/`; never copy a view into the feature folder
+  into `DesignSystem/Views/`; never copy a view into the feature folder
   (`docs/ai/ui_rules.md`).
+- **Subviews stay in the screen's file.** A subview only this screen uses is a
+  `private` view type in the generated screen file — not a file of its own, and
+  never a `Views/` subfolder inside the feature. It graduates to its own file in
+  the same feature folder once it owns state or its own loading/error, and to its
+  own child-screen folder (`/new-feature Home/Detail`) once it is really a second
+  screen (`docs/ai/ui_rules.md`). A grouped path whose parent already holds a
+  screen is valid: `Features/Home/` may carry `HomeView.swift` and a `Detail/`
+  child folder side by side.
 - **Documented code, with nothing about the template in it.** Every generated
   type, protocol, property and function carries a `///` doc comment saying what
   it is or does. No generated file mentions the template, a `.template`

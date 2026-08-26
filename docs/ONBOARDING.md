@@ -184,12 +184,16 @@ environment) and when there is no `API_BASE_URL` to check (an offline project).
 must not be committed; `Secrets.xcconfig.example` (committed) is the record of
 which keys exist, and adding a key to one without the other is what breaks CI
 and new machines. The app target's build configurations include the former, and
-`API_BASE_URL` reaches the app through `Info.plist` — the composition root
-reads it and passes the `URL` into `RequestBuilder`. A `Service` never holds a
+`API_BASE_URL` reaches the app through `Info.plist` — `AppEnvironment` reads it
+and the composition root passes the `URL` into `RequestBuilder`. A `Service` never holds a
 literal URL. Anything compiled into the binary is extractable from the IPA, so
 genuinely sensitive material stays server-side.
 
-Add further keys with **`/add-secret KEY=value`** rather than by hand: it writes
+Every key is read in one place: `AppEnvironment`, in the shared Core module.
+Nothing else in the app touches `Bundle.main` for configuration — the composition
+root asks `AppEnvironment.current.apiBaseURL` and hands the result to
+`RequestBuilder`. Add further keys with **`/add-secret KEY=value`** rather than by
+hand: it writes
 both files, adds the `$(KEY)` entry to each app target's `Info.plist` (without
 which Swift cannot see the value at all), and exposes it as a typed accessor on
 `AppEnvironment` in the shared module — the one place the app reads
@@ -322,5 +326,5 @@ see `.gitignore`, which `/start` copies in with those entries already present.
   convention — these are documented gaps, not oversights. See the template
   repo's own `README.md` for the full list.
 - Shared views are a review gate, not a tooled one: nothing detects a feature
-  that quietly reimplements a component `DesignSystem/SharedViews/` already has,
+  that quietly reimplements a component `DesignSystem/Views/` already has,
   the way `check_hardcoded_colors.sh` detects a raw color.

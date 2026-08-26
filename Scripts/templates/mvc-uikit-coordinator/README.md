@@ -72,7 +72,7 @@ Shared, unmodified from `mvvm-swiftui-navigationstack/app-shell/`:
 
 `LoadingView`/`ErrorView`/`EmptyStateView` exist here too, as `UIView`
 subclasses rather than the SwiftUI versions — same names, same
-`DesignSystem/SharedViews/` destination, same rule that no feature reimplements
+`DesignSystem/Views/` destination, same rule that no feature reimplements
 them (§3.6). Not copied: `Route`/`Router`/`App.swift.template`, since this
 combo's navigation root is `UINavigationController`, not a SwiftUI
 `NavigationStack`.
