@@ -108,7 +108,7 @@ rest.
 | 1 | Project topology & modularization, and how many apps now/within a year | T1 single `.xcodeproj` / T2 `.xcodeproj` + local Swift packages / T3 `.xcworkspace` + N projects | T2 for one app; T3 the moment a second app, extension, or separately-versioned SDK is on the roadmap |
 | 2 | Language | Swift only — fixed, not asked (Objective-C interop was considered and dropped; nothing here scaffolds it) | Swift-only |
 | 3 | UI framework | SwiftUI / UIKit / Hybrid | SwiftUI |
-| 4 | Persistence | SwiftData / Core Data / None | SwiftData |
+| 4 | Persistence | SwiftData / Core Data / None (no on-device copy) | SwiftData |
 
 | 5 | Architecture pattern | MVVM / MVC / VIP (Clean Swift) / VIPER / MV (SwiftUI-native) | MVVM |
 | 6 | Navigation | `UINavigationController` + Coordinator / SwiftUI `NavigationStack` + Router | Coordinator if any UIKit; either for SwiftUI-only |
@@ -119,12 +119,25 @@ rest.
 | 11 | Project generation tooling | XcodeGen / Tuist | XcodeGen at T1/T2; Tuist at T3 if the team will adopt it |
 | 12 | Per-app identity | display name, bundle ID, org/team ID (T3 multi-app: ask once per app, plus the shared bundle-ID prefix) | no default — must ask |
 
-Q4 is not a note in the config — it changes generated code. `None` gives every
-feature a remote-only data layer, exactly as before. `SwiftData`/`Core Data`
-additionally gives each feature a `<Feature>LocalStore` alongside its remote
-dependency and renders one `PersistenceController` for the app (§1.7a). Say this
-when asking, because it's the one answer that's cheap now and a per-feature edit
-later.
+Q4 is not a note in the config — it changes generated code. It is **not** an
+online-vs-offline choice: the app talks to a remote service either way (that's
+Q7). Q4 only decides whether a feature also keeps a copy on the device. Frame it
+that way, and never describe either answer as "an offline app":
+
+- **`SwiftData` / `Core Data`** — the remote service stays; each feature
+  additionally gets a `<Feature>LocalStore` next to its remote dependency, and
+  the app gets one `PersistenceController` (§1.7a). That local copy is what
+  powers offline reads, caching and fast cold starts — a connected app that
+  degrades gracefully, not a disconnected one. SwiftData generates the
+  `LocalStore` bodies end to end; Core Data wires the seam but leaves the bodies
+  as `TODO(agent)` and needs a `.xcdatamodeld` added by hand.
+- **`None`** — no local copy: every feature reads straight from the network
+  every time, so a screen has nothing to show when the connection drops. No
+  `LocalStore` anywhere, no `PersistenceController`. (If networking is also
+  `None`, features have no data layer at all — see §1.3.)
+
+Say this when asking, because it's the one answer that's cheap now and a
+per-feature edit later.
 
 Answer Q1 **honestly, not aspirationally** — "one app, but we might extract an
 SDK someday" is T2. Choosing T3 for one app with nothing concrete on the
