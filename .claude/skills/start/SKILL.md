@@ -73,7 +73,7 @@ Then follow the same steps below, but:
   of the four fully-templated combos (§1.7's table), say so plainly during
   this confirmation — don't let it surface for the first time only when
   `/new-feature` falls back mid-run.
-- Before wiring `.githooks/pre-commit`/`commit-msg` (§1.6), run
+- Before wiring `.githooks/pre-commit` (§1.6), run
   `Scripts/lint.sh`, `check_hardcoded_colors.sh`, `check_strings.sh`, and
   `check_secrets.sh` once against the adopted codebase as a dry run. If any fail, report the failures
   and ask whether to fix them first or wire the hooks in report-only mode
@@ -294,9 +294,10 @@ passes by design on an offline project, where `API_BASE_URL` was stripped.
   silently do — to detach it from the template's own git history/remote
   (`rm -rf .git && git init`, or an orphan-branch approach) so the new app
   starts with clean history.
-- Wire the hooks: `git config core.hooksPath .githooks` (covers both
-  `pre-commit` and `commit-msg` — the latter mechanically checks
-  `docs/GIT_CONVENTIONS.md`'s message format, §7/§10).
+- Wire the hook: `git config core.hooksPath .githooks` (`pre-commit`).
+  `docs/GIT_CONVENTIONS.md` ships as a suggested starting point only — commit
+  message format is the team's call, not this template's, and nothing checks
+  it (§7/§10).
 
 ### 1.7 Materialize the folder tree
 

@@ -876,7 +876,7 @@ html { scroll-behavior: smooth; }
       <div class="stat"><b>7</b><span>Helper scripts</span></div>
       <div class="stat"><b>4</b><span>Ready-made combos</span></div>
       <div class="stat"><b>3</b><span>Project shapes</span></div>
-      <div class="stat"><b>2</b><span>Commit-time hooks</span></div>
+      <div class="stat"><b>1</b><span>Commit-time hook</span></div>
     </div>
   </header>
 
@@ -1082,7 +1082,7 @@ html { scroll-behavior: smooth; }
         <li><b>An app that builds and runs on the first try</b> — one working screen that already handles the three states every real screen needs (loading, failed, nothing to show), the code that talks to a server, named colours and fonts, translation files, and one test that already passes. The exception: if you tell setup your app has no server, one piece is deliberately left for you, and its test ships failing on purpose so you can't forget it.</li>
         <li><b>Files the assistant loads by itself</b>, so you never start a session by re-explaining the project — see <a href="#knowledge-base" style="color:var(--accent)">03</a>.</li>
         <li><b>Nine commands</b> for the jobs you'll do over and over: add a screen, an image, a permission, a colour, a language, a module.</li>
-        <li><b>Automatic checks when you commit</b> — colours typed in by hand, translations that have drifted out of sync, style problems, and badly formatted commit messages.</li>
+        <li><b>Automatic checks when you commit</b> — colours typed in by hand, translations that have drifted out of sync, and style problems.</li>
       </ul>
 
       <div class="note">
@@ -1386,7 +1386,7 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
             <tr><th class="mono">ios-skeleton.config.json</th><td><code>/start</code></td><td>All eleven answers in a form scripts can read. It's how a command works out "which module, which app" without asking you again</td></tr>
             <tr><th class="mono">docs/ai/architecture.md</th><td>generated</td><td>The one pattern you chose, and nothing else — so features don't drift into different shapes</td></tr>
             <tr><th class="mono">docs/ai/modularization.md</th><td>generated</td><td>Your project shape, which modules exist and which may depend on which, and which module owns text, images and colours</td></tr>
-            <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>copied as-is</td><td>Colours and fonts only through <code>Theme/</code>; every screen must ship a preview; no user-facing text typed straight into a screen; a framework must never look in <code>Bundle.main</code>; real accessibility labels; no permission without an explanation string; when a force-unwrap is allowed; commit message format. Plus the four Swift-level calls below</td></tr>
+            <tr><th class="mono">docs/ai/*_rules.md<br>docs/CODING_STANDARDS.md<br>docs/GIT_CONVENTIONS.md</th><td>copied as-is</td><td>Colours and fonts only through <code>Theme/</code>; every screen must ship a preview; no user-facing text typed straight into a screen; a framework must never look in <code>Bundle.main</code>; real accessibility labels; no permission without an explanation string; when a force-unwrap is allowed; a suggested commit style your team is free to replace. Plus the four Swift-level calls below</td></tr>
             <tr><th class="mono">docs/PROJECT_MAP.md</th><td>seeded, then added to</td><td>The things convention can't cover: which modules exist and who uses them, which languages ship, which combinations are ready-made</td></tr>
             <tr><th class="mono">docs/product/</th><td>yours</td><td><b>Requirements, specs, API contracts — the one folder nothing here generates, rewrites or overwrites.</b> Living documents: <code>CLAUDE.md</code> points at them and never summarises them, and <code>/new-feature</code> re-reads the relevant one every time rather than inventing field names and types</td></tr>
             <tr><th class="mono">Secrets.xcconfig<br>Secrets.xcconfig.example</th><td><code>/start</code></td><td>Everything that differs between environments. The <code>.example</code> is committed and is the record of which settings exist; the real file is ignored by git, and the <code>.gitignore</code> already has that line in it</td></tr>
@@ -1910,18 +1910,18 @@ claude mcp list   <span class="c"># check it worked</span></pre>
         <div class="plain-label">In plain terms</div>
         <p>
           Some rules aren't left to memory or review — they run automatically when you commit, and stop
-          the commit if something's wrong. Four things get blocked, and then the tests that relate to what
+          the commit if something's wrong. Three things get blocked, and then the tests that relate to what
           you changed get run.
         </p>
         <p>
-          The reason to automate exactly these four is that they're the ones that fail <i>quietly</i>. A
+          The reason to automate exactly these three is that they're the ones that fail <i>quietly</i>. A
           colour typed in by hand looks fine until dark mode; a missing translation looks fine until a
           user in that language opens the app.
         </p>
       </div>
 
       <p>
-        Two git hooks — checks that run automatically at commit time — block four things:
+        One git hook — a set of checks that runs automatically at commit time — blocks three things:
       </p>
 
       <div class="tw">
@@ -1931,7 +1931,6 @@ claude mcp list   <span class="c"># check it worked</span></pre>
             <tr><th class="mono">hardcoded colours</th><td><code>UIColor(red:</code>, <code>Color(red:</code>, <code>(hex:</code> and six-digit hex values in any Swift file you're committing that isn't inside a <code>Theme/</code> folder</td></tr>
             <tr><th class="mono">translation consistency</th><td>Text that exists in the main language but is missing from another, checked per module — plus the same key defined in two different modules</td></tr>
             <tr><th class="mono">swiftlint --strict</th><td>One style config for the whole project, at every size. <code>try!</code> is an error; a stray <code>print(</code> or text typed straight into a <code>*View.swift</code> is a warning</td></tr>
-            <tr><th class="mono">commit message format</th><td>Anything other than <code>PROJ-123 feat: summary</code> — the ticket prefix is optional, the type is required and must be one of feat, fix, refactor, test, docs, chore. Merge commits are exempt</td></tr>
           </tbody>
         </table>
       </div>
@@ -2048,7 +2047,10 @@ claude mcp list   <span class="c"># check it worked</span></pre>
         </div>
         <div class="limit">
           <h4>Deliberately left out</h4>
-          No <span class="term" tabindex="0" data-def="Continuous integration: a server that builds your app and runs its tests automatically on every push.">CI</span> pipeline, no paging in the base data contract, no image-caching library. Generated project
+          <b>No commit-message enforcement.</b> <code>docs/GIT_CONVENTIONS.md</code> suggests a format,
+          but nothing checks it — commit conventions differ from team to team and from client to client,
+          so that's your project's call to make, not this kit's. Add your own <code>commit-msg</code> hook
+          if you want it enforced. Also no <span class="term" tabindex="0" data-def="Continuous integration: a server that builds your app and runs its tests automatically on every push.">CI</span> pipeline, no paging in the base data contract, and no image-caching library. Generated project
           files are committed, so a fresh clone opens in Xcode without needing XcodeGen installed — at the
           cost of a noisy project-file diff each time it's regenerated.
         </div>
