@@ -47,7 +47,7 @@ Scripts/           — lint, string/color/secrets enforcement, codegen (incl. th
 docs/              — this template's own docs + the .template sources /start renders
 docs/product/      — the domain slot: your PRD/SRS/API contracts land here later
 .swiftlint.yml      — one root lint config, every tier
-.githooks/{pre-commit,commit-msg}
+.githooks/pre-commit
 .gitignore          — the always-ignore list (incl. Secrets.xcconfig); copied in
                       by /start so the secrets rule has something enforcing it
 CLAUDE.md.template  — renders into a real project's CLAUDE.md
@@ -178,7 +178,9 @@ truth instead of two — with a migration script and a check that fails a module
 carrying both formats; persistence now actually generates a local
 data layer instead of being recorded and discarded, `Core/Logging/Log.swift` now
 exists so the no-`print()` rule has a referent, Objective-C support dropped entirely,
-`/translate` Skill added, commit-msg format now hook-enforced, DI-container
+`/translate` Skill added, commit-message format deliberately left unenforced
+(the `commit-msg` hook was added, then removed — message conventions are the
+team's call, not the template's), DI-container
 upgrade path documented, secrets handling now ships a real `Secrets.xcconfig`
 seam and `.gitignore` rather than only a doc line about one, `docs/PROJECT_MAP.md` now seeded by `/start` instead of
 first appearing when another Skill appends to it, every Skill now declares its own model tier in frontmatter) — see the build spec's §10 for
