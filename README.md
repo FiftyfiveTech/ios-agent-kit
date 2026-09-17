@@ -10,26 +10,76 @@ those all belong to a real project generated *from* this template, via `/start`.
 
 ## Quick start
 
-`/start` takes an optional target path and copies its own files in — no
-manual `cp -r`:
+Clone it, run one command, answer the questions, build. You never create anything
+in Xcode by hand — `/start` generates the project for you.
+
+**1. Install the tools** (once per machine)
 
 ```bash
-# No path — clone the template as a new project's root, then run /start inside it
-git clone <template-repo-url> MyNewApp && cd MyNewApp
-/start
-
-# A path — run from anywhere; /start inspects the target and picks the right scenario
-/start MyNewApp             # missing or empty → fresh start
-/start ~/Code/ExistingApp   # a mature single .xcodeproj → adoption, never overwrites what's there
-/start ~/Code/Workspace     # an existing .xcworkspace + N projects → adoption
+brew install xcodegen swiftlint jq     # tuist instead of xcodegen if you prefer it
 ```
 
-`/start` asks a one-time Setup Questionnaire (topology, language, UI framework,
-persistence, architecture, navigation, networking, minimum iOS version, DI
-style, testing framework, tooling, per-app identity), validates the answers,
-then generates a real, compiling app via XcodeGen/Tuist — **no manual Xcode
-step, ever**. It's idempotent: re-running it on an initialized project shows
-what's already recorded and never silently regenerates or deletes anything.
+You also need Xcode 16 or newer, and Claude Code (or another agent that reads
+`.claude/skills/`).
+
+**2. Get the template**
+
+```bash
+git clone <template-repo-url> ios-ai-skeleton && cd ios-ai-skeleton
+```
+
+**3. Run `/start`, and give it a path**
+
+```bash
+/start ~/Code/MyNewApp      # folder missing or empty → fresh start
+/start ~/Code/ExistingApp   # an app that already exists → adoption, nothing of yours overwritten
+/start ~/Code/Workspace     # an .xcworkspace + several projects → adoption
+```
+
+`/start` copies its own files into that folder and scaffolds there — you never
+`cp -r` anything, and it works out which of the three situations it's in on its
+own.
+
+**Pass the path unless you meant to convert this checkout.** With no argument,
+`/start` scaffolds into the current directory, so running it inside your clone of
+the template turns the template checkout itself into the app and leaves your
+project sharing the kit's git history. That's a real, supported way to start —
+clone the template *as* the new project's root and it's exactly right — but it's
+not what you want from a clone you keep around to start several projects from.
+`/start` asks you to confirm the target before writing anything when it looks like
+the second case.
+
+**4. Answer the eleven setup questions**
+
+`/start` always shows you the whole list — topology, UI framework, persistence,
+architecture, navigation, networking, minimum iOS version, DI, testing framework,
+tooling, app identity — with a recommended default beside each one. Reply **"use
+the recommended defaults"** to accept all of them in a single answer; the only
+thing you have to supply yourself is the app's display name and bundle ID. Your
+answers go into `ios-skeleton.config.json`, which every other command reads from
+then on, so you never repeat them.
+
+`/start` then generates a real, compiling app via XcodeGen/Tuist — **no manual
+Xcode step, ever** — with one starter feature and a test that passes.
+
+**5. Fill in `Secrets.xcconfig`**
+
+`/start` created it for you and it's gitignored. Set `API_BASE_URL` — the one key
+name the template itself reads, in `AppEnvironment`, in the `Info.plist` entry and
+in `Scripts/check_secrets.sh` — and write the URL as `https:/$()/host`, **not**
+`https://host`, because `//` starts a comment in an xcconfig file and the plain
+form silently truncates to `https:`. The staging URL already sitting there, and
+the commented-out `API_KEY` line under it, are examples showing the shape a key
+takes — not values or key names your project has to keep. Add your own with
+`/add-secret KEY=value`. Then run `Scripts/check_secrets.sh` to confirm.
+
+**6. Open the project and hit Run**
+
+Then: `/new-feature <Name>` for each new screen, `/status` to see where the
+project stands, `/add-secret KEY=value` for the next key.
+
+Re-running `/start` later is safe — it shows what's already recorded and never
+silently regenerates or deletes anything.
 
 Full walkthrough: [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 
@@ -183,7 +233,9 @@ exists so the no-`print()` rule has a referent, Objective-C support dropped enti
 team's call, not the template's), DI-container
 upgrade path documented, secrets handling now ships a real `Secrets.xcconfig`
 seam and `.gitignore` rather than only a doc line about one, `docs/PROJECT_MAP.md` now seeded by `/start` instead of
-first appearing when another Skill appends to it, every Skill now declares its own model tier in frontmatter) — see the build spec's §10 for
+first appearing when another Skill appends to it, every Skill now declares its own model tier in frontmatter,
+`/start` now always presents the whole Setup Questionnaire on a first run — preferences stated in the
+invocation pre-fill it rather than skipping it) — see the build spec's §10 for
 the full history.
 
 Full list: `docs/ONBOARDING.md` and the build spec this template was generated
