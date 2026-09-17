@@ -1155,16 +1155,23 @@ brew install <b>xcodegen</b> <b>jq</b> <b>swiftlint</b></pre>
         <div class="step">
           <div>
             <h3>Run <code>/start</code> in Claude Code</h3>
-            <p>Pick whichever of these two suits you — they end up in the same place.</p>
+            <p>Give it the folder your app should live in — that's the form to reach for.</p>
             <div class="panel">
-              <div class="panel-head"><span>Terminal — Claude Code</span><span>pick one</span></div>
-<pre><span class="c"># A: clone the kit and use it as the project, then run /start inside</span>
-git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
-<b>/start</b>
+              <div class="panel-head"><span>Terminal — Claude Code</span><span>recommended first</span></div>
+<pre><span class="c"># point it at where the app should go — it creates and fills the folder for you</span>
+<b>/start ~/Code/MyNewApp</b>
 
-<span class="c"># B: give it a folder name — it creates and fills the folder for you</span>
-<b>/start MyNewApp</b></pre>
+<span class="c"># or: clone the kit and use that clone as the project itself</span>
+git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
+<b>/start</b></pre>
             </div>
+            <p style="margin-top:10px">
+              Both work, but they don't end up in the same place. Given no folder, <code>/start</code>
+              builds the app <em>where you're standing</em> — right if you cloned the kit to be this
+              project, wrong if you cloned it to keep and start several projects from, because that copy
+              then becomes the app and carries the kit's own history with it. <code>/start</code> asks
+              you to confirm the folder before it writes anything when it can't tell which you meant.
+            </p>
             <p style="margin-top:10px">
               You don't copy any files yourself and you don't touch Xcode yet. Run this from the
               terminal — see <a href="#xcode" style="color:var(--accent)">07</a> if you'd rather drive an
@@ -1251,7 +1258,11 @@ git clone &lt;template-repo-url&gt; MyNewApp &amp;&amp; cd MyNewApp
               is committed to git and records <em>which</em> settings exist. <code>Secrets.xcconfig</code> is
               ignored by git and holds the real values. Put your server address in
               <code>API_BASE_URL</code> there — never in the Swift code, so that a public repo can't leak
-              it and each person can point at a different server.
+              it and each person can point at a different server. That name is the one the kit itself
+              reads; the address shown below is a placeholder, and the commented-out
+              <code>API_KEY</code> line in the example file is there to show the shape a second setting
+              takes, not a setting your project needs. Call your own settings whatever your project
+              calls them, and add them with <code>/add-secret</code>.
             </p>
             <div class="panel">
               <div class="panel-head"><span>Secrets.xcconfig</span><span>gitignored</span></div>
@@ -1639,6 +1650,19 @@ API_BASE_URL = https:/<b>$()</b>/api.staging.example.com</pre>
         for what it does (<code>FilmsRepository</code>) rather than for the pattern it belongs to
         (<code>FilmsInteractorProtocol</code>). There's also no extra <code>UseCase</code> layer between
         the view model and the repository — a file whose only job is to pass one call along is ceremony.
+      </p>
+
+      <p style="margin-top:14px">
+        <b>Screens that belong together live inside the parent's folder.</b> A contacts area isn't three
+        more folders at the top level: <code>/new-feature Contacts/AddContact</code> puts that screen at
+        <code>Features/Contacts/AddContact/</code> and its test in the matching place under the test
+        folder, and the same goes for <code>Contacts/Favorites</code> and
+        <code>Contacts/ContactDetails</code>. A parent keeps its own files while it gains children, so
+        <code>Contacts/</code> holds <code>ContactsView.swift</code> and the three child folders side by
+        side and nothing already written has to move. The one thing folders <em>don't</em> do is scope
+        names — the generated types, the navigation entry and the data types in <code>Models/</code> all
+        sit in one flat namespace — so give a child screen a name that's unique across the whole app:
+        <code>ContactDetails</code>, not <code>Details</code>.
       </p>
 
       <div class="note">

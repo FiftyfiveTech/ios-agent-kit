@@ -10,10 +10,11 @@ Claude Code against a real project.
 1. `brew install xcodegen swiftlint jq` (or `tuist` instead of `xcodegen`), plus
    Xcode 16 or newer.
 2. `git clone <template-repo-url> MyNewApp && cd MyNewApp`
-3. Run `/start` in Claude Code.
+3. Run `/start ~/Code/MyNewApp` in Claude Code — **give it a path**, or it
+   scaffolds into the folder you're standing in (see [`/start [path]`](#start-path)).
 4. Answer the eleven setup questions — or say **"use the recommended defaults"**
    and just give it an app name and bundle ID.
-5. Put your API base URL in `Secrets.xcconfig`, written as `https:/$()/host`
+5. Set `API_BASE_URL` in `Secrets.xcconfig`, written as `https:/$()/host`
    (see [Configuration and secrets](#configuration-and-secrets) — the plain form
    breaks).
 6. Open the generated `.xcodeproj`/`.xcworkspace` and hit Run.
@@ -24,18 +25,23 @@ out. The rest of this file is what to know once you're past them.
 ## `/start [path]`
 
 `/start` copies its own files in — there is no manual `cp -r` step. It takes one
-optional argument:
-
-- **No path** — the target is the current folder. Clone the template as the new
-  project's root, then run `/start` from inside it.
-- **A path** — run `/start <path>` from anywhere. It resolves the path, copies
-  the template's files in, and picks the right scenario from what it finds:
+optional path argument, and **passing one is the recommended way to run it**:
 
 ```bash
-/start MyNewApp             # missing or empty → fresh start
+/start ~/Code/MyNewApp      # missing or empty → fresh start
 /start ~/Code/ExistingApp   # an app that already exists → adoption
 /start ~/Code/Workspace     # an .xcworkspace + N projects → adoption
 ```
+
+It resolves the path from wherever you are, creates the folder if needed, copies
+the template's files in, and picks the right scenario from what it finds.
+
+**With no path, the target is the folder you're standing in.** That's a supported
+way to start — clone the template *as* the new project's root and run `/start`
+inside it — but run it inside a template checkout you meant to keep and you turn
+that checkout into the app, with the kit's git history attached. `/start` confirms
+the target with you before writing anything when it looks like that case, and
+offers to detach the template's history either way.
 
 **Adoption is not workspace-only.** One mature `.xcodeproj` with years of history
 and its own `CLAUDE.md`/`README.md` is exactly what it's for. `/start` detects the
@@ -124,6 +130,14 @@ all of them.
 not be committed. `Secrets.xcconfig.example` (committed) is the record of which
 keys exist — adding a key to one and not the other is what breaks CI and new
 machines.
+
+**`API_BASE_URL` is the one key name the template itself reads** — `AppEnvironment`
+resolves it, the app target's `Info.plist` carries `$(API_BASE_URL)`, and
+`check_secrets.sh` checks its scheme and host. Everything else in the shipped file
+is illustration: the staging URL is a placeholder value, and the commented-out
+`API_KEY` line is there to show the shape a second key takes, not a key your
+project needs. Name your own keys whatever your project calls them, and add them
+with `/add-secret`.
 
 **On a fresh clone of a project, copy `Secrets.xcconfig.example` to
 `Secrets.xcconfig` and fill it in before the first build.** A networked app

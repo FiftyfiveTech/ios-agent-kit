@@ -18,6 +18,17 @@ resolved from an optional `path` argument instead of requiring a manual
 - **No `path` given** — the target is the current directory. There's nothing
   to copy (either this is a direct clone of the template, or its files were
   already copied in by hand) — go straight to the config check below.
+  - **Confirm the target first when this looks like an un-renamed template
+    checkout** — `CLAUDE.md.template`, `Scripts/templates/`, the build spec and
+    the overview document all present, no `ios-skeleton.config.json`, and a
+    remote still pointing at the template repo. Scaffolding here is legitimate
+    (cloning the template *as* the new project's root is a supported start), but
+    it is indistinguishable from a developer standing in a kit checkout they
+    meant to keep, and the cost of getting it wrong is an app tangled up with the
+    template's own history and files. So state the resolved absolute path and ask
+    whether to scaffold here or into a subdirectory/sibling, **before writing
+    anything**. Recommend passing a path. Don't refuse, don't guess, and don't
+    ask when a path *was* given — the developer already answered.
 - **`path` given** — resolve it relative to the current directory, creating
   the directory if it doesn't exist yet. Then copy this template's `.claude/`,
   `Scripts/`, `docs/`, `.swiftlint.yml`, `.githooks/`, `.gitignore`,

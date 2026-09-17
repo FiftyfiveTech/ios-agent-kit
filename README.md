@@ -25,23 +25,29 @@ You also need Xcode 16 or newer, and Claude Code (or another agent that reads
 **2. Get the template**
 
 ```bash
-git clone <template-repo-url> MyNewApp && cd MyNewApp
+git clone <template-repo-url> ios-ai-skeleton && cd ios-ai-skeleton
 ```
 
-**3. Run `/start`**
-
-```
-/start
-```
-
-You can also point it at a folder from anywhere, and it works out which situation
-it's in on its own:
+**3. Run `/start`, and give it a path**
 
 ```bash
-/start MyNewApp             # folder missing or empty → fresh start
+/start ~/Code/MyNewApp      # folder missing or empty → fresh start
 /start ~/Code/ExistingApp   # an app that already exists → adoption, nothing of yours overwritten
 /start ~/Code/Workspace     # an .xcworkspace + several projects → adoption
 ```
+
+`/start` copies its own files into that folder and scaffolds there — you never
+`cp -r` anything, and it works out which of the three situations it's in on its
+own.
+
+**Pass the path unless you meant to convert this checkout.** With no argument,
+`/start` scaffolds into the current directory, so running it inside your clone of
+the template turns the template checkout itself into the app and leaves your
+project sharing the kit's git history. That's a real, supported way to start —
+clone the template *as* the new project's root and it's exactly right — but it's
+not what you want from a clone you keep around to start several projects from.
+`/start` asks you to confirm the target before writing anything when it looks like
+the second case.
 
 **4. Answer the eleven setup questions**
 
@@ -58,10 +64,14 @@ Xcode step, ever** — with one starter feature and a test that passes.
 
 **5. Fill in `Secrets.xcconfig`**
 
-`/start` created it for you and it's gitignored. Put your API base URL in it,
-written as `https:/$()/host` — **not** `https://host`, because `//` starts a
-comment in an xcconfig file and the plain form silently truncates to `https:`.
-Then run `Scripts/check_secrets.sh` to confirm.
+`/start` created it for you and it's gitignored. Set `API_BASE_URL` — the one key
+name the template itself reads, in `AppEnvironment`, in the `Info.plist` entry and
+in `Scripts/check_secrets.sh` — and write the URL as `https:/$()/host`, **not**
+`https://host`, because `//` starts a comment in an xcconfig file and the plain
+form silently truncates to `https:`. The staging URL already sitting there, and
+the commented-out `API_KEY` line under it, are examples showing the shape a key
+takes — not values or key names your project has to keep. Add your own with
+`/add-secret KEY=value`. Then run `Scripts/check_secrets.sh` to confirm.
 
 **6. Open the project and hit Run**
 

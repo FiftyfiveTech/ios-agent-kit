@@ -92,12 +92,32 @@ placement.
 > actually landed before reporting the feature done.
 
 **2. Grouping — ask whenever the feature could nest.**
-Default is flat: `<module>/Features/<Name>/`. Ask when the request mentions a
-section, flow or tab (*"under settings"*, *"part of onboarding"*), or when the
-resolved module's feature directory already contains group folders — offer the
-specific choice (`Features/Profile/` vs `Features/Account/Profile/`) rather than
-an open question. Nesting affects the folder path and the mirrored test path,
-nothing else.
+Default is flat: `<module>/Features/<Name>/`. Offer the concrete choice
+(`Features/Profile/` vs `Features/Account/Profile/`) rather than an open question,
+and **propose nesting** whenever any of these holds:
+
+- the request mentions a section, flow or tab — *"under settings"*, *"part of
+  onboarding"*;
+- the resolved module's feature directory already contains group folders;
+- **a feature already exists that the new one plainly belongs to.**
+  `Features/Contacts/` is there and the request is `AddContact`, `Favorites` or
+  `ContactDetails` — propose `Features/Contacts/AddContact/`, not a fourth folder
+  at the top level. A screen folder may be a leaf and a group at once (§3.2), so
+  `Contacts/` keeps its own `ContactsView.swift` and gains child folders beside
+  it; nothing that already exists has to move;
+- the request names several screens of one area at once — propose the parent
+  folder once, then generate each child into it.
+
+Pass the nested path straight through — `Scripts/new_feature.sh
+Contacts/AddContact "…"` creates `Features/Contacts/AddContact/` and the mirrored
+`<Module>Tests/Features/Contacts/AddContact/`, identically for all four templated
+architectures.
+
+**Nesting is directories only.** Generated type names, the `Route`/factory
+registration and the `Models/<Name>Models.swift` entry all sit in one flat
+namespace that the folder path does not scope. Name a child screen uniquely
+app-wide — `ContactDetails`, not `Details` — or its models file collides with
+another area's.
 
 **3. Fields — ask unless given as explicit `field:Type` pairs, or specified in
 `docs/product/`.**
