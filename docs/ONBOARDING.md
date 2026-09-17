@@ -1,218 +1,167 @@
 # Onboarding — using this template
 
-This repo is a **template**, not an app. It contains Skills, scripts, doc
-templates, and lint config — no Xcode project, no architecture decision, no
-`ios-skeleton.config.json`. Those are all Phase B, produced by running `/start`
-inside Claude Code against a real project.
+This repo is a **template**, not an app. It holds Skills, scripts, doc templates
+and lint config — no Xcode project, no architecture decision, no
+`ios-skeleton.config.json`. All of that appears when you run `/start` inside
+Claude Code against a real project.
 
-## Starting a real project from this template
+## Start here
 
-`/start` takes one optional argument, a target path, and does its own file
-copying — there's no manual `cp -r` step:
+1. `brew install xcodegen swiftlint jq` (or `tuist` instead of `xcodegen`), plus
+   Xcode 16 or newer.
+2. `git clone <template-repo-url> MyNewApp && cd MyNewApp`
+3. Run `/start` in Claude Code.
+4. Answer the eleven setup questions — or say **"use the recommended defaults"**
+   and just give it an app name and bundle ID.
+5. Put your API base URL in `Secrets.xcconfig`, written as `https:/$()/host`
+   (see [Configuration and secrets](#configuration-and-secrets) — the plain form
+   breaks).
+6. Open the generated `.xcodeproj`/`.xcworkspace` and hit Run.
+
+The template's own `README.md` has the same six steps with the commands spelled
+out. The rest of this file is what to know once you're past them.
+
+## `/start [path]`
+
+`/start` copies its own files in — there is no manual `cp -r` step. It takes one
+optional argument:
+
+- **No path** — the target is the current folder. Clone the template as the new
+  project's root, then run `/start` from inside it.
+- **A path** — run `/start <path>` from anywhere. It resolves the path, copies
+  the template's files in, and picks the right scenario from what it finds:
 
 ```bash
-/start [path]
+/start MyNewApp             # missing or empty → fresh start
+/start ~/Code/ExistingApp   # an app that already exists → adoption
+/start ~/Code/Workspace     # an .xcworkspace + N projects → adoption
 ```
 
-- **No path** — clone the template as the new project's root, then run
-  `/start` from inside it:
-  ```bash
-  git clone <template-repo-url> MyNewApp && cd MyNewApp
-  /start
-  ```
-- **A path** — run `/start <path>` from anywhere (e.g. from inside this
-  template repo), and it resolves the path, copies its own files in, and
-  scaffolds from there. It inspects what's at that path and picks the right
-  scenario automatically:
-  ```bash
-  /start MyNewApp             # missing or empty → fresh start
-  /start ~/Code/ExistingApp   # a mature single .xcodeproj → adoption
-  /start ~/Code/Workspace     # an existing .xcworkspace + N projects → adoption
-  ```
-  Adoption detects the existing `.xcodeproj`(s)/`.xcworkspace`, infers the
-  topology tier from what's there (a bare project vs. one with local packages
-  vs. a workspace), records it, and generates only what's missing — it never
-  rewrites a hand-maintained project, and the copy step never overwrites a
-  file already at the destination (so an adopted project's own `CLAUDE.md`,
-  `README.md`, and `docs/` are safe).
+**Adoption is not workspace-only.** One mature `.xcodeproj` with years of history
+and its own `CLAUDE.md`/`README.md` is exactly what it's for. `/start` detects the
+existing project(s), infers the topology tier, and generates only what's missing.
+It never rewrites a hand-maintained project, and never overwrites a file already
+at the destination — your `CLAUDE.md`, `README.md` and `docs/` are safe.
 
-## Which model runs which Skill
+## What `/start` does
 
-Each `SKILL.md` declares its model in frontmatter, so you don't have to remember
-to switch:
+It always asks the Setup Questionnaire first — topology, UI framework,
+persistence, architecture, navigation, networking, minimum iOS version, DI,
+testing framework, tooling, app identity — with a recommended default shown
+beside every question. It checks the answers as a set (some combinations
+contradict each other), then generates a real, compiling app via XcodeGen/Tuist.
+**There is no manual Xcode step, ever.**
 
-- **Pinned to `model: opus`, `effort: high`** — `/start`, `/new-feature`,
-  `/add-module`, `/add-app`. Irreversible or cross-cutting work; `/start` in
-  particular writes the config every other Skill reads. A pinned model replaces
-  your session model for that run, so `/model sonnet` then `/start` still runs
-  on Opus. That's deliberate.
-- **`model: inherit`** — `/add-assets`, `/update-app-icon`, `/add-permission`,
-  `/update-theme`, `/status`, `/translate`, `/add-secret`. These follow whatever
-  `/model` is set to, so you pick per session.
+It then renders your project's real `CLAUDE.md`, `docs/ai/architecture.md` and
+`docs/ai/modularization.md` with those decisions locked in, and drops
+`Core/Logging/Log.swift` in (the thing the no-`print()` rule points at), plus
+`Core/Persistence/PersistenceController.swift` unless persistence is `None`.
 
-To change either group, edit the frontmatter in your project's own
-`.claude/skills/<name>/SKILL.md` — `/start` copied those files in, and nothing
-else reads the keys. There is no per-invocation flag. A project scaffolded
-before these keys existed won't gain them on a `/start` re-run: the copy is
-merge-only and leaves an existing `SKILL.md` alone, so add them by hand.
+`/start` is **idempotent**. Re-running it on an initialized project shows the
+recorded answers, recreates anything missing, and never silently regenerates or
+deletes what's already built. It refuses to change topology or architecture as a
+side effect of a re-run — those are deliberate migrations, not answer edits.
 
-## What `/start` actually does
-
-Asks a one-time, batched Setup Questionnaire (topology, language, UI framework,
-persistence, architecture pattern, navigation, networking, minimum iOS version,
-DI style, testing framework, tooling, and per-app identity), validates the
-combination, then generates a real, compiling app from scratch via
-XcodeGen/Tuist — **no manual Xcode step, ever**. It also renders this
-template's `.template` doc files into the new project's real
-`CLAUDE.md`/`docs/ai/architecture.md`/`docs/ai/modularization.md`, with the
-chosen decisions locked in and every placeholder resolved.
-
-Two files land in `Core` on the way through, regardless of the architecture
-combo: `Logging/Log.swift` always (a `Logging` protocol over `OSLog` — the thing
-`docs/CODING_STANDARDS.md`'s no-`print()` rule and SwiftLint's
-`no_print_statements` actually point at), and `Persistence/PersistenceController.swift`
-only when the persistence answer isn't `None`.
-
-`/start` is **idempotent** — re-running it on an already-initialized project
-shows the recorded answers first, never silently regenerates or deletes
-anything already built, and refuses to apply a topology or architecture change
-as a side effect of a re-run (that's a deliberate migration, not an answer
-edit — see the cost table below).
+Which model each Skill runs on is declared in its own frontmatter, so you don't
+have to switch by hand — see the template `README.md`'s *Model tiers* table.
 
 ## Topology tiers, and the honest cost of moving between them
 
 | | T1 — single project | T2 — project + packages *(default)* | T3 — workspace + N projects |
 |---|---|---|---|
-| Good for | prototypes, <10 screens | one shipping app of any size | two apps sharing a spine, or a framework you ship to others |
+| Good for | prototypes, <10 screens | one shipping app of any size | two apps sharing a spine, or a framework you ship |
 | Compile-time layering | none | real | real, plus independent versioning |
 
 Moving up a tier is bounded and scripted — an edit to a text spec plus a
-regenerate, never `pbxproj` surgery. Moving up *after* two years of
-app-coupled code (adding a second app late) is the expensive path: an
-access-control pass across every type the new consumer touches, plus bundle
-lookups that fail at runtime rather than build time. See
-`docs/ai/modularization.md`'s rendered module graph for this repo's actual
-shape once `/start` has run — the full cost breakdown lives in the spec this
-template was built from.
+regenerate, never `pbxproj` surgery. The expensive path is adding a second app
+*after* two years of app-coupled code: an access-control pass over every type the
+new consumer touches, plus bundle lookups that fail at runtime rather than at
+build time. Once `/start` has run, `docs/ai/modularization.md` shows your real
+module graph.
 
 ## Where your requirements go: `docs/product/`
 
-This template describes **how** the app is built. It says nothing about **what**
-it's for — that's `docs/product/`, and it's the one folder here that nothing
-generates, renders or overwrites.
+This template describes **how** the app is built, never **what** it's for. That's
+`docs/product/` — the one folder here that nothing generates, renders or
+overwrites. Put the PRD, SRS and API contracts there as they arrive, and keep
+changing them; incomplete and mid-rewrite is the normal state.
 
-Put the PRD, SRS, API contracts and anything else domain-specific there as they
-arrive. They're expected to keep changing: a PRD rewritten mid-sprint, an SRS
-that grows a section after sign-off, an endpoint that changes shape twice before
-launch is the normal case, not a problem to fix first. Three rules follow:
-
-- **`CLAUDE.md` points at the folder and never summarizes it.** A digest of a
-  living document is stale within weeks and reads as current.
-- **Agents re-read the file per task**, not from memory. `/new-feature` checks
-  there for the screen's fields, types, states and endpoint before proposing
-  anything, and tells you which document it used — or that it found none.
-- **Incomplete is fine; contradictory gets a question.** Where a needed
-  requirement is missing or self-contradicting, the agent asks rather than
+- `CLAUDE.md` points at the folder and never summarizes it — a digest of a living
+  document is stale within weeks and reads as current.
+- `/new-feature` re-reads the relevant file at the start of each run and tells you
+  which document it used, or that it found none.
+- Where a requirement is missing or contradicts itself, the agent asks instead of
   inventing one, and the answer belongs back in `docs/product/`.
 
-Traceability stays deliberately light: note the requirement a feature came from
-in its commit message or `docs/PROJECT_MAP.md`. There's no generated
-requirement-to-code matrix, because keeping one accurate by hand is work nobody
-does twice.
+Traceability stays light on purpose: note the requirement in the commit message
+or `docs/PROJECT_MAP.md`. There's no generated requirement-to-code matrix — nobody
+keeps one accurate twice.
 
-## Local persistence: what the Q4 answer actually changes
+## What the persistence answer (Q4) changes
 
-`None` means every generated feature is remote-only — one dependency, one
-protocol, one fake in its test. That's a complete answer for an app that's a view
-onto a server.
+`None` means every generated feature is remote-only — a complete answer for an app
+that's a view onto a server. `SwiftData`/`Core Data` gives each feature a
+`<Name>LocalStore` beside its remote dependency, plus one `PersistenceController`
+injected from the composition root. SwiftData is generated end to end; Core Data
+is wired and compiling with `TODO(agent)` bodies, because its entity lives in a
+`.xcdatamodeld` that can't be generated from text.
 
-`SwiftData`/`Core Data` means each feature *additionally* gets a
-`<Name>LocalStore` beside its remote dependency, behind a protocol the consuming
-layer owns (Repository for MVVM, Worker for VIP, Service for MVC), plus one
-`PersistenceController` injected from the composition root. SwiftData also gets a
-`@Model` record in `Models/`, registered with the container schema automatically.
-Core Data gets the same wiring but leaves the store's two methods as
-`TODO(agent)` stubs — its entity lives in a `.xcdatamodeld` that can't be
-generated from text, so `/start` writes that follow-up to `TODO.md`.
-
-The generated policy is cache-on-success, read-on-failure, replace-the-whole-list.
-Correct for a whole-list fetch; a feature that pages, syncs deltas or edits
-locally rewrites that one method.
-
-Changing this answer later only affects features generated after the change —
-existing ones keep whatever they were built with, which is why `/start` treats a
-Q4 switch as a conflict to confirm rather than an edit to apply.
+The generated policy is cache-on-success, read-on-failure, replace-the-whole-list
+— right for a whole-list fetch; a feature that pages or syncs deltas rewrites that
+one method. Changing the answer later only affects features generated after it,
+which is why `/start` treats the switch as a conflict to confirm.
 
 ## Where the architecture reference lives
 
-`docs/ai/architecture.md.template` is a generic, multi-pattern reference — it
-does not describe a real app yet. `/start` renders it into a real
-`docs/ai/architecture.md` that shows **only** the one pattern your project
-chose; until then, this file intentionally shows all of them.
+`docs/ai/architecture.md.template` is a generic, multi-pattern reference — it does
+not describe a real app. `/start` renders it into `docs/ai/architecture.md`
+showing **only** the pattern your project chose. Until then it intentionally shows
+all of them.
 
 ## Configuration and secrets
 
-**On a fresh clone, copy `Secrets.xcconfig.example` to `Secrets.xcconfig` and
-fill it in before the first build** — the file is gitignored, so it isn't in
-your clone. On a networked project the app deliberately crashes at launch with a
-message saying so, rather than falling back to a wrong URL. An offline project
-(`networking: none` in the config) has no `API_BASE_URL` and no such check — its
-composition root never had a `RequestBuilder` rendered into it.
+`Secrets.xcconfig` (gitignored) holds anything that varies by environment or must
+not be committed. `Secrets.xcconfig.example` (committed) is the record of which
+keys exist — adding a key to one and not the other is what breaks CI and new
+machines.
 
-Filling it in "somehow" isn't enough, and two mistakes are common enough to name:
+**On a fresh clone of a project, copy `Secrets.xcconfig.example` to
+`Secrets.xcconfig` and fill it in before the first build.** A networked app
+deliberately crashes at launch with a message saying so, rather than falling back
+to a wrong URL. (An offline project — `networking: none` — has no `API_BASE_URL`
+and no such check.)
 
-- **Leaving a key blank.** `$(API_BASE_URL)` expands to an empty string, so a
-  blank key and a missing key are the same thing by the time Swift sees it. The
-  app stops at launch and tells you which file to edit.
-- **Writing `https://host` unescaped.** `//` starts a comment in xcconfig, so
-  that value truncates to `https:` — which is a *parseable* URL with no host.
-  Write `https:/$()/host`. The launch check tests for a scheme and a host
-  precisely so this fails loudly instead of breaking every request at runtime.
-- **Trying to quote your way out of it.** xcconfig has no string literals and no
+Two mistakes are common enough to name:
+
+- **Leaving a key blank.** `$(API_BASE_URL)` expands to an empty string, so blank
+  and missing are the same thing by the time Swift sees it. The app stops at
+  launch and names the file to edit.
+- **Writing `https://host` unescaped.** `//` starts a comment in xcconfig, so the
+  value truncates to `https:` — a parseable URL with no host. Write
+  `https:/$()/host`. Quoting does not help: xcconfig has no string literals and no
   escape character, so `"https://host"` truncates identically and leaves a stray
-  quote behind. `$()` (or `${}`) is the only thing that works, and it works by
-  slipping between xcconfig's parse and expand passes rather than by escaping
-  anything — `docs/CODING_STANDARDS.md` has the mechanism and a table of what
-  every candidate form actually resolves to.
+  quote. `$()` is the only form that works. `docs/CODING_STANDARDS.md` has the
+  mechanism and a table of what every candidate resolves to.
 
-Run `Scripts/check_secrets.sh` to catch both at commit time rather than in the
-simulator. It passes silently when there is no `Secrets.xcconfig` yet (the normal
-state of a fresh clone, and of CI jobs that inject configuration from the
-environment) and when there is no `API_BASE_URL` to check (an offline project).
+Run `Scripts/check_secrets.sh` to catch both at commit time instead of in the
+simulator. It passes silently when there's no `Secrets.xcconfig` yet (a fresh
+clone, or CI injecting from the environment) and when there's no `API_BASE_URL`
+to check.
 
-`Secrets.xcconfig` (gitignored) holds anything that varies by environment or
-must not be committed; `Secrets.xcconfig.example` (committed) is the record of
-which keys exist, and adding a key to one without the other is what breaks CI
-and new machines. The app target's build configurations include the former, and
-`API_BASE_URL` reaches the app through `Info.plist` — `AppEnvironment` reads it
-and the composition root passes the `URL` into `RequestBuilder`. A `Service` never holds a
-literal URL. Anything compiled into the binary is extractable from the IPA, so
-genuinely sensitive material stays server-side.
-
-Every key is read in one place: `AppEnvironment`, in the shared Core module.
-Nothing else in the app touches `Bundle.main` for configuration — the composition
-root asks `AppEnvironment.current.apiBaseURL` and hands the result to
-`RequestBuilder`. Add further keys with **`/add-secret KEY=value`** rather than by
-hand: it writes
-both files, adds the `$(KEY)` entry to each app target's `Info.plist` (without
-which Swift cannot see the value at all), and exposes it as a typed accessor on
-`AppEnvironment` in the shared module — the one place the app reads
-configuration. **Do not paste a real credential into the prompt.** The Skill is
-driven by an AI agent, so the value would live in that transcript and its logs
-long after you rotate the key; `Scripts/add_secret.sh` detects credential-shaped
-values, declares the key commented out in both files, and leaves you to paste
-the value into the gitignored `Secrets.xcconfig` yourself.
-
-Full rules, plus where data
-belongs (`UserDefaults` vs. the local store vs. Keychain), concurrency, ARC and
-struct-vs-class: `docs/CODING_STANDARDS.md`.
+Add further keys with **`/add-secret KEY=value`**, never by hand — it writes both
+files, adds the `$(KEY)` entry to each app's `Info.plist` (without which Swift
+can't see the value at all), and exposes a typed accessor on `AppEnvironment`, the
+one place in the app that reads configuration. **Don't paste a real credential
+into the prompt**: it would live in the agent transcript long after you rotate the
+key, so the script comments the key out in both files and leaves you to paste the
+value into the gitignored one yourself. Anything compiled into the binary is
+extractable from the IPA anyway — genuinely sensitive material stays server-side.
 
 ## When to run `xcodegen generate`
 
-The `.xcodeproj` is generated from `project.yml` and **committed** (see below),
-which means the file list Xcode builds from is a snapshot of the disk at the
-moment it was generated. That snapshot goes stale quietly: a file that exists on
-disk but isn't in it is never compiled, and nothing reports an error — the symbol
+The `.xcodeproj` is generated from `project.yml` and committed, so its file list
+is a snapshot of the disk from the last generate. It goes stale quietly: a file on
+disk that isn't in it is never compiled, and nothing reports an error — the symbol
 just isn't there.
 
 **Regenerate whenever the set of files or folders changed, or the spec did.**
@@ -226,30 +175,13 @@ just isn't there.
 | Any edit to `project.yml` — new target, dependency, build setting, `Info.plist` key | Editing `Secrets.xcconfig` (xcconfig is read at build time) |
 | Adding or removing a package dependency | |
 
-(Tuist projects: same rule, `tuist generate`, `Project.swift` in place of
-`project.yml`.)
+(Tuist: same rule, `tuist generate`, `Project.swift` in place of `project.yml`.)
 
-Two things worth knowing, because both catch people out:
-
-- **A new language used to need this and no longer does.** With the older
-  per-locale `de.lproj/Localizable.strings` layout, adding a language created a
-  new folder and a new file — squarely in the left column, so the app would build
-  and silently ship without the language until someone regenerated. This template
-  uses one String Catalog per module instead, so a new locale is an edit to a file
-  that already exists and the next build picks it up. XcodeGen also reads the
-  catalog to fill in the project's `knownRegions`, so the language list stays
-  correct on the next regenerate without anyone maintaining it by hand. (The
-  build ships a locale even before that regenerate — `knownRegions` is the Xcode
-  project's own record, not what the compiler reads.)
-- **Don't edit project settings in Xcode's inspector.** They live in `project.yml`;
-  the next regenerate overwrites anything set in the UI. Adding a *file* in Xcode
-  is fine — Xcode writes it into the project immediately, and because XcodeGen
-  globs directories the next regenerate finds it on disk anyway.
-
-The Skills regenerate for you whenever they add a file, so this is mainly a rule
-for hand-editing. When unsure, just run it: it's idempotent and takes about a
-second. The `pbxproj` diff it produces belongs in the same commit as the change
-that caused it.
+**Don't edit project settings in Xcode's inspector** — they live in `project.yml`
+and the next regenerate overwrites them. Adding a *file* in Xcode is fine. The
+Skills regenerate for you whenever they add a file, so this is mainly a rule for
+hand-editing; when unsure, just run it — it's idempotent, takes a second, and its
+`pbxproj` diff belongs in the same commit as the change that caused it.
 
 ## Localization
 
@@ -257,74 +189,45 @@ Each resource-owning module owns exactly one String Catalog —
 `<module>/Localization/Localizable.xcstrings` — holding every locale for that
 module, plus a generated `L10n.swift` beside it.
 
-- **Add or edit strings** in the catalog (Xcode's String Catalog editor, or by
-  hand — it's JSON), then run `Scripts/generate_strings.sh <module>` to refresh
-  the typed `L10n` accessor. Views reference `L10n.home.title`, never a raw key
-  and never a literal.
-- **Add a language** with `/translate <locale-code>`, which drafts every missing
-  entry and marks it `needs_review` — the catalog's own review state, which
-  Xcode's editor shows directly. Review before shipping the locale. You can also
-  add a language in Xcode; the two write the same file and don't fight.
+- **Add or edit strings** in the catalog (Xcode's editor, or by hand — it's JSON),
+  then run `Scripts/generate_strings.sh <module>`. Views reference
+  `L10n.home.title`, never a raw key and never a literal.
+- **Add a language** with `/translate <locale-code>`. It drafts every missing entry
+  as `needs_review`, which Xcode's editor shows directly — review before shipping
+  the locale. Adding a language in Xcode works too; both write the same file.
 - **Check health** with `Scripts/check_strings.sh` (also in the pre-commit hook):
-  it fails on a key missing or still `new` in any locale, and on the same key
-  owned by two modules. Outstanding `needs_review` entries are reported, not
-  failed.
-- **Why one catalog per module, not one per repo:** `NSLocalizedString` resolves
-  against a *bundle*. A shared framework that ships UI must carry its own strings
-  or they silently fall back to the raw key inside the consuming app. That's why
+  it fails on a key missing or still `new` in any locale, and on the same key owned
+  by two modules. `needs_review` entries are reported, not failed.
+- **One catalog per module, not one per repo**, because `NSLocalizedString`
+  resolves against a *bundle*. A shared framework that ships UI must carry its own
+  strings or they fall back to the raw key inside the consuming app — which is why
   the generated `L10n` resolves through its own module's bundle and never
   `Bundle.main`.
-- **Migrating an adopted project** off per-locale `.strings`:
+- **Adopting a project** still on per-locale `.strings`:
   `Scripts/migrate_strings_to_catalog.sh [<module>]` folds them into a catalog,
-  keeps existing translations and comments, regenerates `L10n.swift`, and removes
-  the old git-tracked files. Run `xcodegen generate` afterwards — the set of files
-  on disk changed. Until you migrate, `check_strings.sh` warns and skips that
-  module; it does not block commits. **Don't keep both formats**, though — that
-  one *does* fail, because the check only sees the catalog and parity would pass
-  while half your strings are invisible to it.
+  keeping translations and comments — then run `xcodegen generate`. Until you
+  migrate, `check_strings.sh` warns and skips that module. **Don't keep both
+  formats**: that one does fail, because the check sees only the catalog and
+  parity would pass while half your strings are invisible to it.
 
-## UIKit screens are laid out in code
+## Two things that are decisions, not gaps
 
-No Skill generates a storyboard or a XIB, and no generated UIKit screen uses one
-— view hierarchies and constraints are built in the ViewController, the app is
-launched programmatically from `SceneDelegate`, and the launch screen is the
-`UILaunchScreen` Info.plist dictionary rather than a storyboard file.
+- **UIKit screens are laid out in code.** No Skill generates a storyboard or XIB.
+  Storyboards are rewritten by Xcode on open, keyed by opaque identifiers an agent
+  can't edit against, and wire connections that fail at runtime instead of at
+  build time. Add Interface Builder files by hand if you want them; expect to
+  maintain those yourself.
+- **Generated `.xcodeproj`/`.xcworkspace` files are committed**, not gitignored —
+  a fresh clone opens and builds without installing XcodeGen first, at the cost of
+  a pbxproj diff on every regenerate. Always gitignored regardless: `xcuserdata/`,
+  `.DS_Store`, build products, `Secrets.xcconfig`.
 
-This was a considered call, not an oversight: storyboards are rewritten by Xcode
-on open (so they diff and conflict without anyone changing the design), keyed by
-opaque generated identifiers (so a merge conflict is unreadable and an agent has
-nothing stable to edit against), and wire `@IBOutlet`/`@IBAction` connections that
-fail at runtime rather than at build time — which is the exact failure mode this
-template's typed color tokens and generated `L10n` exist to eliminate.
+## Known limitations
 
-Nothing stops you adding Interface Builder files for screens you write by hand;
-they're picked up on the next regenerate. Just expect to maintain those yourself
-rather than through a Skill.
-
-## Generated `.xcodeproj`s are committed
-
-`/start`, `/add-module`, and `/add-app` regenerate `.xcodeproj`/`.xcworkspace`
-files in place, and they're committed to the repo — not gitignored. That
-keeps a fresh clone openable without requiring XcodeGen/Tuist just to get to a
-build, at the cost of a pbxproj diff on every regenerate. Always gitignored
-regardless: `xcuserdata/`, `.DS_Store`, build products, `Secrets.xcconfig` —
-see `.gitignore`, which `/start` copies in with those entries already present.
-
-## Known limitations (carried over honestly, not hidden)
-
-- Four combinations are fully template-backed (MVVM+SwiftUI, VIP+SwiftUI,
-  VIP+UIKit, MVC+UIKit — see the template repo's own `README.md`), each at
-  T1/T2 shape only; every other combination is template-assisted
-  (folder/DI/nav/test scaffolding is still deterministic, but layer file
-  bodies fall back to the agent writing them from `docs/ai/architecture.md`'s
-  description).
-- Core Data's per-feature store is wired and compiling but its two methods are
-  `TODO(agent)` stubs; SwiftData is generated end to end.
-- No auth/session layer (token refresh, Keychain, 401 retry), no deep-link →
-  `Route` mapping, no UI/snapshot test tier — unaddressed so far.
-- No CI pipeline, no hardcoded-string enforcement script, no pagination
-  convention — these are documented gaps, not oversights. See the template
-  repo's own `README.md` for the full list.
-- Shared views are a review gate, not a tooled one: nothing detects a feature
-  that quietly reimplements a component `DesignSystem/Views/` already has,
-  the way `check_hardcoded_colors.sh` detects a raw color.
+Carried over honestly rather than hidden — the full list lives in the template
+repo's own `README.md`. The short version: four architecture combinations are
+fully template-backed (MVVM+SwiftUI, VIP+SwiftUI, VIP+UIKit, MVC+UIKit) at T1/T2
+shape and everything else is template-assisted; Core Data's per-feature store is a
+wired seam with `TODO(agent)` bodies; there's no auth/session layer, no deep-link
+mapping, no UI/snapshot test tier, no CI pipeline and no hardcoded-string check;
+and the shared-views rule is a review gate, not a tooled one.

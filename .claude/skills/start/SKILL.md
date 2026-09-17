@@ -105,13 +105,32 @@ Then follow the same steps below, but:
 - Write a `TODO.md` entry naming each existing project not yet described by a
   spec file.
 
-### 1.2 Ask the Setup Questionnaire — one batched interaction
+### 1.2 Ask the Setup Questionnaire — always, as one batched interaction
 
-Ask all eleven actual questions together (Q2/Language is fixed at Swift-only —
-nothing to ask) via `AskUserQuestion` where the option shape fits, or as one
-consolidated prompt otherwise — never one question per turn. Tell the
-developer they can say "use the recommended defaults" and you'll fill in the
-rest.
+**Presenting the questionnaire is mandatory and unconditional.** Every first run
+shows the developer all eleven actual questions (Q2/Language is fixed at
+Swift-only — nothing to ask) before anything is written to disk. This holds when
+the invocation already stated preferences (`/start MyApp, MVVM + SwiftUI`), when
+the developer says up front to just use the defaults, and when the answers look
+obvious from the repo. Stated preferences **pre-fill** the list; they never
+replace showing it. There is no flag, phrasing or shortcut that skips this step —
+a developer who never saw Q4 or Q6 doesn't know a decision was made for them, and
+every Skill from then on reads those answers back as if they had been chosen.
+Path 3 has the one carve-out, and it removes a question rather than the step: Q8's
+deployment target is read off the existing project's build settings instead of
+being asked (§1.1). Everything else is still presented.
+
+Ask them as **one consolidated, numbered prompt** with each question's recommended
+default shown inline — the whole list in a single message, never one question per
+turn. (`AskUserQuestion` can carry a subset if a picker helps, but it cannot carry
+this questionnaire: it caps at four questions per call and four options per
+question, Q5 has five options, and Q12 is free text. Use it as an aid on top of
+the written list, never as a substitute for it.)
+
+Accepting the defaults stays a one-reply action: say plainly that **"use the
+recommended defaults"** answers every question but the last in one go, and that
+Q12 (display name, bundle ID, org/team ID) has no default and is the one thing
+they must supply themselves.
 
 | # | Question | Options | Recommended default |
 |---|---|---|---|
